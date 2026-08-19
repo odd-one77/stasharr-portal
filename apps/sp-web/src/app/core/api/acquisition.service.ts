@@ -24,4 +24,26 @@ export class AcquisitionService {
       params,
     });
   }
+
+  removeSceneRequest(
+    stashId: string,
+    options?: { deleteFiles?: boolean; addImportExclusion?: boolean },
+  ): Observable<{ removed: true; stashId: string; whisparrMovieId: number | null }> {
+    let params = new HttpParams();
+    if (options?.deleteFiles !== undefined) {
+      params = params.set('deleteFiles', String(options.deleteFiles));
+    }
+    if (options?.addImportExclusion !== undefined) {
+      params = params.set(
+        'addImportExclusion',
+        String(options.addImportExclusion),
+      );
+    }
+
+    return this.http.delete<{
+      removed: true;
+      stashId: string;
+      whisparrMovieId: number | null;
+    }>(`/api/requests/${encodeURIComponent(stashId)}`, { params });
+  }
 }
