@@ -361,6 +361,22 @@ a {
   cursor: pointer;
 }
 
+.secondary-action.danger {
+  border-color: color-mix(in srgb, var(--acquisition-attention-copy) 55%, transparent);
+  color: var(--acquisition-attention-copy);
+}
+
+.secondary-action.danger:hover {
+  background: color-mix(in srgb, var(--acquisition-attention-copy) 12%, var(--surface-elevated));
+}
+
+.secondary-action:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+  transform: none;
+}
+
+
 .small,
 .compact {
   min-height: 2rem;
