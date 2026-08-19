@@ -138,6 +138,7 @@ export class PerformerPageComponent implements OnInit, AfterViewInit, OnDestroy 
     PerformerPageComponent.DEFAULT_DIRECTION,
   );
   protected readonly onlyFavoriteStudios = signal(false);
+  protected readonly libraryOnly = signal(false);
   protected readonly studioSearchTerm = signal('');
   protected readonly selectedStudios = signal<SelectedStudioChip[]>([]);
   protected readonly studioOptions = signal<PerformerStudioOption[]>([]);
@@ -271,8 +272,20 @@ export class PerformerPageComponent implements OnInit, AfterViewInit, OnDestroy 
       });
   }
 
-  protected hasScenes(): boolean {
-    return this.scenes().length > 0;
+  protected displayedScenes(): DiscoverItem[] {
+    if (!this.libraryOnly()) {
+      return this.scenes();
+    }
+
+    return this.scenes().filter((item) => item.status.state === 'AVAILABLE');
+  }
+
+  protected hasDisplayedScenes(): boolean {
+    return this.displayedScenes().length > 0;
+  }
+
+  protected onLibraryOnlyChanged(nextValue: boolean): void {
+    this.libraryOnly.set(nextValue);
   }
 
   protected retryInitialScenesLoad(): void {

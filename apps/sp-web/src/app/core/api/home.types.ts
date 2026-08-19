@@ -66,6 +66,7 @@ export type HomeRailConfig =
 
 export interface HomeRailItem {
   id: string;
+  activeCatalogSceneId: string | null;
   title: string;
   description: string | null;
   imageUrl: string | null;

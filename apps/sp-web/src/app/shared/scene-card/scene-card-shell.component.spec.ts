@@ -3,6 +3,7 @@ import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import {
   SceneCardBodyDirective,
+  SceneCardCenterActionDirective,
   SceneCardMediaFooterDirective,
   SceneCardPlaceholderDirective,
   SceneCardShellComponent,
@@ -22,6 +23,7 @@ import {
     >
       <div sceneCardPlaceholder class="placeholder-copy">Missing artwork</div>
       <span sceneCardTopRight class="top-right">Top Flag</span>
+      <button sceneCardCenterAction class="center-action-test" type="button">Play</button>
       <div sceneCardMediaFooter class="media-footer-test">Footer copy</div>
       <div sceneCardBody class="body-test">Body copy</div>
     </app-scene-card-shell>
@@ -30,6 +32,7 @@ import {
     SceneCardShellComponent,
     SceneCardTopRightDirective,
     SceneCardMediaFooterDirective,
+    SceneCardCenterActionDirective,
     SceneCardBodyDirective,
     SceneCardPlaceholderDirective,
   ],
@@ -98,6 +101,9 @@ describe('SceneCardShellComponent', () => {
       'Footer copy',
     );
     expect(fixture.nativeElement.querySelector('.body-test')?.textContent).toContain('Body copy');
+    expect(fixture.nativeElement.querySelector('.center-action-test')?.textContent).toContain(
+      'Play',
+    );
     expect(fixture.nativeElement.querySelector('.progress-track')).toBeNull();
   });
 

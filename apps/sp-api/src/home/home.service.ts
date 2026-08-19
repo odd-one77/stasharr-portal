@@ -17,6 +17,7 @@ import { LibrarySceneFeedItemDto } from '../library/dto/library-scenes-feed.dto'
 import { LibraryService } from '../library/library.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { CatalogProviderService } from '../providers/catalog/catalog-provider.service';
+import { type CatalogProviderKey } from '../providers/catalog/catalog-provider.util';
 import {
   StashAdapter,
   type StashContinueWatchingItem,
@@ -165,10 +166,13 @@ export class HomeService {
       return { items: [], message: null };
     }
 
+    const activeCatalogProviderKey = await this.getOptionalCatalogProviderKey();
+
     try {
       const items = await this.stashAdapter.getContinueWatchingScenes(
         config,
         HOME_RAIL_SCENE_LIMIT_DEFAULT,
+        activeCatalogProviderKey,
       );
 
       return {
@@ -616,6 +620,7 @@ export class HomeService {
   ): HomeRailItemDto {
     return {
       id: item.id,
+      activeCatalogSceneId: item.activeCatalogSceneId,
       title: item.title,
       description: item.description,
       imageUrl: item.imageUrl,
@@ -637,15 +642,24 @@ export class HomeService {
   private toContinueWatchingRailItem(
     item: StashContinueWatchingItem,
   ): HomeRailItemDto {
+    const screenshotUrl = item.imageUrl
+      ? `/api/media/stash/scenes/${encodeURIComponent(item.id)}/screenshot`
+      : null;
+    const studioLogoUrl =
+      item.studioId && item.studioImageUrl
+        ? `/api/media/stash/studios/${encodeURIComponent(item.studioId)}/logo`
+        : null;
+
     return {
       id: item.id,
+      activeCatalogSceneId: item.activeCatalogSceneId,
       title: item.title,
       description: item.description,
-      imageUrl: item.imageUrl,
-      cardImageUrl: item.cardImageUrl,
+      imageUrl: screenshotUrl,
+      cardImageUrl: screenshotUrl,
       studioId: item.studioId,
       studio: item.studio,
-      studioImageUrl: item.studioImageUrl,
+      studioImageUrl: studioLogoUrl,
       releaseDate: item.releaseDate,
       duration: item.duration,
       type: 'SCENE',
@@ -669,6 +683,7 @@ export class HomeService {
 
     return {
       id: scene.id,
+      activeCatalogSceneId: null,
       title: scene.title,
       description: scene.details,
       imageUrl: scene.imageUrl,
@@ -1284,5 +1299,15 @@ export class HomeService {
       baseUrl: catalogProvider.baseUrl,
       apiKey: catalogProvider.apiKey,
     };
+  }
+
+  private async getOptionalCatalogProviderKey(): Promise<CatalogProviderKey | null> {
+    try {
+      const catalogProvider =
+        await this.catalogProviderService.getConfiguredCatalogProvider();
+      return catalogProvider.providerKey;
+    } catch {
+      return null;
+    }
   }
 }

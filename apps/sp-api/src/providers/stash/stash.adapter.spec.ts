@@ -419,11 +419,13 @@ describe('StashAdapter', () => {
     const result = await adapter.getContinueWatchingScenes(
       { baseUrl: 'http://stash.local', apiKey: 'secret' },
       16,
+      null,
     );
 
     expect(result).toEqual([
       {
         id: '411',
+        activeCatalogSceneId: null,
         title: 'Half Watched Scene',
         description: null,
         imageUrl: 'http://stash.local/images/411.jpg',
@@ -482,9 +484,50 @@ describe('StashAdapter', () => {
     const result = await adapter.getContinueWatchingScenes(
       { baseUrl: 'http://stash.local' },
       16,
+      null,
     );
 
     expect(result).toEqual([]);
+  });
+
+  it('resolves the active catalog scene id from linked stash_ids', async () => {
+    fetchMock.mockResolvedValue({
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          data: {
+            findScenes: {
+              scenes: [
+                {
+                  id: '411',
+                  title: 'Half Watched Scene',
+                  resume_time: 900,
+                  stash_ids: [
+                    {
+                      endpoint: 'https://stashdb.org/graphql',
+                      stash_id: 'catalog-scene-1',
+                    },
+                  ],
+                  files: [{ duration: 1800 }],
+                },
+              ],
+            },
+          },
+        }),
+    } as Response);
+
+    const result = await adapter.getContinueWatchingScenes(
+      { baseUrl: 'http://stash.local' },
+      16,
+      'STASHDB',
+    );
+
+    expect(result).toEqual([
+      expect.objectContaining({
+        id: '411',
+        activeCatalogSceneId: 'catalog-scene-1',
+      }),
+    ]);
   });
 
   it('returns paginated local scene identity snapshots for bulk stash sync', async () => {

@@ -18,6 +18,18 @@
     <span sceneCardTopRight class="top-badge">{{ badge.label }}</span>
   }
 
+  @if (showLargePlayAction()) {
+    <button
+      type="button"
+      sceneCardCenterAction
+      class="play-center-button"
+      aria-label="Play"
+      (click)="playScene($event)"
+    >
+      <i class="pi pi-play" aria-hidden="true"></i>
+    </button>
+  }
+
   <div sceneCardMediaFooter class="media-footer">
     @if (variant === 'rail') {
       <h3 class="media-title">{{ item.title }}</h3>
@@ -35,7 +47,7 @@
       </p>
 
       <div class="media-action">
-        @if (showPlayAction()) {
+        @if (showCompactPlayAction()) {
           <button
             type="button"
             class="play-cta"

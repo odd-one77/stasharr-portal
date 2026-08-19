@@ -1,53 +1,22 @@
 import { signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { of } from 'rxjs';
+import { of, throwError } from 'rxjs';
+import { AppNotificationsService } from '../../core/notifications/app-notifications.service';
 import { DiscoverService } from '../../core/api/discover.service';
 import { SceneExplorerItem, ScenesFeedResponse } from '../../core/api/discover.types';
 import { HomeService } from '../../core/api/home.service';
-import { HomeRailConfig, HomeRailContentResponse, HomeRailItem } from '../../core/api/home.types';
+import { HomeRailContentResponse, HomeRailItem } from '../../core/api/home.types';
 import { RuntimeHealthService } from '../../core/api/runtime-health.service';
 import { RuntimeHealthResponse } from '../../core/api/runtime-health.types';
 import { SetupStatusStore } from '../../core/api/setup-status.store';
 import { SetupStatusResponse } from '../../core/api/setup.types';
-import { AppNotificationsService } from '../../core/notifications/app-notifications.service';
 import { HomePageComponent } from './home-page.component';
-
-function buildDiscoveryItem(overrides: Partial<SceneExplorerItem> = {}): SceneExplorerItem {
-  return {
-    id: 'stashdb-scene-1',
-    title: 'Discovery Scene',
-    description: 'Discovered in StashDB.',
-    imageUrl: 'http://cdn.local/discovery.jpg',
-    cardImageUrl: 'http://cdn.local/discovery-card.jpg',
-    studioId: 'studio-1',
-    studio: 'Studio One',
-    studioImageUrl: 'http://cdn.local/studio-1.jpg',
-    releaseDate: '2026-03-28',
-    duration: 1800,
-    type: 'SCENE',
-    source: 'STASHDB',
-    status: { state: 'NOT_REQUESTED' },
-    requestable: true,
-    ...overrides,
-  };
-}
-
-function buildDiscoverFeed(
-  items: SceneExplorerItem[] = [buildDiscoveryItem()],
-): ScenesFeedResponse {
-  return {
-    total: items.length,
-    page: 1,
-    perPage: 16,
-    hasMore: false,
-    items,
-  };
-}
 
 function buildRailItem(overrides: Partial<HomeRailItem> = {}): HomeRailItem {
   return {
     id: 'local-scene-1',
+    activeCatalogSceneId: null,
     title: 'Library Scene',
     description: 'Already in the local library.',
     imageUrl: '/api/media/stash/scenes/local-scene-1/screenshot',
@@ -64,6 +33,38 @@ function buildRailItem(overrides: Partial<HomeRailItem> = {}): HomeRailItem {
     viewUrl: 'http://stash.local/scenes/local-scene-1',
     progressPercent: null,
     ...overrides,
+  };
+}
+
+function buildFavoriteItem(overrides: Partial<SceneExplorerItem> = {}): SceneExplorerItem {
+  return {
+    id: 'catalog-scene-1',
+    title: 'Favorite Release',
+    description: null,
+    imageUrl: 'https://stashdb.local/scene-1.jpg',
+    cardImageUrl: 'https://stashdb.local/scene-1.jpg',
+    studioId: 'studio-1',
+    studio: 'Studio One',
+    studioImageUrl: null,
+    releaseDate: '2026-04-01',
+    duration: 1200,
+    type: 'SCENE',
+    source: 'STASHDB',
+    status: { state: 'NOT_REQUESTED' },
+    requestable: true,
+    ...overrides,
+  };
+}
+
+function buildFavoriteFeed(
+  items: SceneExplorerItem[] = [buildFavoriteItem()],
+): ScenesFeedResponse {
+  return {
+    total: items.length,
+    page: 1,
+    perPage: 16,
+    hasMore: false,
+    items,
   };
 }
 
@@ -127,91 +128,25 @@ describe('HomePageComponent', () => {
   });
 
   async function renderPage(options?: {
-    discoverFeed?: ScenesFeedResponse;
-    homeRailItemsById?: Record<string, HomeRailContentResponse>;
+    favoriteFeed?: ScenesFeedResponse;
+    favoriteFeedError?: boolean;
     continueWatching?: HomeRailContentResponse;
     recentlyAdded?: HomeRailContentResponse;
     runtimeHealth?: RuntimeHealthResponse;
     setupStatus?: SetupStatusResponse;
   }) {
-    const rails: HomeRailConfig[] = [
-      {
-        id: 'rail-stashdb',
-        key: null,
-        kind: 'CUSTOM',
-        source: 'STASHDB',
-        contentType: 'SCENES',
-        title: 'Discovery Rail',
-        subtitle: 'StashDB discovery',
-        enabled: true,
-        sortOrder: 0,
-        editable: true,
-        deletable: true,
-        config: {
-          sort: 'DATE',
-          direction: 'DESC',
-          favorites: 'ALL',
-          tagIds: ['tag-1'],
-          tagNames: ['Tag One'],
-          tagMode: 'AND',
-          studioIds: ['studio-1'],
-          studioNames: ['Studio One'],
-          limit: 16,
-        },
-      },
-      {
-        id: 'rail-stash',
-        key: null,
-        kind: 'CUSTOM',
-        source: 'STASH',
-        contentType: 'SCENES',
-        title: 'Library Rail',
-        subtitle: 'Local Stash browsing',
-        enabled: true,
-        sortOrder: 1,
-        editable: true,
-        deletable: true,
-        config: {
-          sort: 'CREATED_AT',
-          direction: 'DESC',
-          titleQuery: 'archive',
-          tagIds: ['tag-2'],
-          tagNames: ['Tag Two'],
-          tagMode: 'OR',
-          studioIds: ['studio-2'],
-          studioNames: ['Archive'],
-          favoritePerformersOnly: true,
-          favoriteStudiosOnly: true,
-          favoriteTagsOnly: true,
-          limit: 16,
-        },
-      },
-    ];
-
-    const homeRailItemsById: Record<string, HomeRailContentResponse> =
-      options?.homeRailItemsById ?? {
-        'rail-stash': {
-          items: [buildRailItem()],
-          message: null,
-        },
-      };
-
     const discoverService = {
-      getScenesFeed: vi.fn().mockReturnValue(of(options?.discoverFeed ?? buildDiscoverFeed())),
-      searchSceneTags: vi.fn().mockReturnValue(of([])),
-      searchPerformerStudios: vi.fn().mockReturnValue(of([])),
+      getScenesFeed: vi
+        .fn()
+        .mockReturnValue(
+          options?.favoriteFeedError
+            ? throwError(() => new Error('feed failed'))
+            : of(options?.favoriteFeed ?? buildFavoriteFeed()),
+        ),
       getSceneRequestOptions: vi.fn().mockReturnValue(of(null)),
       submitSceneRequest: vi.fn().mockReturnValue(of(null)),
     };
     const homeService = {
-      getRails: vi.fn().mockReturnValue(of(rails)),
-      getRailItems: vi.fn().mockImplementation((id: string) => of(homeRailItemsById[id])),
-      searchStashTags: vi.fn().mockReturnValue(of([])),
-      searchStashStudios: vi.fn().mockReturnValue(of([])),
-      updateRails: vi.fn(),
-      createRail: vi.fn(),
-      updateRail: vi.fn(),
-      deleteRail: vi.fn(),
       getContinueWatching: vi
         .fn()
         .mockReturnValue(of(options?.continueWatching ?? { items: [], message: null })),
@@ -232,29 +167,13 @@ describe('HomePageComponent', () => {
       imports: [HomePageComponent],
       providers: [
         provideRouter([]),
-        {
-          provide: DiscoverService,
-          useValue: discoverService,
-        },
-        {
-          provide: HomeService,
-          useValue: homeService,
-        },
-        {
-          provide: RuntimeHealthService,
-          useValue: runtimeHealthService,
-        },
-        {
-          provide: SetupStatusStore,
-          useValue: setupStatusStore,
-        },
+        { provide: DiscoverService, useValue: discoverService },
+        { provide: HomeService, useValue: homeService },
+        { provide: RuntimeHealthService, useValue: runtimeHealthService },
+        { provide: SetupStatusStore, useValue: setupStatusStore },
         {
           provide: AppNotificationsService,
-          useValue: {
-            success: vi.fn(),
-            error: vi.fn(),
-            info: vi.fn(),
-          },
+          useValue: { success: vi.fn(), error: vi.fn(), info: vi.fn() },
         },
       ],
     }).compileComponents();
@@ -283,7 +202,27 @@ describe('HomePageComponent', () => {
     return section as HTMLElement;
   }
 
-  it('does not render the Continue Watching or Recently Added rails when both are empty', async () => {
+  it('loads all three rails independently and does not render the rail editor', async () => {
+    const { fixture, discoverService, homeService, runtimeHealthService } = await renderPage();
+
+    expect(discoverService.getScenesFeed).toHaveBeenCalledWith(
+      1,
+      16,
+      'DATE',
+      'DESC',
+      [],
+      undefined,
+      'ALL',
+      [],
+    );
+    expect(homeService.getContinueWatching).toHaveBeenCalledTimes(1);
+    expect(homeService.getRecentlyAdded).toHaveBeenCalledTimes(1);
+    expect(runtimeHealthService.ensureStarted).toHaveBeenCalledTimes(1);
+    expect(fixture.nativeElement.querySelector('.editor-shell')).toBeNull();
+    expect(fixture.nativeElement.textContent).not.toContain('Customize Home');
+  });
+
+  it('hides Continue Watching and Recently Added when both are empty', async () => {
     const { fixture } = await renderPage();
 
     const sections = Array.from(
@@ -294,12 +233,13 @@ describe('HomePageComponent', () => {
     expect(sections).not.toContain('Fresh in your library');
   });
 
-  it('renders Continue Watching with a progress bar and hides it when nothing is in progress', async () => {
-    const { fixture, homeService } = await renderPage({
+  it('renders Continue Watching with a large play button and routes internally when linked', async () => {
+    const { fixture } = await renderPage({
       continueWatching: {
         items: [
           buildRailItem({
             id: 'in-progress-1',
+            activeCatalogSceneId: 'catalog-411',
             title: 'Half Watched',
             progressPercent: 42,
           }),
@@ -308,135 +248,105 @@ describe('HomePageComponent', () => {
       },
     });
 
-    expect(homeService.getContinueWatching).toHaveBeenCalledTimes(1);
-
     const section = railSectionByTitle(fixture, 'Pick up where you left off');
     const progressFill = section.querySelector('.progress-fill') as HTMLElement | null;
+    const largePlay = section.querySelector('.play-center-button') as HTMLButtonElement | null;
+    const sceneLink = section.querySelector('.media-link-stretch') as HTMLAnchorElement | null;
 
-    expect(progressFill).toBeTruthy();
     expect(progressFill?.style.width).toBe('42%');
+    expect(largePlay).toBeTruthy();
+    expect(sceneLink?.getAttribute('href')).toContain('/scene/catalog-411');
+
+    const windowOpenSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
+    largePlay?.click();
+
+    expect(windowOpenSpy).toHaveBeenCalledWith(
+      '/api/media/stash/scenes/in-progress-1/stream',
+      '_blank',
+      'noopener,noreferrer',
+    );
+
+    windowOpenSpy.mockRestore();
   });
 
-  it('renders Recently Added scenes above the existing rails', async () => {
-    const { fixture, homeService } = await renderPage({
-      recentlyAdded: {
-        items: [buildRailItem({ id: 'fresh-1', title: 'Fresh Scene' })],
+  it('routes Continue Watching externally when no catalog scene is linked', async () => {
+    const { fixture } = await renderPage({
+      continueWatching: {
+        items: [
+          buildRailItem({
+            id: 'in-progress-2',
+            activeCatalogSceneId: null,
+            viewUrl: 'http://stash.local/scenes/in-progress-2',
+            progressPercent: 10,
+          }),
+        ],
         message: null,
       },
     });
 
-    expect(homeService.getRecentlyAdded).toHaveBeenCalledTimes(1);
+    const section = railSectionByTitle(fixture, 'Pick up where you left off');
+    const sceneLink = section.querySelector('.media-link-stretch') as HTMLAnchorElement | null;
+
+    expect(sceneLink?.getAttribute('href')).toBe('http://stash.local/scenes/in-progress-2');
+  });
+
+  it('renders Recently Added scenes and routes internally when linked', async () => {
+    const { fixture } = await renderPage({
+      recentlyAdded: {
+        items: [
+          buildRailItem({
+            id: 'fresh-1',
+            activeCatalogSceneId: 'catalog-fresh-1',
+            title: 'Fresh Scene',
+          }),
+        ],
+        message: null,
+      },
+    });
 
     const section = railSectionByTitle(fixture, 'Fresh in your library');
+    const sceneLink = section.querySelector('.media-link-stretch') as HTMLAnchorElement | null;
+
     expect(section.textContent).toContain('Fresh Scene');
+    expect(sceneLink?.getAttribute('href')).toContain('/scene/catalog-fresh-1');
   });
 
-  it('routes STASHDB rails to /scenes and STASH rails to /library', async () => {
-    const { fixture, discoverService, runtimeHealthService } = await renderPage();
+  it('renders recently released favorites with a working request flow', async () => {
+    const { fixture } = await renderPage({
+      favoriteFeed: buildFavoriteFeed([buildFavoriteItem()]),
+    });
+    const component = fixture.componentInstance as unknown as {
+      requestModalOpen: () => boolean;
+      requestContext: () => { id: string } | null;
+    };
 
-    expect(discoverService.getScenesFeed).toHaveBeenCalledWith(
-      1,
-      16,
-      'DATE',
-      'DESC',
-      ['tag-1'],
-      'AND',
-      'ALL',
-      ['studio-1'],
-    );
+    const section = railSectionByTitle(fixture, 'Recently released from your favorites');
+    const requestButton = section.querySelector('.request-cta') as HTMLButtonElement | null;
 
-    const discoveryLink = railSectionByTitle(fixture, 'Discovery Rail').querySelector(
-      '.see-all-link',
-    ) as HTMLAnchorElement | null;
-    const libraryLink = railSectionByTitle(fixture, 'Library Rail').querySelector(
-      '.see-all-link',
-    ) as HTMLAnchorElement | null;
-
-    expect(discoveryLink?.getAttribute('href')).toContain('/scenes');
-    expect(discoveryLink?.getAttribute('href')).toContain('fav=ALL');
-    expect(discoveryLink?.getAttribute('href')).toContain('tags=tag-1');
-    expect(discoveryLink?.getAttribute('href')).toContain('studios=studio-1');
-
-    expect(libraryLink?.getAttribute('href')).toContain('/library');
-    expect(libraryLink?.getAttribute('href')).toContain('sort=CREATED_AT');
-    expect(libraryLink?.getAttribute('href')).toContain('dir=DESC');
-    expect(libraryLink?.getAttribute('href')).toContain('query=archive');
-    expect(libraryLink?.getAttribute('href')).toContain('favoritePerformersOnly=1');
-    expect(libraryLink?.getAttribute('href')).toContain('favoriteStudiosOnly=1');
-    expect(libraryLink?.getAttribute('href')).toContain('favoriteTagsOnly=1');
-    expect(libraryLink?.getAttribute('href')).toContain('tags=tag-2');
-    expect(libraryLink?.getAttribute('href')).toContain('studios=studio-2');
-    expect(runtimeHealthService.ensureStarted).toHaveBeenCalledTimes(1);
-  });
-
-  it('renders Home rails through the shared scene card and preserves request routing', async () => {
-    const { fixture } = await renderPage();
-    const component = fixture.componentInstance as any;
-    const cards = fixture.nativeElement.querySelectorAll('app-scene-card');
-    const discoverySection = railSectionByTitle(fixture, 'Discovery Rail');
-    const librarySection = railSectionByTitle(fixture, 'Library Rail');
-    const requestButton = discoverySection.querySelector(
-      '.request-cta',
-    ) as HTMLButtonElement | null;
-    const libraryLink = librarySection.querySelector(
-      '.media-link-stretch',
-    ) as HTMLAnchorElement | null;
-
-    expect(cards).toHaveLength(2);
-    expect(libraryLink?.getAttribute('href')).toBe('http://stash.local/scenes/local-scene-1');
-    expect(component.requestModalOpen()).toBe(false);
+    expect(requestButton).toBeTruthy();
 
     requestButton?.click();
 
     expect(component.requestModalOpen()).toBe(true);
-    expect(component.requestContext()).toEqual({
-      id: 'stashdb-scene-1',
-      title: 'Discovery Scene',
-      imageUrl: 'http://cdn.local/discovery.jpg',
-    });
+    expect(component.requestContext()?.id).toBe('catalog-scene-1');
   });
 
-  it('limits custom rail creation to Catalog and Stash and removes hybrid-only controls', async () => {
-    const { fixture } = await renderPage();
-    const component = fixture.componentInstance as any;
+  it('shows a retry state when the favorites feed fails to load', async () => {
+    const { fixture, discoverService } = await renderPage({ favoriteFeedError: true });
 
-    component.openEditor();
-    component.openCreateRailForm();
-    fixture.detectChanges();
-    await fixture.whenStable();
-    fixture.detectChanges();
+    const errorState = fixture.nativeElement.querySelector('.error-state');
+    expect(errorState?.textContent).toContain('Favorites could not be loaded');
 
-    expect(component.sourceOptions.map((option: { value: string }) => option.value)).toEqual([
-      'STASHDB',
-      'STASH',
-    ]);
-    expect(fixture.nativeElement.textContent).not.toContain('Hybrid');
-    expect(fixture.nativeElement.querySelector('#home-rail-hybrid-favorites')).toBeNull();
-    expect(fixture.nativeElement.querySelector('#home-rail-library-availability')).toBeNull();
+    const retryButton = errorState?.querySelector('.state-button') as HTMLButtonElement;
+    retryButton.click();
 
-    component.updateRailSource('STASH');
-    fixture.detectChanges();
-
-    expect(fixture.nativeElement.querySelector('#home-rail-hybrid-favorites')).toBeNull();
-    expect(fixture.nativeElement.querySelector('#home-rail-library-availability')).toBeNull();
+    expect(discoverService.getScenesFeed).toHaveBeenCalledTimes(2);
   });
 
-  it('guides first-run users when Home rails have no data yet', async () => {
-    const { fixture } = await renderPage({
-      discoverFeed: buildDiscoverFeed([]),
-      homeRailItemsById: {
-        'rail-stash': {
-          items: [],
-          message: null,
-        },
-      },
-    });
+  it('shows the empty state when nothing is available anywhere', async () => {
+    const { fixture } = await renderPage({ favoriteFeed: buildFavoriteFeed([]) });
 
-    const text = fixture.nativeElement.textContent ?? '';
-
-    expect(text).toContain('Home is waiting for useful scene data');
-    expect(text).toContain('Run the initial indexing sync');
-    expect(text).toContain('Open Indexing');
-    expect(text).toContain('Browse Scenes');
+    expect(fixture.nativeElement.querySelector('.empty-state')).toBeTruthy();
+    expect(fixture.nativeElement.textContent).toContain('Browse Scenes');
   });
 });

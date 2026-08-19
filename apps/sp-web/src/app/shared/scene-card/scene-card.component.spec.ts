@@ -126,6 +126,30 @@ describe('SceneCardComponent', () => {
     expect(emitted).toEqual(['scene-1']);
   });
 
+  it('shows a large centered play button instead of the compact footer CTA when playSize is large', async () => {
+    const { fixture, component } = await renderCard();
+    const emitted: string[] = [];
+    component.item = buildSceneCardItem({ status: { state: 'AVAILABLE' } });
+    component.requestable = false;
+    component.playable = true;
+    component.playSize = 'large';
+    component.play.subscribe((id) => emitted.push(id));
+
+    fixture.detectChanges();
+
+    const largeButton = fixture.nativeElement.querySelector(
+      '.play-center-button',
+    ) as HTMLButtonElement | null;
+    const compactButton = fixture.nativeElement.querySelector('.play-cta');
+
+    expect(largeButton).toBeTruthy();
+    expect(compactButton).toBeNull();
+
+    largeButton?.click();
+
+    expect(emitted).toEqual(['scene-1']);
+  });
+
   it('does not show a play CTA for playable non-available scenes', async () => {
     const { fixture, component } = await renderCard();
     component.item = buildSceneCardItem({ status: { state: 'DOWNLOADING' } });

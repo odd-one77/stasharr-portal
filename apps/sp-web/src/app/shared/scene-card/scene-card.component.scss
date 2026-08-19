@@ -176,6 +176,39 @@ p {
   font-size: 0.85em;
 }
 
+.play-center-button {
+  display: grid;
+  place-items: center;
+  width: 3.6rem;
+  height: 3.6rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--focus-ring) 55%, var(--border-strong));
+  background: color-mix(in srgb, rgb(0 0 0 / 45%) 60%, var(--focus-ring) 18%);
+  color: #fff;
+  cursor: pointer;
+  backdrop-filter: blur(3px);
+  box-shadow: 0 6px 18px rgb(0 0 0 / 35%);
+  transition:
+    transform 140ms ease,
+    background-color 140ms ease;
+}
+
+.play-center-button:hover,
+.play-center-button:focus-visible {
+  transform: scale(1.08);
+  background: color-mix(in srgb, rgb(0 0 0 / 45%) 42%, var(--focus-ring) 38%);
+}
+
+.play-center-button:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 3px;
+}
+
+.play-center-button i {
+  font-size: 1.4rem;
+  margin-left: 0.15rem;
+}
+
 .footer-link,
 .footer-pill {
   margin: 0;

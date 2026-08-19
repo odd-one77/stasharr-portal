@@ -355,6 +355,13 @@ ul {
   align-items: start;
 }
 
+.toggle-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.84rem;
+}
+
 .filter-grid {
   margin-top: 0.55rem;
 }

@@ -38,6 +38,12 @@ export class SceneCardTopRightDirective {}
 export class SceneCardMediaFooterDirective {}
 
 @Directive({
+  selector: '[sceneCardCenterAction]',
+  standalone: true,
+})
+export class SceneCardCenterActionDirective {}
+
+@Directive({
   selector: '[sceneCardBody]',
   standalone: true,
 })
@@ -76,6 +82,9 @@ export class SceneCardShellComponent {
   @ContentChild(SceneCardMediaFooterDirective)
   private mediaFooterSlot?: SceneCardMediaFooterDirective;
 
+  @ContentChild(SceneCardCenterActionDirective)
+  private centerActionSlot?: SceneCardCenterActionDirective;
+
   @ContentChild(SceneCardBodyDirective)
   private bodySlot?: SceneCardBodyDirective;
 
@@ -97,6 +106,10 @@ export class SceneCardShellComponent {
 
   protected hasMediaFooter(): boolean {
     return Boolean(this.mediaFooterSlot);
+  }
+
+  protected hasCenterAction(): boolean {
+    return Boolean(this.centerActionSlot);
   }
 
   protected hasBody(): boolean {

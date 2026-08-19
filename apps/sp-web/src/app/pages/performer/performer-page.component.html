@@ -160,6 +160,18 @@
             <span>Enabled</span>
           </label>
         </label>
+
+        <label class="control-field checkbox-field app-control-field">
+          <span class="app-control-label">Library Only</span>
+          <label class="toggle-label">
+            <p-toggleswitch
+              inputId="performer-library-only"
+              [ngModel]="libraryOnly()"
+              (ngModelChange)="onLibraryOnlyChanged($event)"
+            />
+            <span>Enabled</span>
+          </label>
+        </label>
       </div>
 
       <div class="filter-grid">
@@ -238,11 +250,17 @@
     } @else if (scenesError()) {
       <p-message severity="error" styleClass="app-page-message">{{ scenesError() }}</p-message>
       <button type="button" (click)="retryInitialScenesLoad()">Retry</button>
-    } @else if (!hasScenes()) {
-      <p class="state">No scenes found for this performer and filters.</p>
+    } @else if (!hasDisplayedScenes()) {
+      <p class="state">
+        {{
+          libraryOnly()
+            ? 'No library scenes found for this performer and filters.'
+            : 'No scenes found for this performer and filters.'
+        }}
+      </p>
     } @else {
       <section class="grid">
-        @for (item of scenes(); track item.id) {
+        @for (item of displayedScenes(); track item.id) {
           <app-scene-card
             [item]="item"
             [requestable]="isRequestable(item)"

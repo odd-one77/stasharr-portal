@@ -27,6 +27,7 @@ import { Message } from 'primeng/message';
 import { MultiSelect } from 'primeng/multiselect';
 import { ProgressSpinner } from 'primeng/progressspinner';
 import { Select } from 'primeng/select';
+import { ToggleSwitch } from 'primeng/toggleswitch';
 import { DiscoverService } from '../../core/api/discover.service';
 import { AppNotificationsService } from '../../core/notifications/app-notifications.service';
 import {
@@ -60,6 +61,7 @@ interface MultiSelectOption {
     Select,
     MultiSelect,
     ButtonDirective,
+    ToggleSwitch,
     SceneCardComponent,
     SceneRequestModalComponent,
   ],
@@ -152,6 +154,7 @@ export class StudioPageComponent implements OnInit, AfterViewInit, OnDestroy {
   protected readonly selectedTagMode = signal<SceneTagMatchMode>(
     StudioPageComponent.DEFAULT_TAG_MODE,
   );
+  protected readonly libraryOnly = signal(false);
   protected readonly tagSearchTerm = signal('');
   protected readonly selectedTags = signal<SceneTagOption[]>([]);
   protected readonly tagSelectedIdsModel = signal<string[]>([]);
@@ -238,8 +241,20 @@ export class StudioPageComponent implements OnInit, AfterViewInit, OnDestroy {
     return this.studio() !== null;
   }
 
-  protected hasScenes(): boolean {
-    return this.scenes().length > 0;
+  protected displayedScenes(): DiscoverItem[] {
+    if (!this.libraryOnly()) {
+      return this.scenes();
+    }
+
+    return this.scenes().filter((item) => item.status.state === 'AVAILABLE');
+  }
+
+  protected hasDisplayedScenes(): boolean {
+    return this.displayedScenes().length > 0;
+  }
+
+  protected onLibraryOnlyChanged(nextValue: boolean): void {
+    this.libraryOnly.set(nextValue);
   }
 
   protected retryInitialScenesLoad(): void {

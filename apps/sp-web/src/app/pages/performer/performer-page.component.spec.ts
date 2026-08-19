@@ -76,18 +76,19 @@ describe('PerformerPageComponent', () => {
     TestBed.resetTestingModule();
   });
 
-  async function renderPage() {
+  async function renderPage(options?: { items?: DiscoverItem[] }) {
+    const items = options?.items ?? [buildScene()];
     const paramMap$ = new BehaviorSubject(convertToParamMap({ performerId: 'performer-1' }));
     const queryParamMap$ = new BehaviorSubject(convertToParamMap({}));
     const discoverService = {
       getPerformerDetails: vi.fn().mockReturnValue(of(buildPerformer())),
       getPerformerScenesFeed: vi.fn().mockReturnValue(
         of({
-          total: 1,
+          total: items.length,
           page: 1,
           perPage: 24,
           hasMore: false,
-          items: [buildScene()],
+          items,
         }),
       ),
       searchPerformerStudios: vi.fn().mockReturnValue(of([])),
@@ -147,5 +148,31 @@ describe('PerformerPageComponent', () => {
       title: 'Performer Scene',
       imageUrl: 'http://cdn.local/scene.jpg',
     });
+  });
+
+  it('filters to library-only scenes when the toggle is enabled', async () => {
+    const { fixture } = await renderPage({
+      items: [
+        buildScene({ id: 'scene-library', status: { state: 'AVAILABLE' } }),
+        buildScene({ id: 'scene-not-library', status: { state: 'NOT_REQUESTED' } }),
+      ],
+    });
+    const component = fixture.componentInstance as any;
+
+    expect(fixture.nativeElement.querySelectorAll('app-scene-card')).toHaveLength(2);
+
+    component.onLibraryOnlyChanged(true);
+    fixture.detectChanges();
+
+    const cards = fixture.nativeElement.querySelectorAll('app-scene-card');
+    expect(cards).toHaveLength(1);
+    expect(component.displayedScenes()).toEqual([
+      expect.objectContaining({ id: 'scene-library' }),
+    ]);
+
+    component.onLibraryOnlyChanged(false);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelectorAll('app-scene-card')).toHaveLength(2);
   });
 });

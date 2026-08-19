@@ -2,6 +2,7 @@ import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { Params, RouterLink } from '@angular/router';
 import { SceneRequestContext, SceneStatus } from '../../core/api/discover.types';
 import {
+  SceneCardCenterActionDirective,
   SceneCardMediaFooterDirective,
   SceneCardShellComponent,
   SceneCardShellItem,
@@ -20,6 +21,7 @@ export type SceneCardVariant = 'default' | 'rail';
 export type SceneCardTone = 'media' | 'surface';
 export type SceneCardPrimaryLinkMode = 'scene' | 'external';
 export type SceneCardStudioBadgeRoute = 'none' | 'scenes' | 'library';
+export type SceneCardPlaySize = 'compact' | 'large';
 
 export interface SceneCardBadge {
   label: string;
@@ -32,6 +34,7 @@ export interface SceneCardBadge {
     SceneCardShellComponent,
     SceneCardTopRightDirective,
     SceneCardMediaFooterDirective,
+    SceneCardCenterActionDirective,
     SceneStatusBadgeComponent,
   ],
   templateUrl: './scene-card.component.html',
@@ -58,6 +61,7 @@ export class SceneCardComponent {
   @Input() footerLinkLabel: string | null = null;
   @Input() footerBadgeLabel: string | null = null;
   @Input() playable = false;
+  @Input() playSize: SceneCardPlaySize = 'compact';
   @Input() progressPercent: number | null = null;
 
   @Output() request = new EventEmitter<SceneRequestContext>();
@@ -174,6 +178,14 @@ export class SceneCardComponent {
 
   protected hasSecondaryFooterAction(): boolean {
     return this.requestable || !!this.footerLinkText() || !!this.footerBadgeText();
+  }
+
+  protected showLargePlayAction(): boolean {
+    return this.showPlayAction() && this.playSize === 'large';
+  }
+
+  protected showCompactPlayAction(): boolean {
+    return this.showPlayAction() && this.playSize !== 'large';
   }
 
   protected requestScene(event: MouseEvent): void {

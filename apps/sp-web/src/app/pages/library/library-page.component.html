@@ -285,6 +285,7 @@
           [footerLinkLabel]="item.activeCatalogSceneId ? 'View in Stash' : null"
           [footerBadgeLabel]="item.activeCatalogSceneId ? null : 'Local only'"
           [playable]="true"
+          playSize="large"
           (play)="playScene($event)"
         />
       }

@@ -138,6 +138,7 @@ export interface StashLocalSceneFeed {
 
 export interface StashContinueWatchingItem {
   id: string;
+  activeCatalogSceneId: string | null;
   title: string;
   description: string | null;
   imageUrl: string | null;
@@ -407,6 +408,7 @@ export class StashAdapter {
   async getContinueWatchingScenes(
     config: StashAdapterBaseConfig,
     limit: number,
+    activeCatalogProviderKey: CatalogProviderKey | null,
   ): Promise<StashContinueWatchingItem[]> {
     const perPage = this.normalizePositiveInteger(limit, 16);
 
@@ -419,6 +421,10 @@ export class StashAdapter {
             details
             date
             resume_time
+            stash_ids {
+              endpoint
+              stash_id
+            }
             paths {
               screenshot
             }
@@ -455,7 +461,13 @@ export class StashAdapter {
     const scenes = payload.data?.findScenes?.scenes ?? [];
 
     return scenes
-      .map((scene) => this.toContinueWatchingItem(scene, config.baseUrl))
+      .map((scene) =>
+        this.toContinueWatchingItem(
+          scene,
+          config.baseUrl,
+          activeCatalogProviderKey,
+        ),
+      )
       .filter((scene): scene is StashContinueWatchingItem => scene !== null);
   }
 
@@ -915,6 +927,7 @@ export class StashAdapter {
   private toContinueWatchingItem(
     scene: StashLocalSceneRecord,
     baseUrl: string,
+    activeCatalogProviderKey: CatalogProviderKey | null,
   ): StashContinueWatchingItem | null {
     const feedItem = this.toLocalSceneFeedItem(scene, baseUrl);
     if (!feedItem) {
@@ -940,8 +953,19 @@ export class StashAdapter {
       return null;
     }
 
+    const linkedEntries = Array.isArray(scene.stash_ids)
+      ? scene.stash_ids
+          .map((entry) => this.toLinkedSceneStashId(entry))
+          .filter((entry): entry is StashLinkedSceneStashId => entry !== null)
+      : [];
+    const linkedCatalogRefs = this.toLinkedCatalogRefs(linkedEntries);
+    const activeCatalogSceneId = activeCatalogProviderKey
+      ? findCatalogExternalIdForProvider(linkedCatalogRefs, activeCatalogProviderKey)
+      : null;
+
     return {
       ...feedItem,
+      activeCatalogSceneId,
       resumeSeconds,
       progressPercent,
     };

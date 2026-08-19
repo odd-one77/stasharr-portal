@@ -1373,13 +1373,14 @@ describe('HomeService', () => {
       stashGetContinueWatchingScenesMock.mockResolvedValue([
         {
           id: '411',
+          activeCatalogSceneId: 'catalog-scene-1',
           title: 'Half Watched',
           description: null,
           imageUrl: 'http://stash.local/images/411.jpg',
           cardImageUrl: 'http://stash.local/images/411.jpg',
-          studioId: null,
-          studio: null,
-          studioImageUrl: null,
+          studioId: 'studio-1',
+          studio: 'Studio',
+          studioImageUrl: 'http://stash.local/studios/studio-1.jpg',
           releaseDate: null,
           duration: 1800,
           viewUrl: 'http://stash.local/scenes/411',
@@ -1392,7 +1393,11 @@ describe('HomeService', () => {
         items: [
           expect.objectContaining({
             id: '411',
+            activeCatalogSceneId: 'catalog-scene-1',
             title: 'Half Watched',
+            imageUrl: '/api/media/stash/scenes/411/screenshot',
+            cardImageUrl: '/api/media/stash/scenes/411/screenshot',
+            studioImageUrl: '/api/media/stash/studios/studio-1/logo',
             progressPercent: 50,
             status: { state: 'AVAILABLE' },
             requestable: false,
@@ -1403,6 +1408,7 @@ describe('HomeService', () => {
       expect(stashGetContinueWatchingScenesMock).toHaveBeenCalledWith(
         { baseUrl: 'http://stash.local', apiKey: 'stash-secret' },
         16,
+        'STASHDB',
       );
     });
 
@@ -1440,10 +1446,11 @@ describe('HomeService', () => {
       libraryGetScenesPreviewMock.mockResolvedValue([
         {
           id: '411',
+          activeCatalogSceneId: 'catalog-scene-1',
           title: 'Fresh Scene',
           description: null,
-          imageUrl: 'http://stash.local/images/411.jpg',
-          cardImageUrl: 'http://stash.local/images/411.jpg',
+          imageUrl: '/api/media/stash/scenes/411/screenshot',
+          cardImageUrl: '/api/media/stash/scenes/411/screenshot',
           studioId: null,
           studio: null,
           studioImageUrl: null,
@@ -1457,6 +1464,7 @@ describe('HomeService', () => {
         items: [
           expect.objectContaining({
             id: '411',
+            activeCatalogSceneId: 'catalog-scene-1',
             title: 'Fresh Scene',
             progressPercent: null,
           }),

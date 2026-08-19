@@ -89,6 +89,12 @@
       </div>
     }
 
+    @if (hasCenterAction()) {
+      <div class="media-center">
+        <ng-content select="[sceneCardCenterAction]"></ng-content>
+      </div>
+    }
+
     @if (hasMediaFooter()) {
       <div class="media-bottom">
         <ng-content select="[sceneCardMediaFooter]"></ng-content>

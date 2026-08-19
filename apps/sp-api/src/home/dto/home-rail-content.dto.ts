@@ -3,6 +3,7 @@ import { HOME_RAIL_SOURCE_VALUES, type HomeRailSource } from './home-rail.dto';
 
 export class HomeRailItemDto {
   id!: string;
+  activeCatalogSceneId!: string | null;
   title!: string;
   description!: string | null;
   imageUrl!: string | null;
