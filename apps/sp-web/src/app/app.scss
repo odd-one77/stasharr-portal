@@ -11,8 +11,8 @@
 
 .global-controls {
   position: fixed;
-  top: 0.7rem;
-  right: 0.8rem;
+  top: calc(0.7rem + env(safe-area-inset-top, 0px));
+  right: calc(0.8rem + env(safe-area-inset-right, 0px));
   display: flex;
   flex-direction: row;
   gap: 0.45rem;
@@ -27,8 +27,8 @@
 
 @media (max-width: 700px) {
   .global-controls {
-    top: 0.55rem;
-    right: 0.55rem;
+    top: calc(0.55rem + env(safe-area-inset-top, 0px));
+    right: calc(0.55rem + env(safe-area-inset-right, 0px));
     gap: 0.35rem;
   }
 }

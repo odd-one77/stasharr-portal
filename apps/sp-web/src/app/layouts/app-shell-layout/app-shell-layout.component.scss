@@ -29,7 +29,8 @@
   height: 100dvh;
   border-right: 1px solid var(--border-subtle);
   background: var(--surface-1);
-  padding: 0.8rem 0.65rem;
+  padding: calc(0.8rem + env(safe-area-inset-top, 0px)) 0.65rem 0.8rem
+    calc(0.65rem + env(safe-area-inset-left, 0px));
   display: grid;
   grid-template-rows: auto 1fr auto;
   gap: 0.9rem;
@@ -220,6 +221,7 @@
 }
 
 .layout.mobile-shell .content {
+  padding-top: env(safe-area-inset-top, 0px);
   padding-bottom: calc(var(--shell-mobile-nav-offset) + 1rem);
 }
 
@@ -352,7 +354,8 @@
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 0.28rem;
-  padding: 0.35rem 0.45rem calc(0.45rem + env(safe-area-inset-bottom, 0px));
+  padding: 0.35rem calc(0.45rem + env(safe-area-inset-right, 0px))
+    calc(0.45rem + env(safe-area-inset-bottom, 0px)) calc(0.45rem + env(safe-area-inset-left, 0px));
   border-top: 1px solid color-mix(in srgb, var(--border-strong) 70%, transparent);
   background:
     linear-gradient(
