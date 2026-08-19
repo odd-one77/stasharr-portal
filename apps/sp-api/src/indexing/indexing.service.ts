@@ -437,6 +437,30 @@ export class IndexingService {
       },
     ]);
   }
+  async clearRequestedScene(stashId: string): Promise<void> {
+    const normalizedStashId = stashId.trim();
+    if (!normalizedStashId) {
+      return;
+    }
+
+    const now = new Date();
+    await this.applySceneIndexPatches([
+      {
+        stashId: normalizedStashId,
+        requestStatus: null,
+        requestUpdatedAt: now,
+        whisparrMovieId: null,
+        whisparrHasFile: null,
+        whisparrQueuePosition: null,
+        whisparrQueueStatus: null,
+        whisparrQueueState: null,
+        whisparrErrorMessage: null,
+        whisparrLastSyncedAt: now,
+        lastSyncedAt: now,
+      },
+    ]);
+  }
+
 
   async requestImmediateRefresh(
     stashIds: string[],
