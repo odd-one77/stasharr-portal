@@ -58,6 +58,7 @@ export class SceneCardComponent {
   @Input() footerLinkLabel: string | null = null;
   @Input() footerBadgeLabel: string | null = null;
   @Input() playable = false;
+  @Input() progressPercent: number | null = null;
 
   @Output() request = new EventEmitter<SceneRequestContext>();
   @Output() play = new EventEmitter<string>();
@@ -157,11 +158,22 @@ export class SceneCardComponent {
   }
 
   protected showPlayAction(): boolean {
-    if (!this.playable || this.requestable || this.footerLinkText() || this.footerBadgeText()) {
+    if (!this.playable || this.requestable) {
       return false;
     }
 
-    return this.item.status?.state === 'AVAILABLE';
+    const status = this.item.status;
+    if (!status) {
+      // No lifecycle status is tracked for this item (e.g. Library cards) — its
+      // presence in the list already means it's a real Stash-backed scene.
+      return true;
+    }
+
+    return status.state === 'AVAILABLE';
+  }
+
+  protected hasSecondaryFooterAction(): boolean {
+    return this.requestable || !!this.footerLinkText() || !!this.footerBadgeText();
   }
 
   protected requestScene(event: MouseEvent): void {

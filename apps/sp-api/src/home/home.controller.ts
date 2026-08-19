@@ -16,6 +16,16 @@ export class HomeController {
     return this.homeService.getRails();
   }
 
+  @Get('continue-watching')
+  getContinueWatching(): Promise<HomeRailContentDto> {
+    return this.homeService.getContinueWatching();
+  }
+
+  @Get('recently-added')
+  getRecentlyAdded(): Promise<HomeRailContentDto> {
+    return this.homeService.getRecentlyAdded();
+  }
+
   @Get('stash/tags')
   searchStashTags(@Query('query') query?: string): Promise<SceneTagOptionDto[]> {
     return this.homeService.searchStashTags(query);

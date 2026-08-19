@@ -189,6 +189,20 @@
   pointer-events: none;
 }
 
+.progress-track {
+  position: absolute;
+  inset: auto 0 0;
+  z-index: 4;
+  height: 3px;
+  background: rgb(0 0 0 / 45%);
+  pointer-events: none;
+}
+
+.progress-fill {
+  height: 100%;
+  background: var(--focus-ring);
+}
+
 @media (max-width: 560px) {
   .media {
     aspect-ratio: 16 / 10;

@@ -322,6 +322,12 @@ p {
   gap: 0.72rem;
 }
 
+.hero-shell + .rail-section,
+.home-alert + .rail-section,
+.rail-section + .rail-section {
+  margin-top: 1.1rem;
+}
+
 .rail-head {
   display: flex;
   justify-content: space-between;

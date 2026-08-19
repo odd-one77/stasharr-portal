@@ -426,4 +426,26 @@ describe('LibraryPageComponent', () => {
     );
     expect(articles[1]?.querySelector('.footer-pill')?.textContent).toContain('Local only');
   });
+
+  it('plays a local library scene directly via the stash media proxy', async () => {
+    const { fixture } = await renderPage({
+      feedResponse: buildFeedResponse([buildScene({ id: '411', activeCatalogSceneId: 'stash-411' })]),
+    });
+    const windowOpenSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
+
+    const playButton = fixture.nativeElement.querySelector(
+      'button.play-cta',
+    ) as HTMLButtonElement;
+    expect(playButton).not.toBeNull();
+
+    playButton.click();
+
+    expect(windowOpenSpy).toHaveBeenCalledWith(
+      '/api/media/stash/scenes/411/stream',
+      '_blank',
+      'noopener,noreferrer',
+    );
+
+    windowOpenSpy.mockRestore();
+  });
 });

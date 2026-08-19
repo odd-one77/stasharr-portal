@@ -136,6 +136,22 @@ export interface StashLocalSceneFeed {
   items: StashLocalSceneFeedItem[];
 }
 
+export interface StashContinueWatchingItem {
+  id: string;
+  title: string;
+  description: string | null;
+  imageUrl: string | null;
+  cardImageUrl: string | null;
+  studioId: string | null;
+  studio: string | null;
+  studioImageUrl: string | null;
+  releaseDate: string | null;
+  duration: number | null;
+  viewUrl: string;
+  resumeSeconds: number;
+  progressPercent: number;
+}
+
 export interface StashLocalTagOption {
   id: string;
   name: string;
@@ -192,6 +208,7 @@ interface StashLocalSceneRecord {
     height?: unknown;
     duration?: unknown;
   }>;
+  resume_time?: unknown;
 }
 
 interface StashSceneAssetRecord {
@@ -385,6 +402,61 @@ export class StashAdapter {
         .map((scene) => this.toLocalSceneFeedItem(scene, config.baseUrl))
         .filter((scene): scene is StashLocalSceneFeedItem => scene !== null),
     };
+  }
+
+  async getContinueWatchingScenes(
+    config: StashAdapterBaseConfig,
+    limit: number,
+  ): Promise<StashContinueWatchingItem[]> {
+    const perPage = this.normalizePositiveInteger(limit, 16);
+
+    const query = `
+      query FindScenes($filter: FindFilterType, $sceneFilter: SceneFilterType) {
+        findScenes(filter: $filter, scene_filter: $sceneFilter) {
+          scenes {
+            id
+            title
+            details
+            date
+            resume_time
+            paths {
+              screenshot
+            }
+            studio {
+              id
+              name
+              image_path
+            }
+            files {
+              width
+              height
+              duration
+            }
+          }
+        }
+      }
+    `;
+
+    const payload = await this.executeQuery(config, query, {
+      filter: {
+        page: 1,
+        per_page: perPage,
+        sort: 'last_played_at',
+        direction: 'DESC',
+      },
+      sceneFilter: {
+        resume_time: {
+          value: 0,
+          modifier: 'GREATER_THAN',
+        },
+      },
+    });
+
+    const scenes = payload.data?.findScenes?.scenes ?? [];
+
+    return scenes
+      .map((scene) => this.toContinueWatchingItem(scene, config.baseUrl))
+      .filter((scene): scene is StashContinueWatchingItem => scene !== null);
   }
 
   async getLocalSceneIdentityPage(
@@ -837,6 +909,41 @@ export class StashAdapter {
       releaseDate,
       duration,
       viewUrl: this.resolveSceneViewUrl(baseUrl, scene.id),
+    };
+  }
+
+  private toContinueWatchingItem(
+    scene: StashLocalSceneRecord,
+    baseUrl: string,
+  ): StashContinueWatchingItem | null {
+    const feedItem = this.toLocalSceneFeedItem(scene, baseUrl);
+    if (!feedItem) {
+      return null;
+    }
+
+    const resumeSeconds =
+      typeof scene.resume_time === 'number' && scene.resume_time > 0
+        ? scene.resume_time
+        : null;
+    if (resumeSeconds === null || !feedItem.duration || feedItem.duration <= 0) {
+      return null;
+    }
+
+    const progressPercent = Math.min(
+      100,
+      Math.round((resumeSeconds / feedItem.duration) * 100),
+    );
+
+    // A scene left within the last few percent of its runtime is effectively
+    // finished — Stash doesn't always clear resume_time on completion.
+    if (progressPercent >= 95) {
+      return null;
+    }
+
+    return {
+      ...feedItem,
+      resumeSeconds,
+      progressPercent,
     };
   }
 

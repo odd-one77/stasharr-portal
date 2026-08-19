@@ -80,6 +80,7 @@ export interface HomeRailItem {
   status: SceneStatus;
   requestable: boolean;
   viewUrl: string | null;
+  progressPercent: number | null;
 }
 
 export interface HomeRailContentResponse {

@@ -3,6 +3,7 @@
   [variant]="shellVariant()"
   [primaryLink]="primaryLink()"
   [studioBadgeLink]="studioBadgeLink()"
+  [progressPercent]="progressPercent"
 >
   @if (statusIcon(); as statusIcon) {
     <app-scene-status-badge
@@ -34,6 +35,21 @@
       </p>
 
       <div class="media-action">
+        @if (showPlayAction()) {
+          <button
+            type="button"
+            class="play-cta"
+            [class.play-cta-icon-only]="hasSecondaryFooterAction()"
+            [attr.aria-label]="hasSecondaryFooterAction() ? 'Play' : null"
+            (click)="playScene($event)"
+          >
+            <i class="pi pi-play" aria-hidden="true"></i>
+            @if (!hasSecondaryFooterAction()) {
+              <span>Play</span>
+            }
+          </button>
+        }
+
         @if (requestable) {
           <button type="button" class="request-cta" (click)="requestScene($event)">Request</button>
         } @else if (footerLinkText(); as label) {
@@ -59,11 +75,6 @@
           }
         } @else if (footerBadgeText(); as footerBadgeText) {
           <span class="footer-pill">{{ footerBadgeText }}</span>
-        } @else if (showPlayAction()) {
-          <button type="button" class="play-cta" (click)="playScene($event)">
-            <i class="pi pi-play" aria-hidden="true"></i>
-            Play
-          </button>
         } @else {
           @if (footerStatus(); as footerStatus) {
             <app-scene-status-badge class="footer-status-badge" [status]="footerStatus" />

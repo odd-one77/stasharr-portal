@@ -192,15 +192,7 @@ export class ScenesService {
       throw new NotFoundException('No linked Stash scene found for playback.');
     }
 
-    const streamUrl = await this.stashAdapter.getSceneStreamUrl(
-      targetCopy.id,
-      config,
-    );
-    if (!streamUrl) {
-      throw new NotFoundException('Stash did not return a stream URL.');
-    }
-
-    return streamUrl;
+    return `/api/media/stash/scenes/${encodeURIComponent(targetCopy.id)}/stream`;
   }
 
   async favoriteStudio(

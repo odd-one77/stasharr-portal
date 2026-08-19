@@ -565,34 +565,25 @@ describe('ScenesService', () => {
 
     beforeEach(() => {
       stashAdapter.findScenesByStashId = jest.fn().mockResolvedValue(copies);
-      stashAdapter.getSceneStreamUrl = jest
-        .fn()
-        .mockResolvedValue('http://stash.local/scene/3027/stream?apikey=stash-key');
     });
 
     it('resolves the best available copy when no copyId is given', async () => {
       await expect(
         service.getSceneStreamUrl('stashdb-scene-1'),
-      ).resolves.toBe('http://stash.local/scene/3027/stream?apikey=stash-key');
+      ).resolves.toBe('/api/media/stash/scenes/3027/stream');
 
       expect(stashAdapter.findScenesByStashId).toHaveBeenCalledWith(
         'stashdb-scene-1',
         { baseUrl: stashIntegration.baseUrl, apiKey: stashIntegration.apiKey },
         { providerKey: 'STASHDB' },
       );
-      expect(stashAdapter.getSceneStreamUrl).toHaveBeenCalledWith('3027', {
-        baseUrl: stashIntegration.baseUrl,
-        apiKey: stashIntegration.apiKey,
-      });
+      expect(stashAdapter.getSceneStreamUrl).not.toHaveBeenCalled();
     });
 
     it('resolves a specific copy when copyId is given', async () => {
-      await service.getSceneStreamUrl('stashdb-scene-1', '3030');
-
-      expect(stashAdapter.getSceneStreamUrl).toHaveBeenCalledWith('3030', {
-        baseUrl: stashIntegration.baseUrl,
-        apiKey: stashIntegration.apiKey,
-      });
+      await expect(
+        service.getSceneStreamUrl('stashdb-scene-1', '3030'),
+      ).resolves.toBe('/api/media/stash/scenes/3030/stream');
     });
 
     it('throws not found when no stash copy matches', async () => {

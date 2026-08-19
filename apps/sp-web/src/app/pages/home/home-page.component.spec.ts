@@ -62,6 +62,7 @@ function buildRailItem(overrides: Partial<HomeRailItem> = {}): HomeRailItem {
     status: { state: 'AVAILABLE' },
     requestable: false,
     viewUrl: 'http://stash.local/scenes/local-scene-1',
+    progressPercent: null,
     ...overrides,
   };
 }
@@ -128,6 +129,8 @@ describe('HomePageComponent', () => {
   async function renderPage(options?: {
     discoverFeed?: ScenesFeedResponse;
     homeRailItemsById?: Record<string, HomeRailContentResponse>;
+    continueWatching?: HomeRailContentResponse;
+    recentlyAdded?: HomeRailContentResponse;
     runtimeHealth?: RuntimeHealthResponse;
     setupStatus?: SetupStatusResponse;
   }) {
@@ -209,6 +212,12 @@ describe('HomePageComponent', () => {
       createRail: vi.fn(),
       updateRail: vi.fn(),
       deleteRail: vi.fn(),
+      getContinueWatching: vi
+        .fn()
+        .mockReturnValue(of(options?.continueWatching ?? { items: [], message: null })),
+      getRecentlyAdded: vi
+        .fn()
+        .mockReturnValue(of(options?.recentlyAdded ?? { items: [], message: null })),
     };
     const runtimeHealthService = {
       ensureStarted: vi.fn(),
@@ -255,7 +264,7 @@ describe('HomePageComponent', () => {
     await fixture.whenStable();
     fixture.detectChanges();
 
-    return { fixture, discoverService, runtimeHealthService };
+    return { fixture, discoverService, homeService, runtimeHealthService };
   }
 
   function railSectionByTitle(
@@ -273,6 +282,54 @@ describe('HomePageComponent', () => {
     expect(section).toBeTruthy();
     return section as HTMLElement;
   }
+
+  it('does not render the Continue Watching or Recently Added rails when both are empty', async () => {
+    const { fixture } = await renderPage();
+
+    const sections = Array.from(
+      fixture.nativeElement.querySelectorAll('.rail-section') as NodeListOf<HTMLElement>,
+    ).map((section) => section.querySelector('h2')?.textContent?.trim());
+
+    expect(sections).not.toContain('Pick up where you left off');
+    expect(sections).not.toContain('Fresh in your library');
+  });
+
+  it('renders Continue Watching with a progress bar and hides it when nothing is in progress', async () => {
+    const { fixture, homeService } = await renderPage({
+      continueWatching: {
+        items: [
+          buildRailItem({
+            id: 'in-progress-1',
+            title: 'Half Watched',
+            progressPercent: 42,
+          }),
+        ],
+        message: null,
+      },
+    });
+
+    expect(homeService.getContinueWatching).toHaveBeenCalledTimes(1);
+
+    const section = railSectionByTitle(fixture, 'Pick up where you left off');
+    const progressFill = section.querySelector('.progress-fill') as HTMLElement | null;
+
+    expect(progressFill).toBeTruthy();
+    expect(progressFill?.style.width).toBe('42%');
+  });
+
+  it('renders Recently Added scenes above the existing rails', async () => {
+    const { fixture, homeService } = await renderPage({
+      recentlyAdded: {
+        items: [buildRailItem({ id: 'fresh-1', title: 'Fresh Scene' })],
+        message: null,
+      },
+    });
+
+    expect(homeService.getRecentlyAdded).toHaveBeenCalledTimes(1);
+
+    const section = railSectionByTitle(fixture, 'Fresh in your library');
+    expect(section.textContent).toContain('Fresh Scene');
+  });
 
   it('routes STASHDB rails to /scenes and STASH rails to /library', async () => {
     const { fixture, discoverService, runtimeHealthService } = await renderPage();

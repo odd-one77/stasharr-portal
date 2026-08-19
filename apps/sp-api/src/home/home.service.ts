@@ -17,6 +17,10 @@ import { LibrarySceneFeedItemDto } from '../library/dto/library-scenes-feed.dto'
 import { LibraryService } from '../library/library.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { CatalogProviderService } from '../providers/catalog/catalog-provider.service';
+import {
+  StashAdapter,
+  type StashContinueWatchingItem,
+} from '../providers/stash/stash.adapter';
 import { type StashdbScene } from '../providers/stashdb/stashdb.adapter';
 import { withStashImageSize } from '../providers/stashdb/stashdb-image-url.util';
 import { PerformerStudioOptionDto } from '../performers/dto/performer-studio-option.dto';
@@ -150,7 +154,54 @@ export class HomeService {
     private readonly catalogProviderService: CatalogProviderService,
     private readonly sceneStatusService: SceneStatusService,
     private readonly hybridScenesService: HybridScenesService,
+    private readonly stashAdapter: StashAdapter,
   ) {}
+
+  async getContinueWatching(): Promise<HomeRailContentDto> {
+    let config: { baseUrl: string; apiKey?: string | null };
+    try {
+      config = await this.getRequiredStashConfig();
+    } catch {
+      return { items: [], message: null };
+    }
+
+    try {
+      const items = await this.stashAdapter.getContinueWatchingScenes(
+        config,
+        HOME_RAIL_SCENE_LIMIT_DEFAULT,
+      );
+
+      return {
+        items: items.map((item) => this.toContinueWatchingRailItem(item)),
+        message: null,
+      };
+    } catch (error) {
+      this.logger.warn(
+        `Failed to load Continue Watching rail. ${(error as Error)?.message ?? 'Unknown error.'}`,
+      );
+      return { items: [], message: null };
+    }
+  }
+
+  async getRecentlyAdded(): Promise<HomeRailContentDto> {
+    try {
+      const items = await this.libraryService.getScenesPreview(
+        HOME_RAIL_SCENE_LIMIT_DEFAULT,
+        'CREATED_AT',
+        'DESC',
+      );
+
+      return {
+        items: items.map((item) => this.toLocalLibraryRailItem(item)),
+        message: null,
+      };
+    } catch (error) {
+      this.logger.warn(
+        `Failed to load Recently Added rail. ${(error as Error)?.message ?? 'Unknown error.'}`,
+      );
+      return { items: [], message: null };
+    }
+  }
 
   async getRails(): Promise<HomeRailDto[]> {
     await this.ensureUserFacingRailsReady();
@@ -579,6 +630,30 @@ export class HomeService {
       status: { state: 'AVAILABLE' },
       requestable: false,
       viewUrl: item.viewUrl,
+      progressPercent: null,
+    };
+  }
+
+  private toContinueWatchingRailItem(
+    item: StashContinueWatchingItem,
+  ): HomeRailItemDto {
+    return {
+      id: item.id,
+      title: item.title,
+      description: item.description,
+      imageUrl: item.imageUrl,
+      cardImageUrl: item.cardImageUrl,
+      studioId: item.studioId,
+      studio: item.studio,
+      studioImageUrl: item.studioImageUrl,
+      releaseDate: item.releaseDate,
+      duration: item.duration,
+      type: 'SCENE',
+      source: 'STASH',
+      status: { state: 'AVAILABLE' },
+      requestable: false,
+      viewUrl: item.viewUrl,
+      progressPercent: item.progressPercent,
     };
   }
 
@@ -610,6 +685,7 @@ export class HomeService {
         libraryAvailability === 'MISSING_FROM_LIBRARY' &&
         isSceneStatusRequestable(effectiveStatus),
       viewUrl: null,
+      progressPercent: null,
     };
   }
 

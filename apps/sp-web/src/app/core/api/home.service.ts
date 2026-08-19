@@ -25,6 +25,14 @@ export class HomeService {
     );
   }
 
+  getContinueWatching(): Observable<HomeRailContentResponse> {
+    return this.http.get<HomeRailContentResponse>('/api/home/continue-watching');
+  }
+
+  getRecentlyAdded(): Observable<HomeRailContentResponse> {
+    return this.http.get<HomeRailContentResponse>('/api/home/recently-added');
+  }
+
   searchStashTags(query: string): Observable<SceneTagOption[]> {
     const params = new HttpParams().set('query', query);
     return this.http.get<SceneTagOption[]>('/api/home/stash/tags', { params });

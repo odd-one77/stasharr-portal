@@ -64,6 +64,11 @@ export class SceneCardShellComponent {
   @Input() variant: SceneCardShellVariant = 'default';
   @Input() primaryLink: SceneCardShellLink | null = null;
   @Input() studioBadgeLink: SceneCardShellLink | null = null;
+  @Input() progressPercent: number | null = null;
+
+  protected hasProgressBar(): boolean {
+    return this.progressPercent !== null && this.progressPercent > 0;
+  }
 
   @ContentChild(SceneCardTopRightDirective)
   private topRightSlot?: SceneCardTopRightDirective;

@@ -94,6 +94,19 @@
         <ng-content select="[sceneCardMediaFooter]"></ng-content>
       </div>
     }
+
+    @if (hasProgressBar()) {
+      <div
+        class="progress-track"
+        role="progressbar"
+        [attr.aria-valuenow]="progressPercent"
+        aria-valuemin="0"
+        aria-valuemax="100"
+        [attr.aria-label]="'Watched ' + progressPercent + '%'"
+      >
+        <div class="progress-fill" [style.width.%]="progressPercent"></div>
+      </div>
+    }
   </div>
 
   @if (hasBody()) {

@@ -18,6 +18,7 @@ import {
       [variant]="variant"
       [primaryLink]="primaryLink"
       [studioBadgeLink]="studioBadgeLink"
+      [progressPercent]="progressPercent"
     >
       <div sceneCardPlaceholder class="placeholder-copy">Missing artwork</div>
       <span sceneCardTopRight class="top-right">Top Flag</span>
@@ -55,6 +56,7 @@ class SceneCardShellHostComponent {
     queryParams: { studios: 'studio-1', studioNames: 'Studio One' },
     ariaLabel: 'Filter library by studio Studio One',
   };
+  progressPercent: number | null = null;
 }
 
 describe('SceneCardShellComponent', () => {
@@ -96,5 +98,29 @@ describe('SceneCardShellComponent', () => {
       'Footer copy',
     );
     expect(fixture.nativeElement.querySelector('.body-test')?.textContent).toContain('Body copy');
+    expect(fixture.nativeElement.querySelector('.progress-track')).toBeNull();
+  });
+
+  it('renders a progress bar sized to the given percentage', async () => {
+    await TestBed.configureTestingModule({
+      imports: [SceneCardShellHostComponent],
+      providers: [provideRouter([])],
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(SceneCardShellHostComponent);
+    fixture.componentInstance.progressPercent = 67;
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const progressTrack = fixture.nativeElement.querySelector(
+      '.progress-track',
+    ) as HTMLElement | null;
+    const progressFill = fixture.nativeElement.querySelector(
+      '.progress-fill',
+    ) as HTMLElement | null;
+
+    expect(progressTrack?.getAttribute('aria-valuenow')).toBe('67');
+    expect(progressFill?.style.width).toBe('67%');
   });
 });

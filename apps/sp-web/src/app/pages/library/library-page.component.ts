@@ -590,6 +590,14 @@ export class LibraryPageComponent implements OnInit, AfterViewInit, OnDestroy {
     return this.router.url;
   }
 
+  protected playScene(localSceneId: string): void {
+    window.open(
+      `/api/media/stash/scenes/${encodeURIComponent(localSceneId)}/stream`,
+      '_blank',
+      'noopener,noreferrer',
+    );
+  }
+
   protected libraryFooterLink(item: LibrarySceneItem): SceneCardShellLink | null {
     if (!item.activeCatalogSceneId) {
       return null;

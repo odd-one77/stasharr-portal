@@ -167,6 +167,8 @@ export class HomePageComponent implements OnInit, OnDestroy {
   private readonly tagSearchTerms = new Subject<string>();
   private readonly studioSearchTerms = new Subject<string>();
   private loadSubscription: Subscription | null = null;
+  private continueWatchingSubscription: Subscription | null = null;
+  private recentlyAddedSubscription: Subscription | null = null;
   private saveSubscription: Subscription | null = null;
   private tagSearchSubscription: Subscription | null = null;
   private studioSearchSubscription: Subscription | null = null;
@@ -206,6 +208,8 @@ export class HomePageComponent implements OnInit, OnDestroy {
   protected readonly studioSelectOptions = signal<MultiSelectGroup[]>([]);
   protected readonly formStudioSelectedIdsModel = signal<string[]>([]);
 
+  protected readonly continueWatchingItems = signal<HomeRailItem[]>([]);
+  protected readonly recentlyAddedItems = signal<HomeRailItem[]>([]);
   protected readonly railItemsById = signal<Record<string, HomeRailItem[]>>({});
   protected readonly railErrorsById = signal<Record<string, string>>({});
   protected readonly requestModalOpen = signal(false);
@@ -230,10 +234,14 @@ export class HomePageComponent implements OnInit, OnDestroy {
     this.setupTagSearch();
     this.setupStudioSearch();
     this.loadHome();
+    this.loadContinueWatching();
+    this.loadRecentlyAdded();
   }
 
   ngOnDestroy(): void {
     this.loadSubscription?.unsubscribe();
+    this.continueWatchingSubscription?.unsubscribe();
+    this.recentlyAddedSubscription?.unsubscribe();
     this.saveSubscription?.unsubscribe();
     this.tagSearchSubscription?.unsubscribe();
     this.studioSearchSubscription?.unsubscribe();
@@ -270,6 +278,26 @@ export class HomePageComponent implements OnInit, OnDestroy {
           this.railConfigs.set([]);
           this.draftRails.set([]);
         },
+      });
+  }
+
+  protected loadContinueWatching(): void {
+    this.continueWatchingSubscription?.unsubscribe();
+    this.continueWatchingSubscription = this.homeService
+      .getContinueWatching()
+      .pipe(catchError(() => of<HomeRailContentResponse>({ items: [], message: null })))
+      .subscribe((response) => {
+        this.continueWatchingItems.set(response.items);
+      });
+  }
+
+  protected loadRecentlyAdded(): void {
+    this.recentlyAddedSubscription?.unsubscribe();
+    this.recentlyAddedSubscription = this.homeService
+      .getRecentlyAdded()
+      .pipe(catchError(() => of<HomeRailContentResponse>({ items: [], message: null })))
+      .subscribe((response) => {
+        this.recentlyAddedItems.set(response.items);
       });
   }
 

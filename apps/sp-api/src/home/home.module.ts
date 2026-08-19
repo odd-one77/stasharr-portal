@@ -3,6 +3,7 @@ import { HybridScenesModule } from '../hybrid-scenes/hybrid-scenes.module';
 import { IntegrationsModule } from '../integrations/integrations.module';
 import { LibraryModule } from '../library/library.module';
 import { PrismaModule } from '../prisma/prisma.module';
+import { StashModule } from '../providers/stash/stash.module';
 import { SceneStatusModule } from '../scene-status/scene-status.module';
 import { HomeController } from './home.controller';
 import { HomeService } from './home.service';
@@ -14,6 +15,7 @@ import { HomeService } from './home.service';
     IntegrationsModule,
     SceneStatusModule,
     HybridScenesModule,
+    StashModule,
   ],
   controllers: [HomeController],
   providers: [HomeService],

@@ -207,4 +207,51 @@ describe('SceneCardComponent', () => {
     expect(footerBadge?.textContent?.trim()).toBe('Local only');
     expect(footerStatusBadge).toBeNull();
   });
+
+  it('shows a compact play icon alongside the stash footer link for playable library cards', async () => {
+    const { fixture, component } = await renderCard();
+    const emitted: string[] = [];
+    component.item = buildSceneCardItem({ id: 'local-scene-411', status: null });
+    component.footerLinkLabel = 'View in Stash';
+    component.footerLink = {
+      kind: 'external',
+      href: 'http://stash.local/scenes/411',
+      ariaLabel: 'View Scene Title in Stash',
+    };
+    component.playable = true;
+    component.play.subscribe((id) => emitted.push(id));
+
+    fixture.detectChanges();
+
+    const playButton = fixture.nativeElement.querySelector(
+      '.play-cta',
+    ) as HTMLButtonElement | null;
+    const footerLink = fixture.nativeElement.querySelector('.footer-link');
+
+    expect(playButton).toBeTruthy();
+    expect(playButton?.classList.contains('play-cta-icon-only')).toBe(true);
+    expect(footerLink).toBeTruthy();
+
+    playButton?.click();
+
+    expect(emitted).toEqual(['local-scene-411']);
+  });
+
+  it('shows a compact play icon alongside the local-only badge for playable library cards', async () => {
+    const { fixture, component } = await renderCard();
+    component.item = buildSceneCardItem({ id: 'local-only-512', status: null });
+    component.footerBadgeLabel = 'Local only';
+    component.playable = true;
+
+    fixture.detectChanges();
+
+    const playButton = fixture.nativeElement.querySelector(
+      '.play-cta',
+    ) as HTMLButtonElement | null;
+    const footerBadge = fixture.nativeElement.querySelector('.footer-pill');
+
+    expect(playButton).toBeTruthy();
+    expect(playButton?.classList.contains('play-cta-icon-only')).toBe(true);
+    expect(footerBadge?.textContent?.trim()).toBe('Local only');
+  });
 });

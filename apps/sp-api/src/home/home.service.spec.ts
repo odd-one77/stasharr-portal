@@ -133,11 +133,14 @@ describe('HomeService', () => {
     searchStudios: librarySearchStudiosMock,
   } as unknown as LibraryService;
 
+  const stashGetContinueWatchingScenesMock = jest.fn();
+
   const stashAdapter = {
     getLocalSceneFeed: stashGetLocalSceneFeedMock,
     searchTags: stashSearchTagsMock,
     searchStudios: stashSearchStudiosMock,
     findScenesByStashId: stashFindScenesByStashIdMock,
+    getContinueWatchingScenes: stashGetContinueWatchingScenesMock,
   } as unknown as StashAdapter;
 
   const stashdbAdapter = {
@@ -187,6 +190,7 @@ describe('HomeService', () => {
       catalogProviderService,
       sceneStatusService,
       hybridScenesService,
+      stashAdapter,
     );
   });
 
@@ -1355,5 +1359,124 @@ describe('HomeService', () => {
     expect(integrationFindUniqueMock).not.toHaveBeenCalled();
     expect(stashSearchTagsMock).not.toHaveBeenCalled();
     expect(stashSearchStudiosMock).not.toHaveBeenCalled();
+  });
+
+  describe('getContinueWatching', () => {
+    it('returns in-progress scenes with their progress percentage', async () => {
+      integrationFindUniqueMock.mockResolvedValue({
+        type: 'STASH',
+        enabled: true,
+        status: 'CONFIGURED',
+        baseUrl: 'http://stash.local',
+        apiKey: 'stash-secret',
+      });
+      stashGetContinueWatchingScenesMock.mockResolvedValue([
+        {
+          id: '411',
+          title: 'Half Watched',
+          description: null,
+          imageUrl: 'http://stash.local/images/411.jpg',
+          cardImageUrl: 'http://stash.local/images/411.jpg',
+          studioId: null,
+          studio: null,
+          studioImageUrl: null,
+          releaseDate: null,
+          duration: 1800,
+          viewUrl: 'http://stash.local/scenes/411',
+          resumeSeconds: 900,
+          progressPercent: 50,
+        },
+      ]);
+
+      await expect(service.getContinueWatching()).resolves.toEqual({
+        items: [
+          expect.objectContaining({
+            id: '411',
+            title: 'Half Watched',
+            progressPercent: 50,
+            status: { state: 'AVAILABLE' },
+            requestable: false,
+          }),
+        ],
+        message: null,
+      });
+      expect(stashGetContinueWatchingScenesMock).toHaveBeenCalledWith(
+        { baseUrl: 'http://stash.local', apiKey: 'stash-secret' },
+        16,
+      );
+    });
+
+    it('returns an empty rail when Stash is not configured', async () => {
+      integrationFindUniqueMock.mockResolvedValue(null);
+
+      await expect(service.getContinueWatching()).resolves.toEqual({
+        items: [],
+        message: null,
+      });
+      expect(stashGetContinueWatchingScenesMock).not.toHaveBeenCalled();
+    });
+
+    it('returns an empty rail when Stash fails to respond', async () => {
+      integrationFindUniqueMock.mockResolvedValue({
+        type: 'STASH',
+        enabled: true,
+        status: 'CONFIGURED',
+        baseUrl: 'http://stash.local',
+        apiKey: 'stash-secret',
+      });
+      stashGetContinueWatchingScenesMock.mockRejectedValue(
+        new Error('provider unavailable'),
+      );
+
+      await expect(service.getContinueWatching()).resolves.toEqual({
+        items: [],
+        message: null,
+      });
+    });
+  });
+
+  describe('getRecentlyAdded', () => {
+    it('returns recently added local library scenes', async () => {
+      libraryGetScenesPreviewMock.mockResolvedValue([
+        {
+          id: '411',
+          title: 'Fresh Scene',
+          description: null,
+          imageUrl: 'http://stash.local/images/411.jpg',
+          cardImageUrl: 'http://stash.local/images/411.jpg',
+          studioId: null,
+          studio: null,
+          studioImageUrl: null,
+          releaseDate: null,
+          duration: 1800,
+          viewUrl: 'http://stash.local/scenes/411',
+        },
+      ]);
+
+      await expect(service.getRecentlyAdded()).resolves.toEqual({
+        items: [
+          expect.objectContaining({
+            id: '411',
+            title: 'Fresh Scene',
+            progressPercent: null,
+          }),
+        ],
+        message: null,
+      });
+      expect(libraryGetScenesPreviewMock).toHaveBeenCalledWith(
+        16,
+        'CREATED_AT',
+        'DESC',
+      );
+    });
+
+    it('returns an empty rail when the library preview fails', async () => {
+      libraryGetScenesPreviewMock.mockRejectedValue(new Error('db down'));
+
+      await expect(service.getRecentlyAdded()).resolves.toEqual({
+        items: [],
+        message: null,
+      });
+    });
   });
 });

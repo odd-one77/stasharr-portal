@@ -392,6 +392,101 @@ describe('StashAdapter', () => {
     expect(String(body.query)).toContain('paths');
   });
 
+  it('returns in-progress scenes with a computed progress percentage', async () => {
+    fetchMock.mockResolvedValue({
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          data: {
+            findScenes: {
+              scenes: [
+                {
+                  id: '411',
+                  title: 'Half Watched Scene',
+                  details: null,
+                  date: '2026-03-24',
+                  resume_time: 900,
+                  paths: { screenshot: 'http://stash.local/images/411.jpg' },
+                  studio: null,
+                  files: [{ width: 1920, height: 1080, duration: 1800 }],
+                },
+              ],
+            },
+          },
+        }),
+    } as Response);
+
+    const result = await adapter.getContinueWatchingScenes(
+      { baseUrl: 'http://stash.local', apiKey: 'secret' },
+      16,
+    );
+
+    expect(result).toEqual([
+      {
+        id: '411',
+        title: 'Half Watched Scene',
+        description: null,
+        imageUrl: 'http://stash.local/images/411.jpg',
+        cardImageUrl: 'http://stash.local/images/411.jpg',
+        studioId: null,
+        studio: null,
+        studioImageUrl: null,
+        releaseDate: '2026-03-24',
+        duration: 1800,
+        viewUrl: 'http://stash.local/scenes/411',
+        resumeSeconds: 900,
+        progressPercent: 50,
+      },
+    ]);
+
+    const [, init] = fetchMock.mock.calls[0] ?? [];
+    const body = JSON.parse(String(init?.body));
+    expect(body.variables).toMatchObject({
+      filter: {
+        page: 1,
+        per_page: 16,
+        sort: 'last_played_at',
+        direction: 'DESC',
+      },
+      sceneFilter: {
+        resume_time: { value: 0, modifier: 'GREATER_THAN' },
+      },
+    });
+  });
+
+  it('excludes scenes with no resume time and scenes that are effectively finished', async () => {
+    fetchMock.mockResolvedValue({
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          data: {
+            findScenes: {
+              scenes: [
+                {
+                  id: '411',
+                  title: 'No Progress',
+                  files: [{ duration: 1800 }],
+                },
+                {
+                  id: '412',
+                  title: 'Nearly Finished',
+                  resume_time: 1750,
+                  files: [{ duration: 1800 }],
+                },
+              ],
+            },
+          },
+        }),
+    } as Response);
+
+    const result = await adapter.getContinueWatchingScenes(
+      { baseUrl: 'http://stash.local' },
+      16,
+    );
+
+    expect(result).toEqual([]);
+  });
+
   it('returns paginated local scene identity snapshots for bulk stash sync', async () => {
     fetchMock.mockResolvedValue({
       ok: true,

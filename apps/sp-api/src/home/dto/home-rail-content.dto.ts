@@ -17,6 +17,7 @@ export class HomeRailItemDto {
   status!: SceneStatusDto;
   requestable!: boolean;
   viewUrl!: string | null;
+  progressPercent!: number | null;
 }
 
 export class HomeRailContentDto {
