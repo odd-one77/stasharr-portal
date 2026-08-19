@@ -925,6 +925,7 @@ export class HomePageComponent implements OnInit, OnDestroy {
               ...item,
               requestable: item.requestable,
               viewUrl: null,
+              progressPercent: null,
             })),
             error: null,
           }),
