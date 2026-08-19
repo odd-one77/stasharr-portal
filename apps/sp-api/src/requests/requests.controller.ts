@@ -1,4 +1,12 @@
-import { Body, Controller, Get, Param, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Post,
+  Query,
+} from '@nestjs/common';
 import { RequestOptionsDto } from './dto/request-options.dto';
 import { SubmitSceneRequestDto } from './dto/submit-scene-request.dto';
 import { SubmitSceneRequestResponseDto } from './dto/submit-scene-request-response.dto';
@@ -21,5 +29,17 @@ export class RequestsController {
     @Body() payload: SubmitSceneRequestDto,
   ): Promise<SubmitSceneRequestResponseDto> {
     return this.requestsService.submitSceneRequest(stashId, payload);
+  }
+
+  @Delete(':stashId')
+  removeSceneRequest(
+    @Param('stashId') stashId: string,
+    @Query('deleteFiles') deleteFiles?: string,
+    @Query('addImportExclusion') addImportExclusion?: string,
+  ) {
+    return this.requestsService.removeSceneRequest(stashId, {
+      deleteFiles: deleteFiles === 'true',
+      addImportExclusion: addImportExclusion === 'true',
+    });
   }
 }
