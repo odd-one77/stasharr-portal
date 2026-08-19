@@ -73,6 +73,18 @@ export class DiscoverService {
     return this.http.get<SceneDetails>(`/api/scenes/${encodeURIComponent(stashId)}`);
   }
 
+  getSceneStreamUrl(stashId: string, copyId?: string): Observable<{ streamUrl: string }> {
+    let params = new HttpParams();
+    if (copyId) {
+      params = params.set('copyId', copyId);
+    }
+
+    return this.http.get<{ streamUrl: string }>(
+      `/api/scenes/${encodeURIComponent(stashId)}/stream`,
+      { params },
+    );
+  }
+
   getSceneRequestOptions(stashId: string): Observable<SceneRequestOptions> {
     return this.http.get<SceneRequestOptions>(
       `/api/requests/${encodeURIComponent(stashId)}/options`,

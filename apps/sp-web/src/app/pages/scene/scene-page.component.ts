@@ -59,6 +59,7 @@ export class ScenePageComponent implements OnInit, OnDestroy {
   protected readonly requestModalOpen = signal(false);
   protected readonly requestContext = signal<SceneRequestContext | null>(null);
   protected readonly favoritingStudio = signal(false);
+  protected readonly streamLoading = signal(false);
   protected readonly performerFavoriteInFlightById = signal<Record<string, boolean>>({});
   protected readonly backLinkPath = signal('/scenes');
   protected readonly backLinkQueryParams = signal<Params>({});
@@ -129,6 +130,39 @@ export class ScenePageComponent implements OnInit, OnDestroy {
 
   protected onStashCopySelected(viewUrl: string | null | undefined): void {
     this.selectedStashCopyUrl.set(viewUrl ?? null);
+  }
+
+  protected selectedStashCopyId(scene: SceneDetails): string | null {
+    const selectedViewUrl = this.selectedStashViewUrl(scene);
+    if (!selectedViewUrl) {
+      return null;
+    }
+
+    return scene.stash?.copies.find((copy) => copy.viewUrl === selectedViewUrl)?.id ?? null;
+  }
+
+  protected playSelectedStashCopy(scene: SceneDetails): void {
+    const copyId = this.selectedStashCopyId(scene);
+    if (!copyId || this.streamLoading()) {
+      return;
+    }
+
+    this.streamLoading.set(true);
+    this.discoverService
+      .getSceneStreamUrl(scene.id, copyId)
+      .pipe(
+        finalize(() => {
+          this.streamLoading.set(false);
+        }),
+      )
+      .subscribe({
+        next: (result) => {
+          window.open(result.streamUrl, '_blank', 'noopener,noreferrer');
+        },
+        error: () => {
+          this.notifications.error('Failed to load stream from Stash');
+        },
+      });
   }
 
   protected studioLogoAriaLabel(scene: SceneDetails): string {

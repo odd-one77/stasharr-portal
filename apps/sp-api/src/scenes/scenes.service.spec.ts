@@ -31,6 +31,7 @@ describe('ScenesService', () => {
 
   const stashAdapter = {
     findScenesByStashId: jest.fn(),
+    getSceneStreamUrl: jest.fn(),
   } as unknown as StashAdapter;
 
   const whisparrAdapter = {
@@ -542,5 +543,83 @@ describe('ScenesService', () => {
         apiKey: stashdbIntegration.apiKey,
       },
     );
+  });
+
+  describe('getSceneStreamUrl', () => {
+    const copies = [
+      {
+        id: '3027',
+        width: 3840,
+        height: 2160,
+        viewUrl: 'http://stash.local/scene/3027',
+        label: '2160p',
+      },
+      {
+        id: '3030',
+        width: 1920,
+        height: 1080,
+        viewUrl: 'http://stash.local/scene/3030',
+        label: '1080p',
+      },
+    ];
+
+    beforeEach(() => {
+      stashAdapter.findScenesByStashId = jest.fn().mockResolvedValue(copies);
+      stashAdapter.getSceneStreamUrl = jest
+        .fn()
+        .mockResolvedValue('http://stash.local/scene/3027/stream?apikey=stash-key');
+    });
+
+    it('resolves the best available copy when no copyId is given', async () => {
+      await expect(
+        service.getSceneStreamUrl('stashdb-scene-1'),
+      ).resolves.toBe('http://stash.local/scene/3027/stream?apikey=stash-key');
+
+      expect(stashAdapter.findScenesByStashId).toHaveBeenCalledWith(
+        'stashdb-scene-1',
+        { baseUrl: stashIntegration.baseUrl, apiKey: stashIntegration.apiKey },
+        { providerKey: 'STASHDB' },
+      );
+      expect(stashAdapter.getSceneStreamUrl).toHaveBeenCalledWith('3027', {
+        baseUrl: stashIntegration.baseUrl,
+        apiKey: stashIntegration.apiKey,
+      });
+    });
+
+    it('resolves a specific copy when copyId is given', async () => {
+      await service.getSceneStreamUrl('stashdb-scene-1', '3030');
+
+      expect(stashAdapter.getSceneStreamUrl).toHaveBeenCalledWith('3030', {
+        baseUrl: stashIntegration.baseUrl,
+        apiKey: stashIntegration.apiKey,
+      });
+    });
+
+    it('throws not found when no stash copy matches', async () => {
+      stashAdapter.findScenesByStashId = jest.fn().mockResolvedValue([]);
+
+      await expect(
+        service.getSceneStreamUrl('stashdb-scene-1'),
+      ).rejects.toThrow('No linked Stash scene found for playback.');
+    });
+
+    it('throws not found when the requested copyId does not match any copy', async () => {
+      await expect(
+        service.getSceneStreamUrl('stashdb-scene-1', 'missing'),
+      ).rejects.toThrow('No linked Stash scene found for playback.');
+    });
+
+    it('throws not found when stash is not configured', async () => {
+      integrationsService.findOne = jest.fn().mockResolvedValue({
+        enabled: false,
+        status: IntegrationStatus.CONFIGURED,
+        baseUrl: 'http://stash.local',
+        apiKey: 'stash-key',
+      });
+
+      await expect(
+        service.getSceneStreamUrl('stashdb-scene-1'),
+      ).rejects.toThrow('Stash integration is not configured.');
+    });
   });
 });

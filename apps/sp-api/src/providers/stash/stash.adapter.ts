@@ -198,6 +198,7 @@ interface StashSceneAssetRecord {
   id?: unknown;
   paths?: {
     screenshot?: unknown;
+    stream?: unknown;
   } | null;
 }
 
@@ -620,6 +621,49 @@ export class StashAdapter {
     }
 
     return this.fetchProtectedAsset(config, screenshotUrl);
+  }
+
+  async getSceneStreamUrl(
+    sceneId: string,
+    config: StashAdapterBaseConfig,
+  ): Promise<string | null> {
+    const normalizedSceneId = this.normalizeEntityId(sceneId);
+    if (!normalizedSceneId) {
+      return null;
+    }
+
+    const query = `
+      query FindScene($id: ID!) {
+        findScene(id: $id) {
+          id
+          paths {
+            stream
+          }
+        }
+      }
+    `;
+
+    const payload = await this.executeQuery(config, query, {
+      id: normalizedSceneId,
+    });
+    const streamUrl = this.parseAssetUrl(
+      payload.data?.findScene?.paths?.stream,
+    );
+    if (!streamUrl) {
+      return null;
+    }
+
+    const resolvedUrl = this.resolveProtectedAssetUrl(
+      config.baseUrl,
+      streamUrl,
+    );
+    if (!config.apiKey?.trim()) {
+      return resolvedUrl;
+    }
+
+    const urlWithKey = new URL(resolvedUrl);
+    urlWithKey.searchParams.set('apikey', config.apiKey.trim());
+    return urlWithKey.toString();
   }
 
   async openStudioLogo(

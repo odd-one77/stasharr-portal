@@ -130,6 +130,9 @@ describe('ScenesPageComponent', () => {
       getScenesFeed: vi.fn().mockReturnValue(of(options?.feedResponse ?? buildFeedResponse())),
       searchSceneTags: vi.fn().mockReturnValue(of([])),
       searchPerformerStudios: vi.fn().mockReturnValue(of([])),
+      getSceneStreamUrl: vi
+        .fn()
+        .mockReturnValue(of({ streamUrl: 'http://stash.local/stream?apikey=secret' })),
     };
     const runtimeHealthService = {
       ensureStarted: vi.fn(),
@@ -232,6 +235,32 @@ describe('ScenesPageComponent', () => {
       title: 'Scene Title',
       imageUrl: 'http://cdn.local/image.jpg',
     });
+  });
+
+  it('plays an available scene in a new tab', async () => {
+    const { fixture, discoverService } = await renderPage(undefined, {
+      feedResponse: buildFeedResponse([
+        buildScene({ status: { state: 'AVAILABLE' }, requestable: false }),
+      ]),
+    });
+    const windowOpenSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
+
+    const playButton = fixture.nativeElement.querySelector(
+      'button.play-cta',
+    ) as HTMLButtonElement;
+    expect(playButton).not.toBeNull();
+
+    playButton.click();
+    await fixture.whenStable();
+
+    expect(discoverService.getSceneStreamUrl).toHaveBeenCalledWith('scene-1');
+    expect(windowOpenSpy).toHaveBeenCalledWith(
+      'http://stash.local/stream?apikey=secret',
+      '_blank',
+      'noopener,noreferrer',
+    );
+
+    windowOpenSpy.mockRestore();
   });
 
   it('clears active filters back to the default trending discovery state', async () => {

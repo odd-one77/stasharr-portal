@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { IntegrationStatus, IntegrationType } from '@prisma/client';
 import { IntegrationsService } from '../integrations/integrations.service';
 import { CatalogProviderService } from '../providers/catalog/catalog-provider.service';
@@ -152,6 +152,55 @@ export class ScenesService {
       stash,
       whisparr,
     };
+  }
+
+  async getSceneStreamUrl(stashId: string, copyId?: string): Promise<string> {
+    const sceneId = stashId.trim();
+    if (!sceneId) {
+      throw new BadRequestException('Scene stashId is required.');
+    }
+
+    const catalogProvider =
+      await this.catalogProviderService.getConfiguredCatalogProvider();
+    const integration = await this.integrationsService.findOne(
+      IntegrationType.STASH,
+    );
+
+    if (
+      !integration.enabled ||
+      integration.status !== IntegrationStatus.CONFIGURED
+    ) {
+      throw new NotFoundException('Stash integration is not configured.');
+    }
+
+    const baseUrl = integration.baseUrl?.trim();
+    if (!baseUrl) {
+      throw new NotFoundException('Stash integration is not configured.');
+    }
+
+    const config = { baseUrl, apiKey: integration.apiKey };
+    const copies = await this.stashAdapter.findScenesByStashId(sceneId, config, {
+      providerKey: catalogProvider.providerKey,
+    });
+
+    const normalizedCopyId = copyId?.trim();
+    const targetCopy = normalizedCopyId
+      ? copies.find((copy) => copy.id === normalizedCopyId)
+      : copies[0];
+
+    if (!targetCopy) {
+      throw new NotFoundException('No linked Stash scene found for playback.');
+    }
+
+    const streamUrl = await this.stashAdapter.getSceneStreamUrl(
+      targetCopy.id,
+      config,
+    );
+    if (!streamUrl) {
+      throw new NotFoundException('Stash did not return a stream URL.');
+    }
+
+    return streamUrl;
   }
 
   async favoriteStudio(

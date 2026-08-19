@@ -46,4 +46,13 @@ export class ScenesController {
   getSceneById(@Param('stashId') stashId: string): Promise<SceneDetailsDto> {
     return this.scenesService.getSceneById(stashId);
   }
+
+  @Get(':stashId/stream')
+  async getSceneStreamUrl(
+    @Param('stashId') stashId: string,
+    @Query('copyId') copyId?: string,
+  ): Promise<{ streamUrl: string }> {
+    const streamUrl = await this.scenesService.getSceneStreamUrl(stashId, copyId);
+    return { streamUrl };
+  }
 }

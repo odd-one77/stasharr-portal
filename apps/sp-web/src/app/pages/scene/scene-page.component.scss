@@ -277,6 +277,24 @@ a.studio-logo-overlay:focus-visible {
   opacity: 0.9;
 }
 
+:host ::ng-deep .hero-actions .p-button.play-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border-color: color-mix(in srgb, var(--focus-ring) 55%, var(--border-strong));
+  background: color-mix(in srgb, var(--media-detail-action-background) 68%, var(--focus-ring) 32%);
+}
+
+:host ::ng-deep .hero-actions .p-button.play-action:not(:disabled):hover {
+  border-color: var(--focus-ring);
+  background: color-mix(in srgb, var(--media-detail-action-background) 58%, var(--focus-ring) 42%);
+}
+
+:host ::ng-deep .hero-actions .p-button.play-action:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .stash-copy-selector {
   display: inline-flex;
   align-items: center;

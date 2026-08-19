@@ -131,6 +131,22 @@
                   </label>
 
                   @if (selectedStashViewUrl(scene); as selectedViewUrl) {
+                    <button
+                      pButton
+                      type="button"
+                      class="hero-action-button play-action"
+                      [disabled]="streamLoading()"
+                      [attr.aria-busy]="streamLoading()"
+                      [attr.aria-label]="'Play ' + selectedStashLabel(scene)"
+                      [attr.title]="'Play ' + selectedStashLabel(scene)"
+                      (click)="playSelectedStashCopy(scene)"
+                    >
+                      <span class="external-action-label">
+                        Play ({{ selectedStashLabel(scene) }})
+                      </span>
+                      <i class="pi pi-play external-action-icon" aria-hidden="true"></i>
+                    </button>
+
                     <a
                       pButton
                       class="hero-action-button external-action"
@@ -151,6 +167,20 @@
                     </a>
                   }
                 } @else if (scene.stash!.copies[0]; as singleCopy) {
+                  <button
+                    pButton
+                    type="button"
+                    class="hero-action-button play-action"
+                    [disabled]="streamLoading()"
+                    [attr.aria-busy]="streamLoading()"
+                    aria-label="Play"
+                    title="Play"
+                    (click)="playSelectedStashCopy(scene)"
+                  >
+                    <span class="external-action-label">Play</span>
+                    <i class="pi pi-play external-action-icon" aria-hidden="true"></i>
+                  </button>
+
                   <a
                     pButton
                     class="hero-action-button external-action"

@@ -103,6 +103,44 @@ describe('SceneCardComponent', () => {
     expect(statusIcon).toBeTruthy();
   });
 
+  it('shows a play CTA instead of the status badge for playable available scenes', async () => {
+    const { fixture, component } = await renderCard();
+    const emitted: string[] = [];
+    component.item = buildSceneCardItem({ status: { state: 'AVAILABLE' } });
+    component.requestable = false;
+    component.playable = true;
+    component.play.subscribe((id) => emitted.push(id));
+
+    fixture.detectChanges();
+
+    const playButton = fixture.nativeElement.querySelector(
+      '.play-cta',
+    ) as HTMLButtonElement | null;
+    const footerStatusBadge = fixture.nativeElement.querySelector('.footer-status-badge');
+
+    expect(playButton?.textContent?.trim()).toContain('Play');
+    expect(footerStatusBadge).toBeNull();
+
+    playButton?.click();
+
+    expect(emitted).toEqual(['scene-1']);
+  });
+
+  it('does not show a play CTA for playable non-available scenes', async () => {
+    const { fixture, component } = await renderCard();
+    component.item = buildSceneCardItem({ status: { state: 'DOWNLOADING' } });
+    component.requestable = false;
+    component.playable = true;
+
+    fixture.detectChanges();
+
+    const playButton = fixture.nativeElement.querySelector('.play-cta');
+    const footerStatusBadge = fixture.nativeElement.querySelector('.footer-status-badge');
+
+    expect(playButton).toBeNull();
+    expect(footerStatusBadge).toBeTruthy();
+  });
+
   it('supports compact library cards with a scene-details primary link and stash footer action', async () => {
     const { fixture, component } = await renderCard();
     component.item = buildSceneCardItem({

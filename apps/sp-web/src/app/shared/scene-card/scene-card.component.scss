@@ -147,6 +147,27 @@ p {
   pointer-events: auto;
 }
 
+.play-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin: 0;
+  padding: 0.24rem 0.54rem;
+  border-radius: 7px;
+  border: 1px solid var(--scene-card-action-border);
+  background: var(--scene-card-action-background);
+  color: var(--scene-card-action-text);
+  font-size: 0.73rem;
+  font-weight: 700;
+  width: fit-content;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.play-cta i {
+  font-size: 0.85em;
+}
+
 .footer-link,
 .footer-pill {
   margin: 0;

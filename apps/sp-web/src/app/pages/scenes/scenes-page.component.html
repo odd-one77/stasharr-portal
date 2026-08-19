@@ -204,9 +204,11 @@
         <app-scene-card
           [item]="item"
           [requestable]="isRequestable(item)"
+          [playable]="true"
           [sceneQueryParams]="{ returnTo: currentRouteUrl() }"
           studioBadgeRoute="scenes"
           (request)="openRequestModal($event)"
+          (play)="playScene($event)"
         />
       }
     </section>

@@ -35,6 +35,9 @@ describe('ScenePageComponent', () => {
   async function renderScene(scene: SceneDetails) {
     const discoverService = {
       getSceneDetails: vi.fn().mockReturnValue(of(scene)),
+      getSceneStreamUrl: vi
+        .fn()
+        .mockReturnValue(of({ streamUrl: 'http://stash.local/stream?apikey=secret' })),
     };
     const activatedRoute = {
       paramMap: of(convertToParamMap({ stashId: scene.id })),
@@ -105,5 +108,43 @@ describe('ScenePageComponent', () => {
     const { fixture } = await renderScene(buildScene());
 
     expect(fixture.nativeElement.textContent).toContain('Request in Whisparr');
+  });
+
+  it('plays the linked stash copy in a new tab', async () => {
+    const scene = buildScene({
+      stash: {
+        exists: true,
+        hasMultipleCopies: false,
+        copies: [
+          {
+            id: 'stash-scene-1',
+            viewUrl: 'http://stash.local/scenes/stash-scene-1',
+            width: 1920,
+            height: 1080,
+            label: '1080p',
+          },
+        ],
+      },
+    });
+
+    const { fixture, discoverService } = await renderScene(scene);
+    const windowOpenSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
+
+    const playButton = fixture.nativeElement.querySelector(
+      'button.play-action',
+    ) as HTMLButtonElement;
+    expect(playButton).not.toBeNull();
+
+    playButton.click();
+    await fixture.whenStable();
+
+    expect(discoverService.getSceneStreamUrl).toHaveBeenCalledWith('scene-1', 'stash-scene-1');
+    expect(windowOpenSpy).toHaveBeenCalledWith(
+      'http://stash.local/stream?apikey=secret',
+      '_blank',
+      'noopener,noreferrer',
+    );
+
+    windowOpenSpy.mockRestore();
   });
 });

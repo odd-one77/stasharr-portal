@@ -57,8 +57,10 @@ export class SceneCardComponent {
   @Input() footerLink: SceneCardShellLink | null = null;
   @Input() footerLinkLabel: string | null = null;
   @Input() footerBadgeLabel: string | null = null;
+  @Input() playable = false;
 
   @Output() request = new EventEmitter<SceneRequestContext>();
+  @Output() play = new EventEmitter<string>();
 
   protected shellVariant(): 'default' | 'rail' {
     return this.variant === 'rail' ? 'rail' : 'default';
@@ -142,11 +144,24 @@ export class SceneCardComponent {
   }
 
   protected footerStatus(): SceneStatus | null {
-    if (this.requestable || this.footerLinkText() || this.footerBadgeText()) {
+    if (
+      this.requestable ||
+      this.footerLinkText() ||
+      this.footerBadgeText() ||
+      this.showPlayAction()
+    ) {
       return null;
     }
 
     return this.item.status ?? null;
+  }
+
+  protected showPlayAction(): boolean {
+    if (!this.playable || this.requestable || this.footerLinkText() || this.footerBadgeText()) {
+      return false;
+    }
+
+    return this.item.status?.state === 'AVAILABLE';
   }
 
   protected requestScene(event: MouseEvent): void {
@@ -156,6 +171,12 @@ export class SceneCardComponent {
       title: this.item.title,
       imageUrl: this.item.imageUrl,
     });
+  }
+
+  protected playScene(event: MouseEvent): void {
+    event.stopPropagation();
+    event.preventDefault();
+    this.play.emit(this.item.id);
   }
 
   private sceneRouteIdValue(): string {

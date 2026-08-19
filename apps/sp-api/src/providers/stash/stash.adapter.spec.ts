@@ -930,6 +930,81 @@ describe('StashAdapter', () => {
     );
   });
 
+  it('returns a stream url with the apikey appended when configured', async () => {
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          data: {
+            findScene: {
+              id: '411',
+              paths: {
+                stream: 'http://stash.local/scene/411/stream',
+              },
+            },
+          },
+        }),
+    } as Response);
+
+    const result = await adapter.getSceneStreamUrl('411', {
+      baseUrl: 'http://stash.local',
+      apiKey: 'secret',
+    });
+
+    expect(result).toBe('http://stash.local/scene/411/stream?apikey=secret');
+  });
+
+  it('returns the plain stream url when no apiKey is configured', async () => {
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          data: {
+            findScene: {
+              id: '411',
+              paths: {
+                stream: 'http://stash.local/scene/411/stream',
+              },
+            },
+          },
+        }),
+    } as Response);
+
+    const result = await adapter.getSceneStreamUrl('411', {
+      baseUrl: 'http://stash.local',
+      apiKey: null,
+    });
+
+    expect(result).toBe('http://stash.local/scene/411/stream');
+  });
+
+  it('returns null when stash has no stream url for the scene', async () => {
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          data: {
+            findScene: {
+              id: '411',
+              paths: {},
+            },
+          },
+        }),
+    } as Response);
+
+    await expect(
+      adapter.getSceneStreamUrl('411', { baseUrl: 'http://stash.local' }),
+    ).resolves.toBeNull();
+  });
+
+  it('returns null for an invalid scene id without making a request', async () => {
+    await expect(
+      adapter.getSceneStreamUrl('../bad-id', { baseUrl: 'http://stash.local' }),
+    ).resolves.toBeNull();
+
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
   it('opens a protected studio logo and rejects cross-origin asset urls', async () => {
     fetchMock
       .mockResolvedValueOnce({
