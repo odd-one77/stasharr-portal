@@ -115,6 +115,9 @@ export class AcquisitionPageComponent implements OnInit, AfterViewInit, OnDestro
   protected readonly hasMore = signal(true);
   protected readonly inFlight = signal(false);
   protected readonly items = signal<AcquisitionSceneItem[]>([]);
+  protected readonly removingStashIds = signal<ReadonlySet<string>>(new Set());
+  protected readonly removeError = signal<string | null>(null);
+
   protected readonly runtimeHealth = this.runtimeHealthService.status;
   protected readonly selectedLifecycle = signal<AcquisitionLifecycleFilter>('ANY');
   protected readonly countsByLifecycle = signal<AcquisitionCountsByLifecycle>(
@@ -232,6 +235,51 @@ export class AcquisitionPageComponent implements OnInit, AfterViewInit, OnDestro
     this.loadMoreError.set(null);
     this.loadNextPage();
   }
+  protected isRemoving(stashId: string): boolean {
+    return this.removingStashIds().has(stashId);
+  }
+
+  protected removeSceneRequest(item: AcquisitionSceneItem): void {
+    if (this.isRemoving(item.id)) {
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Remove "${item.title ?? 'this scene'}" from your requests and delete it from Whisparr?`,
+    );
+    if (!confirmed) {
+      return;
+    }
+
+    this.removeError.set(null);
+    const nextRemoving = new Set(this.removingStashIds());
+    nextRemoving.add(item.id);
+    this.removingStashIds.set(nextRemoving);
+
+    this.acquisitionService
+      .removeSceneRequest(item.id)
+      .pipe(
+        finalize(() => {
+          const cleared = new Set(this.removingStashIds());
+          cleared.delete(item.id);
+          this.removingStashIds.set(cleared);
+        }),
+      )
+      .subscribe({
+        next: () => {
+          this.items.update((current) =>
+            current.filter((scene) => scene.id !== item.id),
+          );
+          this.total.update((count) => Math.max(0, count - 1));
+        },
+        error: () => {
+          this.removeError.set(
+            `Failed to remove "${item.title ?? 'this scene'}". Please try again.`,
+          );
+        },
+      });
+  }
+
 
   protected selectLifecycle(next: AcquisitionLifecycleFilter): void {
     if (this.selectedLifecycle() === next) {
