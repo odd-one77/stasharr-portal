@@ -237,6 +237,56 @@ export class RequestsService {
       whisparrMovieId: createdMovie.movieId ?? null,
     };
   }
+  async removeSceneRequest(
+    stashId: string,
+    options?: { deleteFiles?: boolean; addImportExclusion?: boolean },
+  ): Promise<{ removed: true; stashId: string; whisparrMovieId: number | null }> {
+    const normalizedStashId = stashId.trim();
+    if (!normalizedStashId) {
+      throw new BadRequestException('Scene stashId is required.');
+    }
+
+    const whisparrConfig = await this.getWhisparrConfig();
+
+    const sceneIndexRow = await this.prisma.sceneIndex.findUnique({
+      where: { stashId: normalizedStashId },
+      select: { whisparrMovieId: true },
+    });
+
+    let whisparrMovieId = sceneIndexRow?.whisparrMovieId ?? null;
+
+    if (!whisparrMovieId) {
+      const liveMatch = await this.whisparrAdapter.findMovieByStashId(
+        normalizedStashId,
+        whisparrConfig,
+      );
+      whisparrMovieId = liveMatch?.movieId ?? null;
+    }
+
+    if (whisparrMovieId) {
+      await this.whisparrAdapter.deleteMovie(whisparrMovieId, whisparrConfig, {
+        deleteFiles: options?.deleteFiles ?? false,
+        addImportExclusion: options?.addImportExclusion ?? false,
+      });
+    }
+
+    await this.prisma.request
+      .delete({ where: { stashId: normalizedStashId } })
+      .catch(() => null);
+
+    await this.indexingService.clearRequestedScene(normalizedStashId);
+    void this.indexingService.requestImmediateRefresh(
+      [normalizedStashId],
+      'request-removed',
+    );
+
+    return {
+      removed: true,
+      stashId: normalizedStashId,
+      whisparrMovieId,
+    };
+  }
+
 
   private async upsertLocalRequestRow(stashId: string): Promise<Request> {
     return this.prisma.request.upsert({
