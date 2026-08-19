@@ -322,6 +322,37 @@ export class WhisparrAdapter {
         .filter((entry): entry is WhisparrTagOption => entry !== null);
     });
   }
+  async deleteMovie(
+    movieId: number,
+    config: WhisparrAdapterBaseConfig,
+    options?: { deleteFiles?: boolean; addImportExclusion?: boolean },
+  ): Promise<void> {
+    if (!Number.isInteger(movieId) || movieId <= 0) {
+      this.logger.debug(
+        `deleteMovie called with invalid movieId: ${this.safeJson({ movieId })}`,
+      );
+      return;
+    }
+
+    await this.trackRuntimeHealth(async () => {
+      this.logger.debug(
+        `Deleting Whisparr movie: ${this.safeJson({
+          movieId,
+          deleteFiles: options?.deleteFiles ?? false,
+          addImportExclusion: options?.addImportExclusion ?? false,
+        })}`,
+      );
+
+      await this.sendDelete(
+        this.resolveDeleteMovieEndpoint(config.baseUrl, movieId, {
+          deleteFiles: options?.deleteFiles ?? false,
+          addImportExclusion: options?.addImportExclusion ?? false,
+        }),
+        config,
+      );
+    });
+  }
+
 
   async createMovie(
     input: WhisparrCreateMovieInput,
