@@ -534,6 +534,57 @@ export class WhisparrAdapter {
 
     return payload;
   }
+  private async sendDelete(
+    endpoint: string,
+    config: WhisparrAdapterBaseConfig,
+  ): Promise<void> {
+    const headers: Record<string, string> = {
+      Accept: 'application/json',
+    };
+
+    if (config.apiKey?.trim()) {
+      headers['X-Api-Key'] = config.apiKey.trim();
+    }
+
+    let response: Response;
+    try {
+      response = await fetchWithTimeout(endpoint, {
+        method: 'DELETE',
+        headers,
+      });
+    } catch (error) {
+      this.logger.error(
+        `Whisparr delete request failed for endpoint: ${endpoint}. error=${this.safeJson(
+          this.serializeError(error),
+        )}`,
+      );
+      throw new BadGatewayException(
+        'Failed to reach Whisparr provider endpoint.',
+      );
+    }
+
+    if (response.status === 404) {
+      this.logger.debug(
+        `Whisparr delete target not found (already removed): ${endpoint}`,
+      );
+      return;
+    }
+
+    if (!response.ok) {
+      const errorBody = await response.text();
+      this.logger.error(
+        `Whisparr non-OK delete response: ${this.safeJson({
+          endpoint,
+          status: response.status,
+          body: errorBody,
+        })}`,
+      );
+      throw new BadGatewayException(
+        `Whisparr provider returned ${response.status}: ${errorBody}`,
+      );
+    }
+  }
+
 
   private async fetchJsonPayload(
     endpoint: string,
@@ -746,6 +797,24 @@ export class WhisparrAdapter {
 
     return parsed.toString();
   }
+  private resolveDeleteMovieEndpoint(
+    baseUrl: string,
+    movieId: number,
+    options: { deleteFiles: boolean; addImportExclusion: boolean },
+  ): string {
+    const parsed = new URL(baseUrl);
+    const cleanPath = parsed.pathname.replace(/\/+$/, '');
+
+    parsed.pathname = `${cleanPath}/api/v3/movie/${encodeURIComponent(String(movieId))}`;
+    parsed.searchParams.set('deleteFiles', String(options.deleteFiles));
+    parsed.searchParams.set(
+      'addImportExclusion',
+      String(options.addImportExclusion),
+    );
+
+    return parsed.toString();
+  }
+
 
   private resolveMovieByIdEndpoint(baseUrl: string, movieId: number): string {
     const parsed = new URL(baseUrl);
