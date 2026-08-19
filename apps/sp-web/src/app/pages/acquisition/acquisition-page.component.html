@@ -216,6 +216,17 @@
                           View in Whisparr
                         </a>
                       }
+
+                      <button
+                        type="button"
+                        class="secondary-action small danger"
+                        [disabled]="isRemoving(item.id)"
+                        (click)="removeSceneRequest(item)"
+                        aria-label="Remove this request and delete it from Whisparr"
+                        title="Remove this request and delete it from Whisparr"
+                      >
+                        {{ isRemoving(item.id) ? 'Removing…' : 'Remove' }}
+                      </button>
                     </div>
                   </div>
                 </article>
@@ -224,6 +235,14 @@
           </section>
         }
       </section>
+
+      @if (removeError()) {
+        <div class="load-more-error">
+          <p-message severity="error" styleClass="app-inline-message">{{
+            removeError()
+          }}</p-message>
+        </div>
+      }
 
       <div #loadMoreSentinel class="load-sentinel"></div>
 
