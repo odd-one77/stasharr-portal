@@ -831,6 +831,102 @@ describe('IndexingService', () => {
     expectInteractiveTransactionsToUseIndexWriteOptions(prisma);
   });
 
+  it("backfills title/description/image/studio from Whisparr's own cache when the catalog provider has never hydrated a row", async () => {
+    const { prisma, sceneIndexStore } = createPrismaMock({
+      sceneIndexRows: [
+        buildSceneIndexRow({
+          stashId: 'scene-1',
+          requestStatus: RequestStatus.REQUESTED,
+          computedLifecycle: 'REQUESTED',
+          lifecycleSortOrder: 3,
+        }),
+      ],
+    });
+    getMovieSnapshotMock.mockResolvedValue([
+      {
+        movieId: 22,
+        stashId: 'scene-1',
+        hasFile: true,
+        cachedTitle: 'Giving Her Everything - S24:E3',
+        cachedOverview: 'Kyle Mason is grading papers...',
+        cachedPosterUrl: 'https://stashdb.org/images/f557d3d4.jpg',
+        cachedStudioId: 'bfde58c6-c265-4e1f-b140-873d410b968e',
+        cachedStudioName: 'NF Busty',
+        cachedReleaseDate: '2026-08-10',
+        cachedDurationSeconds: 1800,
+      },
+    ]);
+
+    const service = new IndexingService(
+      prisma,
+      integrationsService,
+      catalogProviderService,
+      whisparrAdapter,
+      stashAdapter,
+      syncStateService,
+    );
+
+    await service.syncWhisparrMovies('test');
+
+    expect(sceneIndexStore.get('scene-1')).toEqual(
+      expect.objectContaining({
+        title: 'Giving Her Everything - S24:E3',
+        description: 'Kyle Mason is grading papers...',
+        imageUrl: 'https://stashdb.org/images/f557d3d4.jpg',
+        studioId: 'bfde58c6-c265-4e1f-b140-873d410b968e',
+        studioName: 'NF Busty',
+        releaseDate: '2026-08-10',
+        duration: 1800,
+        metadataHydrationState: MetadataHydrationState.HYDRATED,
+      }),
+    );
+  });
+
+  it("does not overwrite a title the catalog provider already hydrated with Whisparr's cached copy", async () => {
+    const { prisma, sceneIndexStore } = createPrismaMock({
+      sceneIndexRows: [
+        buildSceneIndexRow({
+          stashId: 'scene-1',
+          title: 'Provider Title',
+          description: 'Provider description',
+          metadataHydrationState: MetadataHydrationState.HYDRATED,
+        }),
+      ],
+    });
+    getMovieSnapshotMock.mockResolvedValue([
+      {
+        movieId: 22,
+        stashId: 'scene-1',
+        hasFile: true,
+        cachedTitle: 'Whisparr Title',
+        cachedOverview: 'Whisparr overview',
+        cachedPosterUrl: null,
+        cachedStudioId: null,
+        cachedStudioName: null,
+        cachedReleaseDate: null,
+        cachedDurationSeconds: null,
+      },
+    ]);
+
+    const service = new IndexingService(
+      prisma,
+      integrationsService,
+      catalogProviderService,
+      whisparrAdapter,
+      stashAdapter,
+      syncStateService,
+    );
+
+    await service.syncWhisparrMovies('test');
+
+    expect(sceneIndexStore.get('scene-1')).toEqual(
+      expect.objectContaining({
+        title: 'Provider Title',
+        description: 'Provider description',
+      }),
+    );
+  });
+
   it('syncs the local-library projection and reconciles linked stash availability', async () => {
     const { prisma, sceneIndexStore, librarySceneIndexStore } =
       createPrismaMock({

@@ -12,6 +12,18 @@ export interface WhisparrMovieLookupResult {
   movieId: number;
   stashId: string;
   hasFile: boolean;
+  // Whisparr caches this metadata locally from whenever the movie was
+  // originally added, independent of whichever catalog provider the portal
+  // is currently configured for. Useful as a fallback source when the
+  // configured provider can no longer resolve a scene's stashId (e.g. it
+  // was added under a since-replaced provider).
+  cachedTitle: string | null;
+  cachedOverview: string | null;
+  cachedPosterUrl: string | null;
+  cachedStudioId: string | null;
+  cachedStudioName: string | null;
+  cachedReleaseDate: string | null;
+  cachedDurationSeconds: number | null;
 }
 
 export interface WhisparrQueueSnapshotItem {
@@ -671,8 +683,9 @@ export class WhisparrAdapter {
       return null;
     }
 
-    const movieId = this.readNumber((entry as Record<string, unknown>).id);
-    const stashId = this.readString((entry as Record<string, unknown>).stashId);
+    const record = entry as Record<string, unknown>;
+    const movieId = this.readNumber(record.id);
+    const stashId = this.readString(record.stashId);
 
     if (movieId === null || !stashId) {
       return null;
@@ -681,8 +694,44 @@ export class WhisparrAdapter {
     return {
       movieId,
       stashId,
-      hasFile: (entry as Record<string, unknown>).hasFile === true,
+      hasFile: record.hasFile === true,
+      cachedTitle: this.readString(record.title),
+      cachedOverview: this.readString(record.overview),
+      cachedPosterUrl: this.readMovieImageUrl(record.images),
+      cachedStudioId: this.readString(record.studioForeignId),
+      cachedStudioName: this.readString(record.studioTitle),
+      cachedReleaseDate: this.readReleaseDate(record.releaseDate),
+      cachedDurationSeconds: this.toDurationSeconds(
+        this.readNumber(record.runtime),
+      ),
     };
+  }
+
+  private readMovieImageUrl(value: unknown): string | null {
+    if (!Array.isArray(value)) {
+      return null;
+    }
+
+    const images = value.filter(
+      (entry): entry is Record<string, unknown> =>
+        Boolean(entry) && typeof entry === 'object',
+    );
+
+    const poster = images.find(
+      (image) => this.readString(image.coverType) === 'poster',
+    );
+    const preferred = poster ?? images[0];
+
+    return preferred ? this.readString(preferred.remoteUrl) : null;
+  }
+
+  private readReleaseDate(value: unknown): string | null {
+    const raw = this.readString(value);
+    return raw ? (raw.match(/^\d{4}-\d{2}-\d{2}/)?.[0] ?? raw) : null;
+  }
+
+  private toDurationSeconds(runtimeMinutes: number | null): number | null {
+    return runtimeMinutes !== null ? Math.round(runtimeMinutes * 60) : null;
   }
 
   private parseQueueEntry(entry: unknown): WhisparrQueueSnapshotItem | null {

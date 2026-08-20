@@ -67,6 +67,13 @@ describe('WhisparrAdapter', () => {
         movieId: 42,
         stashId: 'scene-1',
         hasFile: true,
+        cachedTitle: null,
+        cachedOverview: null,
+        cachedPosterUrl: null,
+        cachedStudioId: null,
+        cachedStudioName: null,
+        cachedReleaseDate: null,
+        cachedDurationSeconds: null,
       });
 
       expect(fetchMock).toHaveBeenCalledWith(
@@ -105,6 +112,13 @@ describe('WhisparrAdapter', () => {
         movieId: 3,
         stashId: 'scene-1',
         hasFile: false,
+        cachedTitle: null,
+        cachedOverview: null,
+        cachedPosterUrl: null,
+        cachedStudioId: null,
+        cachedStudioName: null,
+        cachedReleaseDate: null,
+        cachedDurationSeconds: null,
       });
     });
 
@@ -180,6 +194,13 @@ describe('WhisparrAdapter', () => {
         movieId: 42,
         stashId: 'scene-1',
         hasFile: true,
+        cachedTitle: null,
+        cachedOverview: null,
+        cachedPosterUrl: null,
+        cachedStudioId: null,
+        cachedStudioName: null,
+        cachedReleaseDate: null,
+        cachedDurationSeconds: null,
       });
 
       expect(fetchMock).toHaveBeenCalledWith(
@@ -223,6 +244,76 @@ describe('WhisparrAdapter', () => {
           baseUrl: 'http://whisparr.local',
         }),
       ).rejects.toBeInstanceOf(BadGatewayException);
+    });
+
+    it('captures the metadata Whisparr cached locally when the movie was added, for use as a fallback', async () => {
+      fetchMock.mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            id: 570,
+            stashId: '019fed0e-687e-7ea3-aea2-589397e81ba4',
+            hasFile: true,
+            title: 'Giving Her Everything - S24:E3',
+            overview: 'Kyle Mason is grading papers...',
+            releaseDate: '2026-08-10T00:00:00Z',
+            runtime: 30,
+            studioTitle: 'NF Busty',
+            studioForeignId: 'bfde58c6-c265-4e1f-b140-873d410b968e',
+            images: [
+              {
+                coverType: 'screenshot',
+                url: '/MediaCover/movie/570/screenshot.jpg',
+                remoteUrl: 'https://stashdb.org/images/f557d3d4.jpg',
+              },
+            ],
+          }),
+      } as Response);
+
+      await expect(
+        adapter.findMovieById(570, {
+          baseUrl: 'http://whisparr.local',
+        }),
+      ).resolves.toEqual({
+        movieId: 570,
+        stashId: '019fed0e-687e-7ea3-aea2-589397e81ba4',
+        hasFile: true,
+        cachedTitle: 'Giving Her Everything - S24:E3',
+        cachedOverview: 'Kyle Mason is grading papers...',
+        cachedPosterUrl: 'https://stashdb.org/images/f557d3d4.jpg',
+        cachedStudioId: 'bfde58c6-c265-4e1f-b140-873d410b968e',
+        cachedStudioName: 'NF Busty',
+        cachedReleaseDate: '2026-08-10',
+        cachedDurationSeconds: 1800,
+      });
+    });
+
+    it('prefers an image tagged as the poster over other cover types', async () => {
+      fetchMock.mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            id: 570,
+            stashId: 'scene-1',
+            hasFile: true,
+            images: [
+              {
+                coverType: 'fanart',
+                remoteUrl: 'https://cdn.local/fanart.jpg',
+              },
+              {
+                coverType: 'poster',
+                remoteUrl: 'https://cdn.local/poster.jpg',
+              },
+            ],
+          }),
+      } as Response);
+
+      const result = await adapter.findMovieById(570, {
+        baseUrl: 'http://whisparr.local',
+      });
+
+      expect(result?.cachedPosterUrl).toBe('https://cdn.local/poster.jpg');
     });
   });
 

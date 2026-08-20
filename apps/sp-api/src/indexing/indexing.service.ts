@@ -982,15 +982,48 @@ export class IndexingService {
     const snapshotMovieIds = new Set<number>();
     const patches: SceneIndexPatch[] = [];
 
+    const rowsMissingTitle = movies.length
+      ? await this.prisma.sceneIndex.findMany({
+          where: {
+            stashId: { in: movies.map((movie) => movie.stashId) },
+            title: null,
+          },
+          select: { stashId: true },
+        })
+      : [];
+    const stashIdsMissingTitle = new Set(
+      rowsMissingTitle.map((row) => row.stashId),
+    );
+
     for (const movie of movies) {
       snapshotMovieIds.add(movie.movieId);
-      patches.push({
+      const patch: SceneIndexPatch = {
         stashId: movie.stashId,
         whisparrMovieId: movie.movieId,
         whisparrHasFile: movie.hasFile,
         whisparrLastSyncedAt: now,
         lastSyncedAt: now,
-      });
+      };
+
+      // The catalog provider has never successfully hydrated this row (no
+      // title yet). Fall back to whatever Whisparr cached locally when the
+      // movie was originally added — that data doesn't depend on which
+      // catalog provider is configured now, so it survives a provider
+      // switch that leaves the original stashId unresolvable.
+      if (movie.cachedTitle && stashIdsMissingTitle.has(movie.stashId)) {
+        patch.title = movie.cachedTitle;
+        patch.description = movie.cachedOverview;
+        patch.imageUrl = movie.cachedPosterUrl;
+        patch.studioId = movie.cachedStudioId;
+        patch.studioName = movie.cachedStudioName;
+        patch.releaseDate = movie.cachedReleaseDate;
+        patch.duration = movie.cachedDurationSeconds;
+        patch.metadataHydrationState = MetadataHydrationState.HYDRATED;
+        patch.metadataLastSyncedAt = now;
+        patch.metadataRetryAfterAt = null;
+      }
+
+      patches.push(patch);
     }
 
     const staleRows = await this.prisma.sceneIndex.findMany({
