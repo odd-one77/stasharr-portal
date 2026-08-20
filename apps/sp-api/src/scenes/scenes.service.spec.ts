@@ -1,11 +1,9 @@
 import { IntegrationStatus, IntegrationType } from '@prisma/client';
 import { IntegrationsService } from '../integrations/integrations.service';
 import { CatalogProviderService } from '../providers/catalog/catalog-provider.service';
+import type { CatalogAdapter } from '../providers/catalog/catalog-adapter.interface';
 import { StashAdapter } from '../providers/stash/stash.adapter';
-import {
-  StashdbAdapter,
-  StashdbSceneDetails,
-} from '../providers/stashdb/stashdb.adapter';
+import { StashdbSceneDetails } from '../providers/stashdb/stashdb.adapter';
 import { WhisparrAdapter } from '../providers/whisparr/whisparr.adapter';
 import { SceneStatusService } from '../scene-status/scene-status.service';
 import { ScenesService } from './scenes.service';
@@ -19,12 +17,12 @@ describe('ScenesService', () => {
     getConfiguredCatalogAdapter: jest.fn(),
   } as unknown as CatalogProviderService;
 
-  const stashdbAdapter = {
+  const catalogAdapter = {
     getSceneById: jest.fn(),
     getScenesBySort: jest.fn(),
     searchTags: jest.fn(),
     favoriteStudio: jest.fn(),
-  } as unknown as StashdbAdapter;
+  } as unknown as CatalogAdapter;
 
   const sceneStatusService = {
     resolveForScene: jest.fn(),
@@ -85,7 +83,6 @@ describe('ScenesService', () => {
     service = new ScenesService(
       integrationsService,
       catalogProviderService,
-      stashdbAdapter,
       sceneStatusService,
       stashAdapter,
       whisparrAdapter,
@@ -115,10 +112,10 @@ describe('ScenesService', () => {
       });
     catalogProviderService.getConfiguredCatalogAdapter = jest
       .fn()
-      .mockResolvedValue(stashdbAdapter);
+      .mockResolvedValue(catalogAdapter);
 
-    stashdbAdapter.getSceneById = jest.fn().mockResolvedValue(sceneDetails);
-    stashdbAdapter.getScenesBySort = jest.fn().mockResolvedValue({
+    catalogAdapter.getSceneById = jest.fn().mockResolvedValue(sceneDetails);
+    catalogAdapter.getScenesBySort = jest.fn().mockResolvedValue({
       total: 1,
       scenes: [
         {
@@ -136,8 +133,8 @@ describe('ScenesService', () => {
         },
       ],
     });
-    stashdbAdapter.searchTags = jest.fn().mockResolvedValue([]);
-    stashdbAdapter.favoriteStudio = jest.fn().mockResolvedValue({
+    catalogAdapter.searchTags = jest.fn().mockResolvedValue([]);
+    catalogAdapter.favoriteStudio = jest.fn().mockResolvedValue({
       favorited: true,
       alreadyFavorited: false,
     });
@@ -226,7 +223,7 @@ describe('ScenesService', () => {
       ],
     });
 
-    expect(stashdbAdapter.getScenesBySort).toHaveBeenCalledWith({
+    expect(catalogAdapter.getScenesBySort).toHaveBeenCalledWith({
       baseUrl: stashdbIntegration.baseUrl,
       apiKey: stashdbIntegration.apiKey,
       page: 1,
@@ -258,13 +255,13 @@ describe('ScenesService', () => {
       source: 'FANSDB',
     });
 
-    expect(stashdbAdapter.getScenesBySort).toHaveBeenCalledWith(
+    expect(catalogAdapter.getScenesBySort).toHaveBeenCalledWith(
       expect.objectContaining({
         baseUrl: 'http://fansdb.local/graphql',
         apiKey: 'fansdb-key',
       }),
     );
-    expect(stashdbAdapter.getSceneById).toHaveBeenCalledWith(
+    expect(catalogAdapter.getSceneById).toHaveBeenCalledWith(
       'stashdb-scene-1',
       {
         baseUrl: 'http://fansdb.local/graphql',
@@ -326,13 +323,13 @@ describe('ScenesService', () => {
         apiKey: 'tpdb-token',
       }),
     );
-    expect(stashdbAdapter.getScenesBySort).not.toHaveBeenCalled();
+    expect(catalogAdapter.getScenesBySort).not.toHaveBeenCalled();
   });
 
   it('forwards non-default sort to stashdb adapter', async () => {
     await service.getScenesFeed(2, 10, 'TITLE');
 
-    expect(stashdbAdapter.getScenesBySort).toHaveBeenCalledWith({
+    expect(catalogAdapter.getScenesBySort).toHaveBeenCalledWith({
       baseUrl: stashdbIntegration.baseUrl,
       apiKey: stashdbIntegration.apiKey,
       page: 2,
@@ -348,7 +345,7 @@ describe('ScenesService', () => {
   it('forwards ALL favorites filter to stashdb adapter', async () => {
     await service.getScenesFeed(1, 25, 'DATE', undefined, [], 'OR', 'ALL');
 
-    expect(stashdbAdapter.getScenesBySort).toHaveBeenCalledWith({
+    expect(catalogAdapter.getScenesBySort).toHaveBeenCalledWith({
       baseUrl: stashdbIntegration.baseUrl,
       apiKey: stashdbIntegration.apiKey,
       page: 1,
@@ -372,7 +369,7 @@ describe('ScenesService', () => {
       'PERFORMER',
     );
 
-    expect(stashdbAdapter.getScenesBySort).toHaveBeenCalledWith({
+    expect(catalogAdapter.getScenesBySort).toHaveBeenCalledWith({
       baseUrl: stashdbIntegration.baseUrl,
       apiKey: stashdbIntegration.apiKey,
       page: 1,
@@ -412,7 +409,7 @@ describe('ScenesService', () => {
   it('forwards STUDIO favorites filter to stashdb adapter', async () => {
     await service.getScenesFeed(1, 25, 'DATE', undefined, [], 'OR', 'STUDIO');
 
-    expect(stashdbAdapter.getScenesBySort).toHaveBeenCalledWith({
+    expect(catalogAdapter.getScenesBySort).toHaveBeenCalledWith({
       baseUrl: stashdbIntegration.baseUrl,
       apiKey: stashdbIntegration.apiKey,
       page: 1,
@@ -436,7 +433,7 @@ describe('ScenesService', () => {
       'PERFORMER',
     );
 
-    expect(stashdbAdapter.getScenesBySort).toHaveBeenCalledWith({
+    expect(catalogAdapter.getScenesBySort).toHaveBeenCalledWith({
       baseUrl: stashdbIntegration.baseUrl,
       apiKey: stashdbIntegration.apiKey,
       page: 1,
@@ -459,7 +456,7 @@ describe('ScenesService', () => {
       'studio-2',
     ]);
 
-    expect(stashdbAdapter.getScenesBySort).toHaveBeenCalledWith({
+    expect(catalogAdapter.getScenesBySort).toHaveBeenCalledWith({
       baseUrl: stashdbIntegration.baseUrl,
       apiKey: stashdbIntegration.apiKey,
       page: 1,
@@ -475,7 +472,7 @@ describe('ScenesService', () => {
   it('forwards explicit sort direction to stashdb adapter', async () => {
     await service.getScenesFeed(1, 25, 'DATE', 'ASC');
 
-    expect(stashdbAdapter.getScenesBySort).toHaveBeenCalledWith({
+    expect(catalogAdapter.getScenesBySort).toHaveBeenCalledWith({
       baseUrl: stashdbIntegration.baseUrl,
       apiKey: stashdbIntegration.apiKey,
       page: 1,
@@ -489,7 +486,7 @@ describe('ScenesService', () => {
   });
 
   it('returns scene tag options from stashdb', async () => {
-    stashdbAdapter.searchTags = jest.fn().mockResolvedValue([
+    catalogAdapter.searchTags = jest.fn().mockResolvedValue([
       {
         id: 'tag-1',
         name: 'Tag One',
@@ -507,7 +504,7 @@ describe('ScenesService', () => {
       },
     ]);
 
-    expect(stashdbAdapter.searchTags).toHaveBeenCalledWith({
+    expect(catalogAdapter.searchTags).toHaveBeenCalledWith({
       baseUrl: stashdbIntegration.baseUrl,
       apiKey: stashdbIntegration.apiKey,
       query: 'tag',
@@ -585,7 +582,7 @@ describe('ScenesService', () => {
       alreadyFavorited: false,
     });
 
-    expect(stashdbAdapter.favoriteStudio).toHaveBeenCalledWith(
+    expect(catalogAdapter.favoriteStudio).toHaveBeenCalledWith(
       'studio-1',
       true,
       {
@@ -595,21 +592,30 @@ describe('ScenesService', () => {
     );
   });
 
-  it('rejects favoriting a studio when TPDB is the active provider', async () => {
+  it('favorites a studio through whichever catalog adapter is configured (e.g. TPDB)', async () => {
+    const tpdbProvider = {
+      integrationType: 'TPDB',
+      providerKey: 'TPDB',
+      label: 'ThePornDB',
+      baseUrl: 'https://api.theporndb.net',
+      apiKey: 'tpdb-token',
+    };
     catalogProviderService.getConfiguredCatalogProvider = jest
       .fn()
-      .mockResolvedValue({
-        integrationType: 'TPDB',
-        providerKey: 'TPDB',
-        label: 'ThePornDB',
-        baseUrl: 'https://api.theporndb.net',
-        apiKey: 'tpdb-token',
-      });
+      .mockResolvedValue(tpdbProvider);
 
-    await expect(service.favoriteStudio('studio-1', true)).rejects.toThrow(
-      'Favoriting is not supported for TPDB.',
+    await expect(service.favoriteStudio('studio-1', true)).resolves.toEqual({
+      favorited: true,
+      alreadyFavorited: false,
+    });
+    expect(catalogAdapter.favoriteStudio).toHaveBeenCalledWith(
+      'studio-1',
+      true,
+      {
+        baseUrl: tpdbProvider.baseUrl,
+        apiKey: tpdbProvider.apiKey,
+      },
     );
-    expect(stashdbAdapter.favoriteStudio).not.toHaveBeenCalled();
   });
 
   describe('getSceneStreamUrl', () => {

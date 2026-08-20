@@ -2,6 +2,7 @@ import {
   StashdbAdapterBaseConfig,
   StashdbAdapterSceneFeedConfig,
   StashdbAdapterTrendingConfig,
+  StashdbFavoriteResult,
   StashdbPerformerDetails,
   StashdbPerformerFeedConfig,
   StashdbPerformerScenesConfig,
@@ -19,9 +20,7 @@ import {
 
 /**
  * Shared contract for catalog metadata providers (StashDB/FansDB via
- * StashdbAdapter, TPDB via TpdbAdapter). Favoriting is deliberately excluded —
- * TPDB has no favoriting API, so callers that need it must depend on
- * StashdbAdapter directly rather than going through this interface.
+ * StashdbAdapter, TPDB via TpdbAdapter).
  */
 export interface CatalogAdapter {
   testConnection(config: StashdbAdapterBaseConfig): Promise<void>;
@@ -62,4 +61,14 @@ export interface CatalogAdapter {
     sceneIds: string[],
     config: StashdbAdapterBaseConfig,
   ): Promise<StashdbSceneMetadata[]>;
+  favoritePerformer(
+    performerId: string,
+    favorite: boolean,
+    config: StashdbAdapterBaseConfig,
+  ): Promise<StashdbFavoriteResult>;
+  favoriteStudio(
+    studioId: string,
+    favorite: boolean,
+    config: StashdbAdapterBaseConfig,
+  ): Promise<StashdbFavoriteResult>;
 }

@@ -6,7 +6,6 @@ import {
   Injectable,
 } from '@nestjs/common';
 import { CatalogProviderService } from '../providers/catalog/catalog-provider.service';
-import { StashdbAdapter } from '../providers/stashdb/stashdb.adapter';
 import { withStashImageSize } from '../providers/stashdb/stashdb-image-url.util';
 import { SceneStatusService } from '../scene-status/scene-status.service';
 import { PerformerDetailsDto } from './dto/performer-details.dto';
@@ -32,7 +31,6 @@ export class PerformersService {
 
   constructor(
     private readonly catalogProviderService: CatalogProviderService,
-    private readonly stashdbAdapter: StashdbAdapter,
     private readonly sceneStatusService: SceneStatusService,
   ) {}
 
@@ -215,11 +213,10 @@ export class PerformersService {
 
     const catalogProvider =
       await this.catalogProviderService.getConfiguredCatalogProvider();
-    if (catalogProvider.providerKey === 'TPDB') {
-      throw new BadRequestException('Favoriting is not supported for TPDB.');
-    }
+    const catalogAdapter =
+      await this.catalogProviderService.getConfiguredCatalogAdapter();
 
-    return this.stashdbAdapter.favoritePerformer(normalizedPerformerId, favorite, {
+    return catalogAdapter.favoritePerformer(normalizedPerformerId, favorite, {
       baseUrl: catalogProvider.baseUrl,
       apiKey: catalogProvider.apiKey,
     });

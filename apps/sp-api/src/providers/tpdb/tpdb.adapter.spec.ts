@@ -350,8 +350,65 @@ describe('TpdbAdapter', () => {
     expect(scenesUrl).toContain('performer_id=999');
   });
 
-  it('does not implement favoriting', () => {
-    expect((adapter as unknown as { favoritePerformer?: unknown }).favoritePerformer).toBeUndefined();
-    expect((adapter as unknown as { favoriteStudio?: unknown }).favoriteStudio).toBeUndefined();
+  it('favorites a performer via the TPDB GraphQL endpoint', async () => {
+    fetchMock.mockResolvedValue(
+      jsonResponse(200, { data: { favoritePerformer: true } }),
+    );
+
+    await expect(
+      adapter.favoritePerformer('performer-uuid-1', true, config),
+    ).resolves.toEqual({ favorited: true, alreadyFavorited: false });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://api.theporndb.net/graphql',
+      expect.objectContaining({
+        method: 'POST',
+        headers: expect.objectContaining({
+          Authorization: 'Bearer tpdb-token',
+          'Content-Type': 'application/json',
+        }),
+        body: expect.stringContaining('"id":"performer-uuid-1"'),
+      }),
+    );
+  });
+
+  it('favorites a studio via the TPDB GraphQL endpoint', async () => {
+    fetchMock.mockResolvedValue(
+      jsonResponse(200, { data: { favoriteStudio: true } }),
+    );
+
+    await expect(
+      adapter.favoriteStudio('studio-uuid-1', true, config),
+    ).resolves.toEqual({ favorited: true, alreadyFavorited: false });
+  });
+
+  it('treats a duplicate-favorite GraphQL error as already favorited', async () => {
+    fetchMock.mockResolvedValue(
+      jsonResponse(200, {
+        errors: [
+          {
+            message:
+              'duplicate key value violates unique constraint "performer_favorites_pk"',
+            path: ['favoritePerformer'],
+          },
+        ],
+      }),
+    );
+
+    await expect(
+      adapter.favoritePerformer('performer-uuid-1', true, config),
+    ).resolves.toEqual({ favorited: true, alreadyFavorited: true });
+  });
+
+  it('surfaces a non-duplicate GraphQL error as a BadGatewayException', async () => {
+    fetchMock.mockResolvedValue(
+      jsonResponse(200, {
+        errors: [{ message: 'Unauthenticated.' }],
+      }),
+    );
+
+    await expect(
+      adapter.favoritePerformer('performer-uuid-1', true, config),
+    ).rejects.toBeInstanceOf(BadGatewayException);
   });
 });

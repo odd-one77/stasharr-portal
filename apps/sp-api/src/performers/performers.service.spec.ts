@@ -1,5 +1,5 @@
 import { CatalogProviderService } from '../providers/catalog/catalog-provider.service';
-import { StashdbAdapter } from '../providers/stashdb/stashdb.adapter';
+import type { CatalogAdapter } from '../providers/catalog/catalog-adapter.interface';
 import { SceneStatusService } from '../scene-status/scene-status.service';
 import { PerformersService } from './performers.service';
 
@@ -9,13 +9,13 @@ describe('PerformersService', () => {
     getConfiguredCatalogAdapter: jest.fn(),
   } as unknown as CatalogProviderService;
 
-  const stashdbAdapter = {
+  const catalogAdapter = {
     getPerformersFeed: jest.fn(),
     getPerformerById: jest.fn(),
     getScenesForPerformer: jest.fn(),
     searchStudios: jest.fn(),
     favoritePerformer: jest.fn(),
-  } as unknown as StashdbAdapter;
+  } as unknown as CatalogAdapter;
 
   const sceneStatusService = {
     resolveForScenes: jest.fn(),
@@ -35,7 +35,6 @@ describe('PerformersService', () => {
     jest.clearAllMocks();
     service = new PerformersService(
       catalogProviderService,
-      stashdbAdapter,
       sceneStatusService,
     );
 
@@ -44,9 +43,9 @@ describe('PerformersService', () => {
       .mockResolvedValue(stashdbIntegration);
     catalogProviderService.getConfiguredCatalogAdapter = jest
       .fn()
-      .mockResolvedValue(stashdbAdapter);
+      .mockResolvedValue(catalogAdapter);
 
-    stashdbAdapter.getPerformersFeed = jest.fn().mockResolvedValue({
+    catalogAdapter.getPerformersFeed = jest.fn().mockResolvedValue({
       total: 1,
       performers: [
         {
@@ -59,7 +58,7 @@ describe('PerformersService', () => {
         },
       ],
     });
-    stashdbAdapter.getPerformerById = jest.fn().mockResolvedValue({
+    catalogAdapter.getPerformerById = jest.fn().mockResolvedValue({
       id: 'p-1',
       name: 'Performer One',
       disambiguation: null,
@@ -89,7 +88,7 @@ describe('PerformersService', () => {
       imageUrl: null,
       images: [],
     });
-    stashdbAdapter.getScenesForPerformer = jest.fn().mockResolvedValue({
+    catalogAdapter.getScenesForPerformer = jest.fn().mockResolvedValue({
       total: 1,
       scenes: [
         {
@@ -107,14 +106,14 @@ describe('PerformersService', () => {
         },
       ],
     });
-    stashdbAdapter.searchStudios = jest.fn().mockResolvedValue([
+    catalogAdapter.searchStudios = jest.fn().mockResolvedValue([
       {
         id: 'studio-1',
         name: 'Studio',
         childStudios: [{ id: 'studio-1a', name: 'Studio Child' }],
       },
     ]);
-    stashdbAdapter.favoritePerformer = jest.fn().mockResolvedValue({
+    catalogAdapter.favoritePerformer = jest.fn().mockResolvedValue({
       favorited: true,
       alreadyFavorited: false,
     });
@@ -142,7 +141,7 @@ describe('PerformersService', () => {
       ],
     });
 
-    expect(stashdbAdapter.getPerformersFeed).toHaveBeenCalledWith({
+    expect(catalogAdapter.getPerformersFeed).toHaveBeenCalledWith({
       baseUrl: stashdbIntegration.baseUrl,
       apiKey: stashdbIntegration.apiKey,
       page: 1,
@@ -163,7 +162,7 @@ describe('PerformersService', () => {
       favoritesOnly: true,
     });
 
-    expect(stashdbAdapter.getPerformersFeed).toHaveBeenCalledWith({
+    expect(catalogAdapter.getPerformersFeed).toHaveBeenCalledWith({
       baseUrl: stashdbIntegration.baseUrl,
       apiKey: stashdbIntegration.apiKey,
       page: 2,
@@ -182,7 +181,7 @@ describe('PerformersService', () => {
       direction: 'DESC',
     });
 
-    expect(stashdbAdapter.getPerformersFeed).toHaveBeenCalledWith({
+    expect(catalogAdapter.getPerformersFeed).toHaveBeenCalledWith({
       baseUrl: stashdbIntegration.baseUrl,
       apiKey: stashdbIntegration.apiKey,
       page: 1,
@@ -229,7 +228,7 @@ describe('PerformersService', () => {
       ],
     });
 
-    expect(stashdbAdapter.getScenesForPerformer).toHaveBeenCalledWith({
+    expect(catalogAdapter.getScenesForPerformer).toHaveBeenCalledWith({
       baseUrl: stashdbIntegration.baseUrl,
       apiKey: stashdbIntegration.apiKey,
       performerId: 'p-1',
@@ -251,7 +250,7 @@ describe('PerformersService', () => {
       onlyFavoriteStudios: true,
     });
 
-    expect(stashdbAdapter.getScenesForPerformer).toHaveBeenCalledWith({
+    expect(catalogAdapter.getScenesForPerformer).toHaveBeenCalledWith({
       baseUrl: stashdbIntegration.baseUrl,
       apiKey: stashdbIntegration.apiKey,
       performerId: 'p-1',
@@ -271,7 +270,7 @@ describe('PerformersService', () => {
       direction: 'ASC',
     });
 
-    expect(stashdbAdapter.getScenesForPerformer).toHaveBeenCalledWith({
+    expect(catalogAdapter.getScenesForPerformer).toHaveBeenCalledWith({
       baseUrl: stashdbIntegration.baseUrl,
       apiKey: stashdbIntegration.apiKey,
       performerId: 'p-1',
@@ -300,7 +299,7 @@ describe('PerformersService', () => {
       items: [expect.objectContaining({ source: 'FANSDB' })],
     });
 
-    expect(stashdbAdapter.getScenesForPerformer).toHaveBeenCalledWith(
+    expect(catalogAdapter.getScenesForPerformer).toHaveBeenCalledWith(
       expect.objectContaining({
         baseUrl: 'http://fansdb.local/graphql',
         apiKey: 'fansdb-key',
@@ -324,7 +323,7 @@ describe('PerformersService', () => {
       alreadyFavorited: false,
     });
 
-    expect(stashdbAdapter.favoritePerformer).toHaveBeenCalledWith(
+    expect(catalogAdapter.favoritePerformer).toHaveBeenCalledWith(
       'p-1',
       true,
       {
@@ -334,20 +333,25 @@ describe('PerformersService', () => {
     );
   });
 
-  it('rejects favoriting when TPDB is the active provider', async () => {
+  it('favorites a performer through whichever catalog adapter is configured (e.g. TPDB)', async () => {
+    const tpdbProvider = {
+      integrationType: 'TPDB',
+      providerKey: 'TPDB',
+      label: 'ThePornDB',
+      baseUrl: 'https://api.theporndb.net',
+      apiKey: 'tpdb-token',
+    };
     catalogProviderService.getConfiguredCatalogProvider = jest
       .fn()
-      .mockResolvedValue({
-        integrationType: 'TPDB',
-        providerKey: 'TPDB',
-        label: 'ThePornDB',
-        baseUrl: 'https://api.theporndb.net',
-        apiKey: 'tpdb-token',
-      });
+      .mockResolvedValue(tpdbProvider);
 
-    await expect(service.favoritePerformer('p-1', true)).rejects.toThrow(
-      'Favoriting is not supported for TPDB.',
-    );
-    expect(stashdbAdapter.favoritePerformer).not.toHaveBeenCalled();
+    await expect(service.favoritePerformer('p-1', true)).resolves.toEqual({
+      favorited: true,
+      alreadyFavorited: false,
+    });
+    expect(catalogAdapter.favoritePerformer).toHaveBeenCalledWith('p-1', true, {
+      baseUrl: tpdbProvider.baseUrl,
+      apiKey: tpdbProvider.apiKey,
+    });
   });
 });

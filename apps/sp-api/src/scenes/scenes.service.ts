@@ -4,7 +4,6 @@ import { IntegrationsService } from '../integrations/integrations.service';
 import { CatalogProviderService } from '../providers/catalog/catalog-provider.service';
 import { type CatalogProviderKey } from '../providers/catalog/catalog-provider.util';
 import { StashAdapter } from '../providers/stash/stash.adapter';
-import { StashdbAdapter } from '../providers/stashdb/stashdb.adapter';
 import { withStashImageSize } from '../providers/stashdb/stashdb-image-url.util';
 import { WhisparrAdapter } from '../providers/whisparr/whisparr.adapter';
 import {
@@ -34,7 +33,6 @@ export class ScenesService {
   constructor(
     private readonly integrationsService: IntegrationsService,
     private readonly catalogProviderService: CatalogProviderService,
-    private readonly stashdbAdapter: StashdbAdapter,
     private readonly sceneStatusService: SceneStatusService,
     private readonly stashAdapter: StashAdapter,
     private readonly whisparrAdapter: WhisparrAdapter,
@@ -214,18 +212,13 @@ export class ScenesService {
 
     const catalogProvider =
       await this.catalogProviderService.getConfiguredCatalogProvider();
-    if (catalogProvider.providerKey === 'TPDB') {
-      throw new BadRequestException('Favoriting is not supported for TPDB.');
-    }
+    const catalogAdapter =
+      await this.catalogProviderService.getConfiguredCatalogAdapter();
 
-    return this.stashdbAdapter.favoriteStudio(
-      normalizedStudioId,
-      favorite,
-      {
-        baseUrl: catalogProvider.baseUrl,
-        apiKey: catalogProvider.apiKey,
-      },
-    );
+    return catalogAdapter.favoriteStudio(normalizedStudioId, favorite, {
+      baseUrl: catalogProvider.baseUrl,
+      apiKey: catalogProvider.apiKey,
+    });
   }
 
   private async resolveStashAvailability(

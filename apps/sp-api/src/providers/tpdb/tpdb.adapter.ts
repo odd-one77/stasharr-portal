@@ -7,6 +7,7 @@ import {
   StashdbAdapterBaseConfig,
   StashdbAdapterSceneFeedConfig,
   StashdbAdapterTrendingConfig,
+  StashdbFavoriteResult,
   StashdbPerformerDetails,
   StashdbPerformerFeedConfig,
   StashdbPerformerFeedItem,
@@ -33,10 +34,12 @@ import {
 
 /**
  * REST client for TPDB (ThePornDB, api.theporndb.net). Response shapes below
- * were verified against the live API, not just third-party docs. TPDB has no
- * favoriting API, so TpdbAdapter does not implement favoritePerformer/
- * favoriteStudio — callers that need favoriting must depend on
- * StashdbAdapter directly.
+ * were verified against the live API, not just third-party docs. TPDB also
+ * exposes a stash-box-compatible GraphQL endpoint at /graphql (same protocol
+ * as StashDB) — used here only for favoritePerformer/favoriteStudio, since
+ * the equivalent GraphQL scene/performer list queries (queryScenes) were
+ * confirmed broken server-side (always returns null results), so scene
+ * browsing stays on the REST endpoints above.
  */
 @Injectable()
 export class TpdbAdapter implements CatalogAdapter {
@@ -724,6 +727,153 @@ export class TpdbAdapter implements CatalogAdapter {
       return String(value);
     }
     return null;
+  }
+
+  async favoritePerformer(
+    performerId: string,
+    favorite: boolean,
+    config: StashdbAdapterBaseConfig,
+  ): Promise<StashdbFavoriteResult> {
+    const query = `
+      mutation FavoritePerformer($id: ID!) {
+        favoritePerformer(id: $id, favorite: ${favorite ? 'true' : 'false'})
+      }
+    `;
+
+    return this.trackRuntimeHealth(async () => {
+      const payload = await this.executeGraphqlMutation(config, query, {
+        id: performerId,
+      });
+      return this.normalizeFavoriteMutationResult(
+        payload,
+        'favoritePerformer',
+        favorite,
+      );
+    });
+  }
+
+  async favoriteStudio(
+    studioId: string,
+    favorite: boolean,
+    config: StashdbAdapterBaseConfig,
+  ): Promise<StashdbFavoriteResult> {
+    const query = `
+      mutation FavoriteStudio($id: ID!) {
+        favoriteStudio(id: $id, favorite: ${favorite ? 'true' : 'false'})
+      }
+    `;
+
+    return this.trackRuntimeHealth(async () => {
+      const payload = await this.executeGraphqlMutation(config, query, {
+        id: studioId,
+      });
+      return this.normalizeFavoriteMutationResult(
+        payload,
+        'favoriteStudio',
+        favorite,
+      );
+    });
+  }
+
+  private normalizeFavoriteMutationResult(
+    payload: {
+      data?: Record<string, unknown>;
+      errors?: Array<{ message?: unknown }>;
+    },
+    mutationField: 'favoritePerformer' | 'favoriteStudio',
+    requestedFavorite: boolean,
+  ): StashdbFavoriteResult {
+    if (typeof payload.data?.[mutationField] === 'boolean') {
+      return {
+        favorited: requestedFavorite,
+        alreadyFavorited: false,
+      };
+    }
+
+    const firstErrorMessage =
+      typeof payload.errors?.[0]?.message === 'string'
+        ? payload.errors[0].message
+        : '';
+
+    // TPDB runs the same stash-box protocol as StashDB but is a separate
+    // database, so its unique-constraint name isn't guaranteed to match
+    // StashDB's — match on "duplicate key" generically instead of pinning to
+    // a specific constraint.
+    if (requestedFavorite && /duplicate key/i.test(firstErrorMessage)) {
+      return {
+        favorited: true,
+        alreadyFavorited: true,
+      };
+    }
+
+    if (firstErrorMessage) {
+      throw new BadGatewayException(firstErrorMessage);
+    }
+
+    throw new BadGatewayException(
+      'TPDB favorite mutation returned an invalid response.',
+    );
+  }
+
+  private async executeGraphqlMutation(
+    config: StashdbAdapterBaseConfig,
+    query: string,
+    variables: Record<string, unknown>,
+  ): Promise<{
+    data?: Record<string, unknown>;
+    errors?: Array<{ message?: unknown }>;
+  }> {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+    };
+    if (config.apiKey?.trim()) {
+      headers.Authorization = `Bearer ${config.apiKey.trim()}`;
+    }
+
+    let response: Response;
+    try {
+      response = await fetchWithTimeout(this.resolveGraphqlUrl(config.baseUrl), {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ query, variables }),
+      });
+    } catch (error) {
+      this.logger.error(
+        `TPDB GraphQL request failed: ${this.errorMessage(error)}`,
+      );
+      throw new BadGatewayException('Failed to reach TPDB provider endpoint.');
+    }
+
+    if (response.status === 401) {
+      throw new BadGatewayException('TPDB rejected the configured API token.');
+    }
+
+    if (!response.ok) {
+      const body = await response.text();
+      this.logger.error(
+        `TPDB GraphQL returned ${response.status}: ${body.slice(0, 500)}`,
+      );
+      throw new BadGatewayException(`TPDB provider returned ${response.status}.`);
+    }
+
+    try {
+      return await response.json();
+    } catch (error) {
+      this.logger.error(
+        `TPDB GraphQL returned invalid JSON: ${this.errorMessage(error)}`,
+      );
+      throw new BadGatewayException(
+        'TPDB provider returned an invalid JSON response.',
+      );
+    }
+  }
+
+  private resolveGraphqlUrl(baseUrl: string): string {
+    const parsed = new URL(baseUrl);
+    parsed.pathname = '/graphql';
+    parsed.search = '';
+    return parsed.toString();
   }
 
   private resolveUrl(
