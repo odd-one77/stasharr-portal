@@ -47,15 +47,27 @@ export class WhisparrMetadataService {
       titleQuery: query,
     });
 
-    return result.scenes.map((scene) =>
-      this.mapMovieResource({
+    // TPDB's scene list/search endpoint only returns a numeric site_id, not
+    // the studio's name — only the single-scene detail endpoint includes
+    // that. Without it, Whisparr's search results are a wall of
+    // indistinguishable titles, so resolve studio names for this page of
+    // results up front (deduped, best-effort — a lookup failure just leaves
+    // that one studio blank rather than failing the whole search).
+    const studios = await this.resolveStudioNames(
+      result.scenes.map((scene) => scene.studioId),
+      config,
+    );
+
+    return result.scenes.map((scene) => {
+      const studio = scene.studioId ? studios.get(scene.studioId) : undefined;
+      return this.mapMovieResource({
         id: scene.id,
         title: scene.title,
         details: scene.details,
         imageUrl: scene.imageUrl,
         studioId: scene.studioId,
-        studioName: scene.studioName,
-        studioImageUrl: scene.studioImageUrl,
+        studioName: studio?.name ?? scene.studioName,
+        studioImageUrl: studio?.imageUrl ?? scene.studioImageUrl,
         releaseDate: scene.releaseDate,
         duration: scene.duration,
         images: scene.imageUrl ? [{ id: 'poster', url: scene.imageUrl, width: null, height: null }] : [],
@@ -63,8 +75,30 @@ export class WhisparrMetadataService {
         tags: [],
         performers: [],
         sourceUrls: [],
+      });
+    });
+  }
+
+  private async resolveStudioNames(
+    studioIds: ReadonlyArray<string | null>,
+    config: { baseUrl: string; apiKey: string | null },
+  ): Promise<Map<string, { name: string | null; imageUrl: string | null }>> {
+    const uniqueIds = [...new Set(studioIds.filter((id): id is string => !!id))];
+    const resolved = new Map<string, { name: string | null; imageUrl: string | null }>();
+
+    await Promise.all(
+      uniqueIds.map(async (studioId) => {
+        try {
+          const studio = await this.tpdbAdapter.getStudioById(studioId, config);
+          resolved.set(studioId, { name: studio.name, imageUrl: studio.imageUrl });
+        } catch {
+          // Best-effort — leave this studio unresolved rather than failing
+          // the whole search over one bad lookup.
+        }
       }),
     );
+
+    return resolved;
   }
 
   async getScene(sceneId: string): Promise<unknown> {

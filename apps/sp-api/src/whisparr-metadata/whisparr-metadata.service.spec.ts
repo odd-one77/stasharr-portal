@@ -136,6 +136,89 @@ describe('WhisparrMetadataService', () => {
     expect(resource.studio).toBeNull();
   });
 
+  it('enriches scene search results with studio names, since the list endpoint only returns a studio id', async () => {
+    getScenesBySortMock.mockResolvedValue({
+      total: 2,
+      scenes: [
+        {
+          id: 'scene-1',
+          title: 'Scene One',
+          details: null,
+          imageUrl: null,
+          studioId: 'studio-1',
+          studioName: null,
+          studioImageUrl: null,
+          releaseDate: null,
+          duration: null,
+        },
+        {
+          id: 'scene-2',
+          title: 'Scene Two',
+          details: null,
+          imageUrl: null,
+          studioId: 'studio-1',
+          studioName: null,
+          studioImageUrl: null,
+          releaseDate: null,
+          duration: null,
+        },
+      ],
+    });
+    getStudioByIdMock.mockResolvedValue({
+      id: 'studio-1',
+      name: 'Studio One',
+      aliases: [],
+      deleted: false,
+      isFavorite: false,
+      createdAt: null,
+      updatedAt: null,
+      imageUrl: 'http://cdn.local/logo.png',
+      images: [],
+      urls: [],
+      parentStudio: null,
+      childStudios: [],
+    });
+
+    const results = (await service.searchScenes('test')) as Array<{
+      studio: { title: string } | null;
+    }>;
+
+    expect(results).toHaveLength(2);
+    expect(results[0].studio?.title).toBe('Studio One');
+    expect(results[1].studio?.title).toBe('Studio One');
+    // Both scenes share the same studio id — resolved once, not twice.
+    expect(getStudioByIdMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not fail the whole search when one studio lookup fails', async () => {
+    getScenesBySortMock.mockResolvedValue({
+      total: 1,
+      scenes: [
+        {
+          id: 'scene-1',
+          title: 'Scene One',
+          details: null,
+          imageUrl: null,
+          studioId: 'studio-missing',
+          studioName: null,
+          studioImageUrl: null,
+          releaseDate: null,
+          duration: null,
+        },
+      ],
+    });
+    getStudioByIdMock.mockRejectedValue(new Error('not found'));
+
+    const results = (await service.searchScenes('test')) as Array<{
+      studio: unknown;
+      title: string;
+    }>;
+
+    expect(results).toHaveLength(1);
+    expect(results[0].title).toBe('Scene One');
+    expect(results[0].studio).toBeNull();
+  });
+
   it('reports no changes for the changed-since routes', async () => {
     await expect(service.getScenesChanged()).resolves.toEqual([]);
     await expect(service.getPerformersChanged()).resolves.toEqual([]);
