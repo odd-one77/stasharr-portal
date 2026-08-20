@@ -1,6 +1,6 @@
 import { IntegrationStatus } from '@prisma/client';
 
-export const CATALOG_PROVIDER_KEYS = ['STASHDB', 'FANSDB'] as const;
+export const CATALOG_PROVIDER_KEYS = ['STASHDB', 'FANSDB', 'TPDB'] as const;
 const CATALOG_PROVIDER_SELECTION_KEY = 'selectedForInstanceCatalogProvider';
 
 export type CatalogProviderKey = (typeof CATALOG_PROVIDER_KEYS)[number];
@@ -9,6 +9,7 @@ export type CatalogProviderIntegrationType = CatalogProviderKey;
 const PROVIDER_PATTERNS: Record<CatalogProviderKey, readonly string[]> = {
   STASHDB: ['stashdb.org', 'stashdb'],
   FANSDB: ['fansdb.cc', 'fansdb'],
+  TPDB: ['theporndb.net', 'metadataapi.net', 'tpdb'],
 };
 
 const CATALOG_REF_SEPARATOR = '|';
@@ -63,6 +64,8 @@ export function getCatalogProviderLabel(
   switch (providerKey) {
     case 'FANSDB':
       return 'FansDB';
+    case 'TPDB':
+      return 'ThePornDB';
     case 'STASHDB':
     default:
       return 'StashDB';

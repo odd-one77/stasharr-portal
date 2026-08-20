@@ -64,10 +64,15 @@ export class SetupPageComponent implements OnInit {
     'WHISPARR',
     'STASHDB',
     'FANSDB',
+    'TPDB',
   ];
 
   protected readonly requiredServiceTypes: IntegrationType[] = ['STASH', 'WHISPARR'];
-  protected readonly catalogProviderTypes: CatalogProviderType[] = ['STASHDB', 'FANSDB'];
+  protected readonly catalogProviderTypes: CatalogProviderType[] = [
+    'STASHDB',
+    'FANSDB',
+    'TPDB',
+  ];
   protected readonly visibleCatalogProviderTypes = computed<CatalogProviderType[]>(() => {
     const catalogProvider = this.catalogProvider();
     return catalogProvider ? [catalogProvider] : this.catalogProviderTypes;
@@ -78,6 +83,7 @@ export class SetupPageComponent implements OnInit {
     WHISPARR: createIntegrationForm(),
     STASHDB: createIntegrationForm(),
     FANSDB: createIntegrationForm(),
+    TPDB: createIntegrationForm(),
   };
 
   protected readonly integrations = signal<Record<IntegrationType, IntegrationResponse | null>>(

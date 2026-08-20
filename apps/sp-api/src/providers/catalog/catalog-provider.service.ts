@@ -5,6 +5,9 @@ import {
 } from '@nestjs/common';
 import { IntegrationStatus, IntegrationType } from '@prisma/client';
 import { IntegrationsService } from '../../integrations/integrations.service';
+import { StashdbAdapter } from '../stashdb/stashdb.adapter';
+import { TpdbAdapter } from '../tpdb/tpdb.adapter';
+import type { CatalogAdapter } from './catalog-adapter.interface';
 import {
   type CatalogProviderIntegrationType,
   type CatalogProviderKey,
@@ -24,7 +27,16 @@ export interface ConfiguredCatalogProvider {
 
 @Injectable()
 export class CatalogProviderService {
-  constructor(private readonly integrationsService: IntegrationsService) {}
+  constructor(
+    private readonly integrationsService: IntegrationsService,
+    private readonly stashdbAdapter: StashdbAdapter,
+    private readonly tpdbAdapter: TpdbAdapter,
+  ) {}
+
+  async getConfiguredCatalogAdapter(): Promise<CatalogAdapter> {
+    const provider = await this.getConfiguredCatalogProvider();
+    return provider.providerKey === 'TPDB' ? this.tpdbAdapter : this.stashdbAdapter;
+  }
 
   async getInstanceCatalogProviderType(): Promise<CatalogProviderIntegrationType | null> {
     const integrations = await this.integrationsService.findAll();

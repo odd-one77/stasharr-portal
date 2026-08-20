@@ -1,6 +1,8 @@
 import { BadRequestException, ConflictException } from '@nestjs/common';
 import { IntegrationStatus, IntegrationType } from '@prisma/client';
 import { IntegrationsService } from '../../integrations/integrations.service';
+import { StashdbAdapter } from '../stashdb/stashdb.adapter';
+import { TpdbAdapter } from '../tpdb/tpdb.adapter';
 import { buildCatalogProviderSelectionConfig } from './catalog-provider.util';
 import { CatalogProviderService } from './catalog-provider.service';
 
@@ -10,11 +12,18 @@ describe('CatalogProviderService', () => {
     findOne: jest.fn(),
   } as unknown as IntegrationsService;
 
+  const stashdbAdapter = {} as unknown as StashdbAdapter;
+  const tpdbAdapter = {} as unknown as TpdbAdapter;
+
   let service: CatalogProviderService;
 
   beforeEach(() => {
     jest.clearAllMocks();
-    service = new CatalogProviderService(integrationsService);
+    service = new CatalogProviderService(
+      integrationsService,
+      stashdbAdapter,
+      tpdbAdapter,
+    );
   });
 
   it('keeps instance catalog identity when the chosen provider is in ERROR', async () => {
@@ -213,6 +222,56 @@ describe('CatalogProviderService', () => {
 
     await expect(service.getConfiguredCatalogProvider()).rejects.toThrow(
       'StashDB catalog provider is not configured.',
+    );
+  });
+
+  it('dispatches to the StashdbAdapter when StashDB is the active provider', async () => {
+    integrationsService.findAll = jest.fn().mockResolvedValue([
+      {
+        type: IntegrationType.STASHDB,
+        enabled: true,
+        status: IntegrationStatus.CONFIGURED,
+        baseUrl: 'http://stashdb.local/graphql',
+        config: buildCatalogProviderSelectionConfig(),
+        lastHealthyAt: new Date('2026-04-01T00:00:00.000Z'),
+      },
+    ]);
+    integrationsService.findOne = jest.fn().mockResolvedValue({
+      type: IntegrationType.STASHDB,
+      enabled: true,
+      status: IntegrationStatus.CONFIGURED,
+      baseUrl: 'http://stashdb.local/graphql',
+      apiKey: 'stashdb-key',
+      lastHealthyAt: new Date('2026-04-01T00:00:00.000Z'),
+    });
+
+    await expect(service.getConfiguredCatalogAdapter()).resolves.toBe(
+      stashdbAdapter,
+    );
+  });
+
+  it('dispatches to the TpdbAdapter when TPDB is the active provider', async () => {
+    integrationsService.findAll = jest.fn().mockResolvedValue([
+      {
+        type: IntegrationType.TPDB,
+        enabled: true,
+        status: IntegrationStatus.CONFIGURED,
+        baseUrl: 'https://api.theporndb.net',
+        config: buildCatalogProviderSelectionConfig(),
+        lastHealthyAt: new Date('2026-04-01T00:00:00.000Z'),
+      },
+    ]);
+    integrationsService.findOne = jest.fn().mockResolvedValue({
+      type: IntegrationType.TPDB,
+      enabled: true,
+      status: IntegrationStatus.CONFIGURED,
+      baseUrl: 'https://api.theporndb.net',
+      apiKey: 'tpdb-token',
+      lastHealthyAt: new Date('2026-04-01T00:00:00.000Z'),
+    });
+
+    await expect(service.getConfiguredCatalogAdapter()).resolves.toBe(
+      tpdbAdapter,
     );
   });
 });

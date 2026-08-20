@@ -49,8 +49,10 @@ export class PerformersService {
   ): Promise<PerformerFeedResponseDto> {
     const catalogProvider =
       await this.catalogProviderService.getConfiguredCatalogProvider();
+    const catalogAdapter =
+      await this.catalogProviderService.getConfiguredCatalogAdapter();
 
-    const performers = await this.stashdbAdapter.getPerformersFeed({
+    const performers = await catalogAdapter.getPerformersFeed({
       baseUrl: catalogProvider.baseUrl,
       apiKey: catalogProvider.apiKey,
       page,
@@ -89,7 +91,9 @@ export class PerformersService {
     }
 
     const config = await this.getActiveCatalogConfig();
-    const performer = await this.stashdbAdapter.getPerformerById(
+    const catalogAdapter =
+      await this.catalogProviderService.getConfiguredCatalogAdapter();
+    const performer = await catalogAdapter.getPerformerById(
       normalizedPerformerId,
       config,
     );
@@ -145,7 +149,9 @@ export class PerformersService {
 
     const catalogProvider =
       await this.catalogProviderService.getConfiguredCatalogProvider();
-    const scenes = await this.stashdbAdapter.getScenesForPerformer({
+    const catalogAdapter =
+      await this.catalogProviderService.getConfiguredCatalogAdapter();
+    const scenes = await catalogAdapter.getScenesForPerformer({
       baseUrl: catalogProvider.baseUrl,
       apiKey: catalogProvider.apiKey,
       performerId: normalizedPerformerId,
@@ -193,7 +199,9 @@ export class PerformersService {
     }
 
     const config = await this.getActiveCatalogConfig();
-    return this.stashdbAdapter.searchStudios(normalizedQuery, config);
+    const catalogAdapter =
+      await this.catalogProviderService.getConfiguredCatalogAdapter();
+    return catalogAdapter.searchStudios(normalizedQuery, config);
   }
 
   async favoritePerformer(
@@ -205,12 +213,16 @@ export class PerformersService {
       throw new BadRequestException('Performer id is required.');
     }
 
-    const config = await this.getActiveCatalogConfig();
-    return this.stashdbAdapter.favoritePerformer(
-      normalizedPerformerId,
-      favorite,
-      config,
-    );
+    const catalogProvider =
+      await this.catalogProviderService.getConfiguredCatalogProvider();
+    if (catalogProvider.providerKey === 'TPDB') {
+      throw new BadRequestException('Favoriting is not supported for TPDB.');
+    }
+
+    return this.stashdbAdapter.favoritePerformer(normalizedPerformerId, favorite, {
+      baseUrl: catalogProvider.baseUrl,
+      apiKey: catalogProvider.apiKey,
+    });
   }
 
   private async getActiveCatalogConfig(): Promise<{

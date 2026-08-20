@@ -7,14 +7,15 @@ import {
 import { IndexingService } from '../indexing/indexing.service';
 import { IntegrationsService } from '../integrations/integrations.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { CatalogAdapter } from '../providers/catalog/catalog-adapter.interface';
 import { CatalogProviderService } from '../providers/catalog/catalog-provider.service';
-import { StashdbAdapter } from '../providers/stashdb/stashdb.adapter';
 import { WhisparrAdapter } from '../providers/whisparr/whisparr.adapter';
 import { RequestsService } from './requests.service';
 
 describe('RequestsService', () => {
   const findOneMock = jest.fn();
   const getConfiguredCatalogProviderMock = jest.fn();
+  const getConfiguredCatalogAdapterMock = jest.fn();
   const findMovieByStashIdMock = jest.fn();
   const getRootFoldersMock = jest.fn();
   const getQualityProfilesMock = jest.fn();
@@ -35,6 +36,7 @@ describe('RequestsService', () => {
   } as unknown as IntegrationsService;
   const catalogProviderService = {
     getConfiguredCatalogProvider: getConfiguredCatalogProviderMock,
+    getConfiguredCatalogAdapter: getConfiguredCatalogAdapterMock,
   } as unknown as CatalogProviderService;
 
   const whisparrAdapter = {
@@ -45,9 +47,9 @@ describe('RequestsService', () => {
     createMovie: createMovieMock,
   } as unknown as WhisparrAdapter;
 
-  const stashdbAdapter = {
+  const catalogAdapter = {
     getSceneById: getSceneByIdMock,
-  } as unknown as StashdbAdapter;
+  } as unknown as CatalogAdapter;
 
   const prismaService = {
     request: {
@@ -80,7 +82,6 @@ describe('RequestsService', () => {
       integrationsService,
       catalogProviderService,
       whisparrAdapter,
-      stashdbAdapter,
       prismaService,
     );
 
@@ -92,6 +93,7 @@ describe('RequestsService', () => {
       throw new Error('Unexpected integration type');
     });
     getConfiguredCatalogProviderMock.mockResolvedValue(configuredStashdbIntegration);
+    getConfiguredCatalogAdapterMock.mockResolvedValue(catalogAdapter);
 
     getSceneByIdMock.mockImplementation((stashId: string) =>
       Promise.resolve({

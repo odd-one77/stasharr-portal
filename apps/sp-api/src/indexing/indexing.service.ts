@@ -17,10 +17,7 @@ import {
   StashAdapter,
   type StashLocalLibrarySceneItem,
 } from '../providers/stash/stash.adapter';
-import {
-  StashdbAdapter,
-  StashdbSceneMetadata,
-} from '../providers/stashdb/stashdb.adapter';
+import { StashdbSceneMetadata } from '../providers/stashdb/stashdb.adapter';
 import {
   WhisparrAdapter,
   WhisparrAdapterBaseConfig,
@@ -179,7 +176,6 @@ export class IndexingService {
     private readonly catalogProviderService: CatalogProviderService,
     private readonly whisparrAdapter: WhisparrAdapter,
     private readonly stashAdapter: StashAdapter,
-    private readonly stashdbAdapter: StashdbAdapter,
     private readonly syncStateService: SyncStateService,
   ) {}
 
@@ -1486,7 +1482,9 @@ export class IndexingService {
         const now = new Date();
         let batchMetadata: StashdbSceneMetadata[];
         try {
-          batchMetadata = await this.stashdbAdapter.getSceneMetadataByIds(
+          const catalogAdapter =
+            await this.catalogProviderService.getConfiguredCatalogAdapter();
+          batchMetadata = await catalogAdapter.getSceneMetadataByIds(
             batch,
             config,
           );

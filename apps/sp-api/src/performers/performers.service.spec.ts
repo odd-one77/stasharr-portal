@@ -6,6 +6,7 @@ import { PerformersService } from './performers.service';
 describe('PerformersService', () => {
   const catalogProviderService = {
     getConfiguredCatalogProvider: jest.fn(),
+    getConfiguredCatalogAdapter: jest.fn(),
   } as unknown as CatalogProviderService;
 
   const stashdbAdapter = {
@@ -41,6 +42,9 @@ describe('PerformersService', () => {
     catalogProviderService.getConfiguredCatalogProvider = jest
       .fn()
       .mockResolvedValue(stashdbIntegration);
+    catalogProviderService.getConfiguredCatalogAdapter = jest
+      .fn()
+      .mockResolvedValue(stashdbAdapter);
 
     stashdbAdapter.getPerformersFeed = jest.fn().mockResolvedValue({
       total: 1,
@@ -328,5 +332,22 @@ describe('PerformersService', () => {
         apiKey: stashdbIntegration.apiKey,
       },
     );
+  });
+
+  it('rejects favoriting when TPDB is the active provider', async () => {
+    catalogProviderService.getConfiguredCatalogProvider = jest
+      .fn()
+      .mockResolvedValue({
+        integrationType: 'TPDB',
+        providerKey: 'TPDB',
+        label: 'ThePornDB',
+        baseUrl: 'https://api.theporndb.net',
+        apiKey: 'tpdb-token',
+      });
+
+    await expect(service.favoritePerformer('p-1', true)).rejects.toThrow(
+      'Favoriting is not supported for TPDB.',
+    );
+    expect(stashdbAdapter.favoritePerformer).not.toHaveBeenCalled();
   });
 });

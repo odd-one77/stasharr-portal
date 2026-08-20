@@ -1,7 +1,6 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { CatalogProviderService } from '../providers/catalog/catalog-provider.service';
 import { StashdbSortDirection } from '../providers/stashdb/stashdb.adapter';
-import { StashdbAdapter } from '../providers/stashdb/stashdb.adapter';
 import { StudioDetailsDto } from './dto/studio-details.dto';
 import { StudioFeedResponseDto } from './dto/studio-feed-response.dto';
 import { StudioSort } from './dto/studios-query.dto';
@@ -13,10 +12,7 @@ export class StudiosService {
   private static readonly DEFAULT_SORT: StudioSort = 'NAME';
   private static readonly DEFAULT_DIRECTION: StashdbSortDirection = 'ASC';
 
-  constructor(
-    private readonly catalogProviderService: CatalogProviderService,
-    private readonly stashdbAdapter: StashdbAdapter,
-  ) {}
+  constructor(private readonly catalogProviderService: CatalogProviderService) {}
 
   async getStudiosFeed(
     page = StudiosService.DEFAULT_PAGE,
@@ -29,8 +25,10 @@ export class StudiosService {
     },
   ): Promise<StudioFeedResponseDto> {
     const config = await this.getActiveCatalogConfig();
+    const catalogAdapter =
+      await this.catalogProviderService.getConfiguredCatalogAdapter();
 
-    const studios = await this.stashdbAdapter.getStudiosFeed({
+    const studios = await catalogAdapter.getStudiosFeed({
       baseUrl: config.baseUrl,
       apiKey: config.apiKey,
       page,
@@ -66,7 +64,9 @@ export class StudiosService {
     }
 
     const config = await this.getActiveCatalogConfig();
-    const studio = await this.stashdbAdapter.getStudioById(
+    const catalogAdapter =
+      await this.catalogProviderService.getConfiguredCatalogAdapter();
+    const studio = await catalogAdapter.getStudioById(
       normalizedStudioId,
       config,
     );

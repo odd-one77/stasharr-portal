@@ -8,6 +8,7 @@ datasource db {
 
 model Request {
   id        String        @id @default(cuid())
+  /// External scene id from the instance's currently active catalog provider (StashDB/FansDB/TPDB — see IntegrationType).
   stashId   String        @unique
   status    RequestStatus @default(REQUESTED)
   createdAt DateTime      @default(now())
@@ -40,6 +41,7 @@ model AdminSession {
 }
 
 model SceneIndex {
+  /// External scene id from the instance's currently active catalog provider (StashDB/FansDB/TPDB — see IntegrationType).
   stashId                String                 @id
   requestStatus          RequestStatus?
   requestUpdatedAt       DateTime?
@@ -222,6 +224,7 @@ enum HomeRailContentType {
 enum IntegrationType {
   STASHDB
   FANSDB
+  TPDB
   STASH
   WHISPARR
 }

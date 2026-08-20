@@ -70,7 +70,13 @@ export class SettingsIntegrationsPageComponent implements OnInit {
   protected readonly refreshingHealth = signal(false);
   protected readonly resettingAll = signal(false);
 
-  private readonly allServiceTypes: IntegrationType[] = ['STASH', 'WHISPARR', 'STASHDB', 'FANSDB'];
+  private readonly allServiceTypes: IntegrationType[] = [
+    'STASH',
+    'WHISPARR',
+    'STASHDB',
+    'FANSDB',
+    'TPDB',
+  ];
 
   protected readonly serviceTypes = computed<IntegrationType[]>(() => {
     const catalogProvider = this.catalogProvider();
@@ -101,6 +107,7 @@ export class SettingsIntegrationsPageComponent implements OnInit {
     WHISPARR: createIntegrationForm(),
     STASHDB: createIntegrationForm(),
     FANSDB: createIntegrationForm(),
+    TPDB: createIntegrationForm(),
   };
 
   protected readonly integrations = signal<Record<IntegrationType, IntegrationResponse | null>>(

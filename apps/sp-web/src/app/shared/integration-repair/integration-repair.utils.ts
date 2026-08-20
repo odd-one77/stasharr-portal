@@ -35,6 +35,7 @@ export function createEmptyIntegrationsRecord(): Record<IntegrationType, Integra
     WHISPARR: null,
     STASHDB: null,
     FANSDB: null,
+    TPDB: null,
   };
 }
 
@@ -64,6 +65,7 @@ export function createActionStateRecord(): Record<IntegrationType, IntegrationAc
     WHISPARR: createActionState(),
     STASHDB: createActionState(),
     FANSDB: createActionState(),
+    TPDB: createActionState(),
   };
 }
 

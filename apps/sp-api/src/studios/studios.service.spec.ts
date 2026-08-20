@@ -1,17 +1,18 @@
 import { NotFoundException } from '@nestjs/common';
 import { CatalogProviderService } from '../providers/catalog/catalog-provider.service';
-import { StashdbAdapter } from '../providers/stashdb/stashdb.adapter';
+import { CatalogAdapter } from '../providers/catalog/catalog-adapter.interface';
 import { StudiosService } from './studios.service';
 
 describe('StudiosService', () => {
   const catalogProviderService = {
     getConfiguredCatalogProvider: jest.fn(),
+    getConfiguredCatalogAdapter: jest.fn(),
   } as unknown as CatalogProviderService;
 
-  const stashdbAdapter = {
+  const catalogAdapter = {
     getStudiosFeed: jest.fn(),
     getStudioById: jest.fn(),
-  } as unknown as StashdbAdapter;
+  } as unknown as CatalogAdapter;
 
   const stashdbIntegration = {
     integrationType: 'STASHDB',
@@ -25,13 +26,16 @@ describe('StudiosService', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    service = new StudiosService(catalogProviderService, stashdbAdapter);
+    service = new StudiosService(catalogProviderService);
 
     catalogProviderService.getConfiguredCatalogProvider = jest
       .fn()
       .mockResolvedValue(stashdbIntegration);
+    catalogProviderService.getConfiguredCatalogAdapter = jest
+      .fn()
+      .mockResolvedValue(catalogAdapter);
 
-    stashdbAdapter.getStudiosFeed = jest.fn().mockResolvedValue({
+    catalogAdapter.getStudiosFeed = jest.fn().mockResolvedValue({
       total: 1,
       studios: [
         {
@@ -44,7 +48,7 @@ describe('StudiosService', () => {
         },
       ],
     });
-    stashdbAdapter.getStudioById = jest.fn().mockResolvedValue({
+    catalogAdapter.getStudioById = jest.fn().mockResolvedValue({
       id: 'studio-1',
       name: 'Studio One',
       aliases: ['Alias One'],
@@ -110,7 +114,7 @@ describe('StudiosService', () => {
       ],
     });
 
-    expect(stashdbAdapter.getStudiosFeed).toHaveBeenCalledWith({
+    expect(catalogAdapter.getStudiosFeed).toHaveBeenCalledWith({
       baseUrl: stashdbIntegration.baseUrl,
       apiKey: stashdbIntegration.apiKey,
       page: 1,
@@ -122,14 +126,14 @@ describe('StudiosService', () => {
     });
   });
 
-  it('forwards selected studios filters to stashdb adapter', async () => {
+  it('forwards selected studios filters to the catalog adapter', async () => {
     await service.getStudiosFeed(2, 25, {
       name: 'brazz',
       sort: 'UPDATED_AT',
       favoritesOnly: true,
     });
 
-    expect(stashdbAdapter.getStudiosFeed).toHaveBeenCalledWith({
+    expect(catalogAdapter.getStudiosFeed).toHaveBeenCalledWith({
       baseUrl: stashdbIntegration.baseUrl,
       apiKey: stashdbIntegration.apiKey,
       page: 2,
@@ -147,7 +151,7 @@ describe('StudiosService', () => {
       direction: 'DESC',
     });
 
-    expect(stashdbAdapter.getStudiosFeed).toHaveBeenCalledWith({
+    expect(catalogAdapter.getStudiosFeed).toHaveBeenCalledWith({
       baseUrl: stashdbIntegration.baseUrl,
       apiKey: stashdbIntegration.apiKey,
       page: 1,
@@ -172,10 +176,32 @@ describe('StudiosService', () => {
 
     await service.getStudiosFeed();
 
-    expect(stashdbAdapter.getStudiosFeed).toHaveBeenCalledWith(
+    expect(catalogAdapter.getStudiosFeed).toHaveBeenCalledWith(
       expect.objectContaining({
         baseUrl: 'http://fansdb.local/graphql',
         apiKey: 'fansdb-key',
+      }),
+    );
+  });
+
+  it('uses the TPDB catalog adapter when TPDB is the active provider', async () => {
+    catalogProviderService.getConfiguredCatalogProvider = jest
+      .fn()
+      .mockResolvedValue({
+        integrationType: 'TPDB',
+        providerKey: 'TPDB',
+        label: 'ThePornDB',
+        baseUrl: 'https://api.theporndb.net',
+        apiKey: 'tpdb-token',
+      });
+
+    await service.getStudiosFeed();
+
+    expect(catalogProviderService.getConfiguredCatalogAdapter).toHaveBeenCalled();
+    expect(catalogAdapter.getStudiosFeed).toHaveBeenCalledWith(
+      expect.objectContaining({
+        baseUrl: 'https://api.theporndb.net',
+        apiKey: 'tpdb-token',
       }),
     );
   });
@@ -228,7 +254,7 @@ describe('StudiosService', () => {
       ],
     });
 
-    expect(stashdbAdapter.getStudioById).toHaveBeenCalledWith('studio-1', {
+    expect(catalogAdapter.getStudioById).toHaveBeenCalledWith('studio-1', {
       baseUrl: stashdbIntegration.baseUrl,
       apiKey: stashdbIntegration.apiKey,
     });
@@ -241,7 +267,7 @@ describe('StudiosService', () => {
   });
 
   it('propagates not-found when studio details are missing', async () => {
-    stashdbAdapter.getStudioById = jest
+    catalogAdapter.getStudioById = jest
       .fn()
       .mockRejectedValue(new NotFoundException('missing'));
 

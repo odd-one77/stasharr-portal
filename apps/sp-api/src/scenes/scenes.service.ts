@@ -53,9 +53,11 @@ export class ScenesService {
   ): Promise<ScenesFeedResponseDto> {
     const catalogProvider =
       await this.catalogProviderService.getConfiguredCatalogProvider();
+    const catalogAdapter =
+      await this.catalogProviderService.getConfiguredCatalogAdapter();
     const normalizedTagIds = this.normalizeTagIds(tagIds);
     const normalizedStudioIds = this.normalizeStudioIds(studioIds);
-    const scenes = await this.stashdbAdapter.getScenesBySort({
+    const scenes = await catalogAdapter.getScenesBySort({
       baseUrl: catalogProvider.baseUrl,
       apiKey: catalogProvider.apiKey,
       page,
@@ -102,8 +104,10 @@ export class ScenesService {
 
     const catalogProvider =
       await this.catalogProviderService.getConfiguredCatalogProvider();
+    const catalogAdapter =
+      await this.catalogProviderService.getConfiguredCatalogAdapter();
 
-    return this.stashdbAdapter.searchTags({
+    return catalogAdapter.searchTags({
       baseUrl: catalogProvider.baseUrl,
       apiKey: catalogProvider.apiKey,
       query: normalizedQuery,
@@ -118,8 +122,10 @@ export class ScenesService {
 
     const catalogProvider =
       await this.catalogProviderService.getConfiguredCatalogProvider();
+    const catalogAdapter =
+      await this.catalogProviderService.getConfiguredCatalogAdapter();
 
-    const scene = await this.stashdbAdapter.getSceneById(sceneId, {
+    const scene = await catalogAdapter.getSceneById(sceneId, {
       baseUrl: catalogProvider.baseUrl,
       apiKey: catalogProvider.apiKey,
     });
@@ -208,6 +214,10 @@ export class ScenesService {
 
     const catalogProvider =
       await this.catalogProviderService.getConfiguredCatalogProvider();
+    if (catalogProvider.providerKey === 'TPDB') {
+      throw new BadRequestException('Favoriting is not supported for TPDB.');
+    }
+
     return this.stashdbAdapter.favoriteStudio(
       normalizedStudioId,
       favorite,

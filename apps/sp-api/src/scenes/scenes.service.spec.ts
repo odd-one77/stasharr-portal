@@ -16,6 +16,7 @@ describe('ScenesService', () => {
   } as unknown as IntegrationsService;
   const catalogProviderService = {
     getConfiguredCatalogProvider: jest.fn(),
+    getConfiguredCatalogAdapter: jest.fn(),
   } as unknown as CatalogProviderService;
 
   const stashdbAdapter = {
@@ -112,6 +113,9 @@ describe('ScenesService', () => {
         baseUrl: stashdbIntegration.baseUrl,
         apiKey: stashdbIntegration.apiKey,
       });
+    catalogProviderService.getConfiguredCatalogAdapter = jest
+      .fn()
+      .mockResolvedValue(stashdbAdapter);
 
     stashdbAdapter.getSceneById = jest.fn().mockResolvedValue(sceneDetails);
     stashdbAdapter.getScenesBySort = jest.fn().mockResolvedValue({
@@ -277,6 +281,52 @@ describe('ScenesService', () => {
         providerKey: 'FANSDB',
       },
     );
+  });
+
+  it('dispatches to the TPDB catalog adapter when TPDB is the active provider', async () => {
+    const tpdbAdapter = {
+      getScenesBySort: jest.fn().mockResolvedValue({
+        total: 1,
+        scenes: [
+          {
+            id: 'tpdb-scene-1',
+            title: 'TPDB Scene',
+            details: null,
+            imageUrl: null,
+            studioId: null,
+            studioName: null,
+            studioImageUrl: null,
+            releaseDate: null,
+            duration: null,
+          },
+        ],
+      }),
+    };
+
+    catalogProviderService.getConfiguredCatalogProvider = jest
+      .fn()
+      .mockResolvedValue({
+        integrationType: 'TPDB',
+        providerKey: 'TPDB',
+        label: 'ThePornDB',
+        baseUrl: 'https://api.theporndb.net',
+        apiKey: 'tpdb-token',
+      });
+    catalogProviderService.getConfiguredCatalogAdapter = jest
+      .fn()
+      .mockResolvedValue(tpdbAdapter);
+
+    await expect(service.getScenesFeed()).resolves.toMatchObject({
+      items: [expect.objectContaining({ id: 'tpdb-scene-1', source: 'TPDB' })],
+    });
+
+    expect(tpdbAdapter.getScenesBySort).toHaveBeenCalledWith(
+      expect.objectContaining({
+        baseUrl: 'https://api.theporndb.net',
+        apiKey: 'tpdb-token',
+      }),
+    );
+    expect(stashdbAdapter.getScenesBySort).not.toHaveBeenCalled();
   });
 
   it('forwards non-default sort to stashdb adapter', async () => {
@@ -543,6 +593,23 @@ describe('ScenesService', () => {
         apiKey: stashdbIntegration.apiKey,
       },
     );
+  });
+
+  it('rejects favoriting a studio when TPDB is the active provider', async () => {
+    catalogProviderService.getConfiguredCatalogProvider = jest
+      .fn()
+      .mockResolvedValue({
+        integrationType: 'TPDB',
+        providerKey: 'TPDB',
+        label: 'ThePornDB',
+        baseUrl: 'https://api.theporndb.net',
+        apiKey: 'tpdb-token',
+      });
+
+    await expect(service.favoriteStudio('studio-1', true)).rejects.toThrow(
+      'Favoriting is not supported for TPDB.',
+    );
+    expect(stashdbAdapter.favoriteStudio).not.toHaveBeenCalled();
   });
 
   describe('getSceneStreamUrl', () => {

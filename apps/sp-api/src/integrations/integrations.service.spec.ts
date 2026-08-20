@@ -6,6 +6,7 @@ import {
 } from '@prisma/client';
 import { StashAdapter } from '../providers/stash/stash.adapter';
 import { StashdbAdapter } from '../providers/stashdb/stashdb.adapter';
+import { TpdbAdapter } from '../providers/tpdb/tpdb.adapter';
 import { WhisparrAdapter } from '../providers/whisparr/whisparr.adapter';
 import { buildCatalogProviderSelectionConfig } from '../providers/catalog/catalog-provider.util';
 import { PrismaService } from '../prisma/prisma.service';
@@ -22,6 +23,8 @@ describe('IntegrationsService', () => {
   const stashProbeConnection = jest.fn();
   const stashdbTestConnection = jest.fn();
   const stashdbProbeConnection = jest.fn();
+  const tpdbTestConnection = jest.fn();
+  const tpdbProbeConnection = jest.fn();
   const whisparrTestConnection = jest.fn();
   const whisparrProbeConnection = jest.fn();
   const clearRuntimeHealth = jest.fn();
@@ -49,6 +52,11 @@ describe('IntegrationsService', () => {
     probeConnection: stashdbProbeConnection,
   } as unknown as StashdbAdapter;
 
+  const tpdbAdapter = {
+    testConnection: tpdbTestConnection,
+    probeConnection: tpdbProbeConnection,
+  } as unknown as TpdbAdapter;
+
   const whisparrAdapter = {
     testConnection: whisparrTestConnection,
     probeConnection: whisparrProbeConnection,
@@ -69,6 +77,7 @@ describe('IntegrationsService', () => {
       prisma,
       stashAdapter,
       stashdbAdapter,
+      tpdbAdapter,
       whisparrAdapter,
       runtimeHealthService,
     );
@@ -360,6 +369,35 @@ describe('IntegrationsService', () => {
     expect(stashUpsertCall.update.lastErrorAt).toBeNull();
     expect(stashUpsertCall.update.lastErrorMessage).toBeNull();
     expect(recordManualRecovery).toHaveBeenCalledWith(RuntimeHealthServiceKey.STASH);
+  });
+
+  it('tests TPDB integration via the TpdbAdapter and stores success metadata', async () => {
+    findUnique.mockResolvedValue({
+      type: IntegrationType.TPDB,
+      enabled: true,
+      name: 'ThePornDB',
+      baseUrl: 'https://api.theporndb.net',
+      apiKey: 'tpdb-token',
+    });
+    (tpdbAdapter.testConnection as jest.Mock).mockResolvedValue(undefined);
+    upsert.mockResolvedValue({
+      type: IntegrationType.TPDB,
+      status: IntegrationStatus.CONFIGURED,
+      lastErrorMessage: null,
+    });
+
+    await expect(
+      service.testIntegration(IntegrationType.TPDB, {}),
+    ).resolves.toMatchObject({
+      type: IntegrationType.TPDB,
+      status: IntegrationStatus.CONFIGURED,
+    });
+
+    expect(tpdbTestConnection).toHaveBeenCalledWith({
+      baseUrl: 'https://api.theporndb.net',
+      apiKey: 'tpdb-token',
+    });
+    expect(recordManualRecovery).toHaveBeenCalledWith(RuntimeHealthServiceKey.CATALOG);
   });
 
   it('persists the config that was tested when the test succeeds', async () => {

@@ -14,7 +14,6 @@ import { IndexingService } from '../indexing/indexing.service';
 import { IntegrationsService } from '../integrations/integrations.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { CatalogProviderService } from '../providers/catalog/catalog-provider.service';
-import { StashdbAdapter } from '../providers/stashdb/stashdb.adapter';
 import { WhisparrAdapter } from '../providers/whisparr/whisparr.adapter';
 import { RequestOptionsDto } from './dto/request-options.dto';
 import { SubmitSceneRequestDto } from './dto/submit-scene-request.dto';
@@ -27,7 +26,6 @@ export class RequestsService {
     private readonly integrationsService: IntegrationsService,
     private readonly catalogProviderService: CatalogProviderService,
     private readonly whisparrAdapter: WhisparrAdapter,
-    private readonly stashdbAdapter: StashdbAdapter,
     private readonly prisma: PrismaService,
   ) {}
 
@@ -39,8 +37,10 @@ export class RequestsService {
 
     const whisparrConfig = await this.getWhisparrConfig();
     const catalogConfig = await this.getActiveCatalogConfig();
+    const catalogAdapter =
+      await this.catalogProviderService.getConfiguredCatalogAdapter();
 
-    const scene = await this.stashdbAdapter.getSceneById(
+    const scene = await catalogAdapter.getSceneById(
       normalizedStashId,
       catalogConfig,
     );
@@ -90,8 +90,10 @@ export class RequestsService {
 
     const whisparrConfig = await this.getWhisparrConfig();
     const catalogConfig = await this.getActiveCatalogConfig();
+    const catalogAdapter =
+      await this.catalogProviderService.getConfiguredCatalogAdapter();
 
-    const scene = await this.stashdbAdapter.getSceneById(
+    const scene = await catalogAdapter.getSceneById(
       normalizedStashId,
       catalogConfig,
     );

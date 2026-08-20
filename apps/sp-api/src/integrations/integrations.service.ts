@@ -17,6 +17,7 @@ import {
   StashdbAdapter,
   StashdbAdapterBaseConfig,
 } from '../providers/stashdb/stashdb.adapter';
+import { TpdbAdapter } from '../providers/tpdb/tpdb.adapter';
 import {
   WhisparrAdapter,
   WhisparrAdapterBaseConfig,
@@ -60,6 +61,7 @@ export class IntegrationsService {
     private readonly prisma: PrismaService,
     private readonly stashAdapter: StashAdapter,
     private readonly stashdbAdapter: StashdbAdapter,
+    private readonly tpdbAdapter: TpdbAdapter,
     private readonly whisparrAdapter: WhisparrAdapter,
     private readonly runtimeHealthService: RuntimeHealthService,
   ) {}
@@ -188,6 +190,9 @@ export class IntegrationsService {
         case IntegrationType.STASHDB:
         case IntegrationType.FANSDB:
           await this.stashdbAdapter.testConnection(config);
+          break;
+        case IntegrationType.TPDB:
+          await this.tpdbAdapter.testConnection(config);
           break;
         case IntegrationType.WHISPARR:
           await this.whisparrAdapter.testConnection(config);
@@ -542,6 +547,11 @@ export class IntegrationsService {
       case IntegrationType.STASHDB:
       case IntegrationType.FANSDB:
         await this.stashdbAdapter.probeConnection(
+          config as StashdbAdapterBaseConfig,
+        );
+        return;
+      case IntegrationType.TPDB:
+        await this.tpdbAdapter.probeConnection(
           config as StashdbAdapterBaseConfig,
         );
         return;

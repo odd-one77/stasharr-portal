@@ -11,6 +11,7 @@ const INTEGRATION_RUNTIME_HEALTH_SERVICE_MAP: Record<
   [IntegrationType.WHISPARR]: RuntimeHealthServiceKey.WHISPARR,
   [IntegrationType.STASHDB]: RuntimeHealthServiceKey.CATALOG,
   [IntegrationType.FANSDB]: RuntimeHealthServiceKey.CATALOG,
+  [IntegrationType.TPDB]: RuntimeHealthServiceKey.CATALOG,
 };
 
 export function runtimeHealthServiceForIntegration(

@@ -9,7 +9,7 @@ import { IntegrationsService } from '../integrations/integrations.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { CatalogProviderService } from '../providers/catalog/catalog-provider.service';
 import { StashAdapter } from '../providers/stash/stash.adapter';
-import { StashdbAdapter } from '../providers/stashdb/stashdb.adapter';
+import { CatalogAdapter } from '../providers/catalog/catalog-adapter.interface';
 import { WhisparrAdapter } from '../providers/whisparr/whisparr.adapter';
 import { INDEXING_JOB_NAMES, IndexingService } from './indexing.service';
 import { SyncStateService } from './sync-state.service';
@@ -585,6 +585,7 @@ describe('IndexingService', () => {
   } as unknown as IntegrationsService;
   const catalogProviderService = {
     getConfiguredCatalogProviderOrNull: jest.fn(),
+    getConfiguredCatalogAdapter: jest.fn(),
   } as unknown as CatalogProviderService;
 
   const whisparrAdapter = {
@@ -600,9 +601,9 @@ describe('IndexingService', () => {
     getLocalLibraryScenePage: getLocalLibraryScenePageMock,
   } as unknown as StashAdapter;
 
-  const stashdbAdapter = {
+  const catalogAdapter = {
     getSceneMetadataByIds: getSceneMetadataByIdsMock,
-  } as unknown as StashdbAdapter;
+  } as unknown as CatalogAdapter;
 
   const syncStateService = {
     runWithLease: runWithLeaseMock,
@@ -671,6 +672,9 @@ describe('IndexingService', () => {
           apiKey: configuredStashdbIntegration.apiKey,
         }),
       );
+    catalogProviderService.getConfiguredCatalogAdapter = jest
+      .fn()
+      .mockResolvedValue(catalogAdapter);
     getMovieSnapshotMock.mockResolvedValue([]);
     getQueueSnapshotMock.mockResolvedValue([]);
     findMovieByStashIdMock.mockResolvedValue(null);
@@ -724,7 +728,6 @@ describe('IndexingService', () => {
       catalogProviderService,
       whisparrAdapter,
       stashAdapter,
-      stashdbAdapter,
       syncStateService,
     );
 
@@ -775,7 +778,6 @@ describe('IndexingService', () => {
       catalogProviderService,
       whisparrAdapter,
       stashAdapter,
-      stashdbAdapter,
       syncStateService,
     );
 
@@ -814,7 +816,6 @@ describe('IndexingService', () => {
       catalogProviderService,
       whisparrAdapter,
       stashAdapter,
-      stashdbAdapter,
       syncStateService,
     );
 
@@ -941,7 +942,6 @@ describe('IndexingService', () => {
       catalogProviderService,
       whisparrAdapter,
       stashAdapter,
-      stashdbAdapter,
       syncStateService,
     );
 
@@ -1048,7 +1048,6 @@ describe('IndexingService', () => {
       catalogProviderService,
       whisparrAdapter,
       stashAdapter,
-      stashdbAdapter,
       syncStateService,
     );
 
@@ -1123,7 +1122,6 @@ describe('IndexingService', () => {
       catalogProviderService,
       whisparrAdapter,
       stashAdapter,
-      stashdbAdapter,
       syncStateService,
     );
 
@@ -1165,7 +1163,6 @@ describe('IndexingService', () => {
       catalogProviderService,
       whisparrAdapter,
       stashAdapter,
-      stashdbAdapter,
       syncStateService,
     );
 
@@ -1201,7 +1198,6 @@ describe('IndexingService', () => {
       catalogProviderService,
       whisparrAdapter,
       stashAdapter,
-      stashdbAdapter,
       syncStateService,
     );
 
@@ -1245,7 +1241,6 @@ describe('IndexingService', () => {
       catalogProviderService,
       whisparrAdapter,
       stashAdapter,
-      stashdbAdapter,
       syncStateService,
     );
 
@@ -1329,7 +1324,6 @@ describe('IndexingService', () => {
       catalogProviderService,
       whisparrAdapter,
       stashAdapter,
-      stashdbAdapter,
       syncStateService,
     );
 
@@ -1387,7 +1381,6 @@ describe('IndexingService', () => {
       catalogProviderService,
       whisparrAdapter,
       stashAdapter,
-      stashdbAdapter,
       syncStateService,
     );
 
@@ -1453,7 +1446,6 @@ describe('IndexingService', () => {
       catalogProviderService,
       whisparrAdapter,
       stashAdapter,
-      stashdbAdapter,
       syncStateService,
     );
 
@@ -1495,7 +1487,6 @@ describe('IndexingService', () => {
       catalogProviderService,
       whisparrAdapter,
       stashAdapter,
-      stashdbAdapter,
       syncStateService,
     );
 
@@ -1530,7 +1521,6 @@ describe('IndexingService', () => {
       catalogProviderService,
       whisparrAdapter,
       stashAdapter,
-      stashdbAdapter,
       syncStateService,
     );
 
@@ -1567,7 +1557,6 @@ describe('IndexingService', () => {
       catalogProviderService,
       whisparrAdapter,
       stashAdapter,
-      stashdbAdapter,
       syncStateService,
     );
 
@@ -1621,7 +1610,6 @@ describe('IndexingService', () => {
       catalogProviderService,
       whisparrAdapter,
       stashAdapter,
-      stashdbAdapter,
       syncStateService,
     );
     const internals = service as unknown as {

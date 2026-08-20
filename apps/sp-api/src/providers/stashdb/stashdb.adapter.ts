@@ -7,6 +7,7 @@ import {
 import { RuntimeHealthServiceKey } from '@prisma/client';
 import { RuntimeHealthService } from '../../runtime-health/runtime-health.service';
 import { fetchWithTimeout } from '../fetch-with-timeout';
+import type { CatalogAdapter } from '../catalog/catalog-adapter.interface';
 
 export interface StashdbAdapterBaseConfig {
   baseUrl: string;
@@ -552,7 +553,7 @@ interface StashdbGraphqlResponse {
 }
 
 @Injectable()
-export class StashdbAdapter {
+export class StashdbAdapter implements CatalogAdapter {
   private readonly logger = new Logger(StashdbAdapter.name);
 
   constructor(private readonly runtimeHealthService: RuntimeHealthService) {}
