@@ -191,8 +191,39 @@ describe('ScenesService', () => {
         baseUrl: stashIntegration.baseUrl,
         apiKey: stashIntegration.apiKey,
       },
+    );
+  });
+
+  it('recognizes a scene as available in Stash even when it was tagged under a previously-configured catalog provider', async () => {
+    // findScenesByStashId itself is provider-agnostic now (no providerKey
+    // overlay passed) -- Stash can find a scene by id regardless of which
+    // endpoint originally tagged it, so a copy list coming back at all means
+    // it's available, independent of which provider is active today.
+    stashAdapter.findScenesByStashId = jest.fn().mockResolvedValue([
       {
-        providerKey: 'STASHDB',
+        id: '3027',
+        width: 1920,
+        height: 1080,
+        viewUrl: 'http://stash.local/scene/3027',
+        label: '1080p',
+        duration: 600,
+        resumeSeconds: 0,
+      },
+    ]);
+
+    await expect(
+      service.getSceneById('stashdb-scene-1'),
+    ).resolves.toMatchObject({
+      stash: {
+        exists: true,
+        hasMultipleCopies: false,
+      },
+    });
+    expect(stashAdapter.findScenesByStashId).toHaveBeenCalledWith(
+      'stashdb-scene-1',
+      {
+        baseUrl: stashIntegration.baseUrl,
+        apiKey: stashIntegration.apiKey,
       },
     );
   });
@@ -273,9 +304,6 @@ describe('ScenesService', () => {
       {
         baseUrl: stashIntegration.baseUrl,
         apiKey: stashIntegration.apiKey,
-      },
-      {
-        providerKey: 'FANSDB',
       },
     );
   });
@@ -654,11 +682,10 @@ describe('ScenesService', () => {
         duration: 600,
       });
 
-      expect(stashAdapter.findScenesByStashId).toHaveBeenCalledWith(
-        'stashdb-scene-1',
-        { baseUrl: stashIntegration.baseUrl, apiKey: stashIntegration.apiKey },
-        { providerKey: 'STASHDB' },
-      );
+      expect(stashAdapter.findScenesByStashId).toHaveBeenCalledWith('stashdb-scene-1', {
+        baseUrl: stashIntegration.baseUrl,
+        apiKey: stashIntegration.apiKey,
+      });
     });
 
     it('resolves a specific copy when copyId is given', async () => {

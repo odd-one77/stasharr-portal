@@ -1509,9 +1509,6 @@ describe('IndexingService', () => {
       expect.objectContaining({
         baseUrl: 'http://stash.local',
       }),
-      {
-        providerKey: 'STASHDB',
-      },
     );
     expect(getQueueSnapshotMock).not.toHaveBeenCalled();
     expect(getMovieSnapshotMock).not.toHaveBeenCalled();

@@ -11,7 +11,10 @@ import {
 } from '@prisma/client';
 import { IntegrationsService } from '../integrations/integrations.service';
 import { PrismaService } from '../prisma/prisma.service';
-import { type CatalogProviderKey } from '../providers/catalog/catalog-provider.util';
+import {
+  parseCatalogSceneRef,
+  type CatalogProviderKey,
+} from '../providers/catalog/catalog-provider.util';
 import { CatalogProviderService } from '../providers/catalog/catalog-provider.service';
 import {
   StashAdapter,
@@ -879,12 +882,13 @@ export class IndexingService {
       const results = await Promise.all(
         batch.map(async (stashId) => {
           try {
+            // No providerKey overlay here on purpose: a scene tagged in
+            // Stash under a previously-configured catalog provider is still
+            // genuinely available, not just ones tagged under whichever
+            // provider happens to be active right now.
             const matches = await this.stashAdapter.findScenesByStashId(
               stashId,
               config,
-              {
-                providerKey: activeCatalogProviderKey,
-              },
             );
             return {
               stashId,
@@ -1323,6 +1327,20 @@ export class IndexingService {
         if (item.activeCatalogSceneId) {
           availableActiveCatalogSceneIds.add(item.activeCatalogSceneId);
         }
+
+        // Also count this scene as available under any id it's linked with
+        // through a *different* catalog provider (e.g. still tagged StashDB
+        // from before switching to TPDB). The underlying Stash file is the
+        // same either way, so a scene originally requested under that older
+        // id should resolve as available rather than getting permanently
+        // stuck waiting, just because the currently-configured provider
+        // isn't the one Stash happens to have it tagged under.
+        for (const ref of item.linkedCatalogRefs) {
+          const parsed = parseCatalogSceneRef(ref);
+          if (parsed) {
+            availableActiveCatalogSceneIds.add(parsed.externalId);
+          }
+        }
       }
 
       if (!snapshotPage.hasMore || snapshotPage.items.length === 0) {
@@ -1410,12 +1428,13 @@ export class IndexingService {
       const results = await Promise.all(
         batch.map(async (stashId) => {
           try {
+            // No providerKey overlay here on purpose: a scene tagged in
+            // Stash under a previously-configured catalog provider is still
+            // genuinely available, not just ones tagged under whichever
+            // provider happens to be active right now.
             const matches = await this.stashAdapter.findScenesByStashId(
               stashId,
               config,
-              {
-                providerKey: activeCatalogProviderKey,
-              },
             );
             return {
               stashId,

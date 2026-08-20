@@ -188,8 +188,10 @@ export class ScenesService {
       throw new BadRequestException('Scene stashId is required.');
     }
 
-    const catalogProvider =
-      await this.catalogProviderService.getConfiguredCatalogProvider();
+    // Throws if no catalog provider is configured for this instance at all
+    // — unrelated to the id-matching change below, just a normal setup
+    // precondition for playback.
+    await this.catalogProviderService.getConfiguredCatalogProvider();
     const integration = await this.integrationsService.findOne(
       IntegrationType.STASH,
     );
@@ -207,9 +209,11 @@ export class ScenesService {
     }
 
     const config = { baseUrl, apiKey: integration.apiKey };
-    const copies = await this.stashAdapter.findScenesByStashId(sceneId, config, {
-      providerKey: catalogProvider.providerKey,
-    });
+    // No providerKey overlay here on purpose: a scene tagged in Stash under
+    // a previously-configured catalog provider is still genuinely playable,
+    // not just copies tagged under whichever provider happens to be active
+    // right now.
+    const copies = await this.stashAdapter.findScenesByStashId(sceneId, config);
 
     const normalizedCopyId = copyId?.trim();
     const targetCopy = normalizedCopyId
@@ -268,16 +272,14 @@ export class ScenesService {
         return null;
       }
 
-      const copies = await this.stashAdapter.findScenesByStashId(
-        stashId,
-        {
-          baseUrl,
-          apiKey: integration.apiKey,
-        },
-        {
-          providerKey: activeCatalogProviderKey,
-        },
-      );
+      // No providerKey overlay here on purpose: a scene tagged in Stash
+      // under a previously-configured catalog provider is still genuinely
+      // in the library, not just copies tagged under whichever provider
+      // happens to be active right now.
+      const copies = await this.stashAdapter.findScenesByStashId(stashId, {
+        baseUrl,
+        apiKey: integration.apiKey,
+      });
 
       return {
         exists: copies.length > 0,
