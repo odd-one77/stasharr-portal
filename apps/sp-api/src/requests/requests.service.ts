@@ -198,8 +198,9 @@ export class RequestsService {
     const createdMovie = await this.whisparrAdapter.createMovie(
       {
         title,
-        studio,
+        studioTitle: studio,
         foreignId: normalizedStashId,
+        itemType: 'Scene',
         monitored: dto.monitored,
         rootFolderPath: dto.rootFolderPath,
         addOptions: {

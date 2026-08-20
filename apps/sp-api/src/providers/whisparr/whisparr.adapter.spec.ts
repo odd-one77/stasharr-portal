@@ -537,7 +537,8 @@ describe('WhisparrAdapter', () => {
         adapter.createMovie(
           {
             title: 'Scene title',
-            studio: 'Scene studio',
+            studioTitle: 'Scene studio',
+            itemType: 'Scene',
             foreignId: 'scene-1',
             monitored: true,
             rootFolderPath: '/media/a',
@@ -563,7 +564,8 @@ describe('WhisparrAdapter', () => {
           },
           body: JSON.stringify({
             title: 'Scene title',
-            studio: 'Scene studio',
+            studioTitle: 'Scene studio',
+            itemType: 'Scene',
             foreignId: 'scene-1',
             monitored: true,
             rootFolderPath: '/media/a',
@@ -586,7 +588,8 @@ describe('WhisparrAdapter', () => {
         adapter.createMovie(
           {
             title: 'Scene title',
-            studio: 'Scene studio',
+            studioTitle: 'Scene studio',
+            itemType: 'Scene',
             foreignId: 'scene-1',
             monitored: true,
             rootFolderPath: '/media/a',

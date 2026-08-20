@@ -52,8 +52,13 @@ export interface WhisparrTagOption {
 
 export interface WhisparrCreateMovieInput {
   title: string;
-  studio: string;
+  studioTitle: string;
   foreignId: string;
+  // Whisparr's MovieResource defaults ItemType to Movie (0) when omitted —
+  // everything this app adds is Scene content, and Whisparr's own Library
+  // Import (and other content-type-aware lookups) route differently
+  // depending on this field, so it must be sent explicitly.
+  itemType: 'Scene';
   monitored: boolean;
   rootFolderPath: string;
   addOptions: {

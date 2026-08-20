@@ -183,8 +183,9 @@ describe('RequestsService', () => {
     expect(createMovieMock).toHaveBeenCalledWith(
       {
         title: 'Title scene-1',
-        studio: 'Studio',
+        studioTitle: 'Studio',
         foreignId: 'scene-1',
+        itemType: 'Scene',
         monitored: true,
         rootFolderPath: '/media/b',
         addOptions: { searchForMovie: true },
