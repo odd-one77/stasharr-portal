@@ -333,7 +333,9 @@ export class WhisparrMetadataService {
     };
   }
 
-  private mapPerformerResource(performer: StashdbPerformerDetails): unknown {
+  private mapPerformerResource(
+    performer: Omit<StashdbPerformerDetails, 'gender'> & { gender: string | null },
+  ): unknown {
     return {
       name: performer.name,
       foreignIds: this.mapForeignIds(performer.id),
