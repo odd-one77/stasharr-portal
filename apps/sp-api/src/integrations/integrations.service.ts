@@ -253,28 +253,7 @@ export class IntegrationsService {
         ),
       );
 
-      // Scene/performer/studio ids from the old catalog provider never
-      // match the new one's id space, so anything indexed against the
-      // previous provider would otherwise sit around as permanently broken
-      // links (e.g. "waiting for import" on scenes that are actually in the
-      // library, dead performer links inside old scene records). Clear the
-      // derived index rather than leave stale data — it rebuilds naturally
-      // from Stash/the new provider on the next sync. Request rows are
-      // deliberately left untouched: they're real user history, not a
-      // derived cache.
-      await this.prisma.$transaction([
-        this.prisma.sceneIndex.deleteMany({}),
-        this.prisma.sceneIndexSummary.deleteMany({}),
-        this.prisma.librarySceneIndex.updateMany({
-          data: {
-            linkedStashId: null,
-            linkedCatalogRefs: [],
-            hasFavoritePerformer: false,
-            favoriteStudio: false,
-            hasFavoriteTag: false,
-          },
-        }),
-      ]);
+      await this.clearCatalogProviderDerivedIndex();
 
       const resetIntegration = resetRecords.find(
         (integration) => integration.type === type,
@@ -320,8 +299,44 @@ export class IntegrationsService {
     // Same reasoning as reset()'s catalog-provider branch: the derived index
     // is keyed off the (now-cleared) catalog provider's id space, so it
     // would otherwise be left behind as stale/unreadable data.
+    await this.clearCatalogProviderDerivedIndex();
+
+    return resetRecords.sort((a, b) => a.type.localeCompare(b.type));
+  }
+
+  /**
+   * Scene/performer/studio ids from the old catalog provider never match
+   * the new one's id space, so anything indexed against the previous
+   * provider would otherwise sit around as permanently broken links (e.g.
+   * "waiting for import" on scenes that are actually in the library, dead
+   * performer links inside old scene records).
+   *
+   * Only wipes SceneIndex rows with no associated Request — those are pure
+   * browse/discovery cache and rebuild naturally from the new provider on
+   * the next sync. Rows tied to an actual Request are kept: their cached
+   * title/description/images are still accurate (a scene's title doesn't
+   * change because the catalog provider changed) and that data can no
+   * longer be re-fetched once the old provider's credentials are gone —
+   * only their "is this now matched in my library" status is reset to
+   * unknown, via the same sync that already recomputes it.
+   *
+   * Request rows themselves are never touched here: they're real user
+   * history, not a derived cache.
+   */
+  private async clearCatalogProviderDerivedIndex(): Promise<void> {
+    const activeRequests = await this.prisma.request.findMany({
+      select: { stashId: true },
+    });
+    const activeRequestStashIds = activeRequests.map((request) => request.stashId);
+
     await this.prisma.$transaction([
-      this.prisma.sceneIndex.deleteMany({}),
+      this.prisma.sceneIndex.deleteMany({
+        where: { stashId: { notIn: activeRequestStashIds } },
+      }),
+      this.prisma.sceneIndex.updateMany({
+        where: { stashId: { in: activeRequestStashIds } },
+        data: { stashAvailable: null },
+      }),
       this.prisma.sceneIndexSummary.deleteMany({}),
       this.prisma.librarySceneIndex.updateMany({
         data: {
@@ -333,8 +348,6 @@ export class IntegrationsService {
         },
       }),
     ]);
-
-    return resetRecords.sort((a, b) => a.type.localeCompare(b.type));
   }
 
   async refreshRuntimeHealth(): Promise<RuntimeHealthResponse> {

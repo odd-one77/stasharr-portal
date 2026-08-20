@@ -33,8 +33,10 @@ describe('IntegrationsService', () => {
   const getRuntimeHealthSummary = jest.fn();
 
   const sceneIndexDeleteMany = jest.fn().mockResolvedValue({ count: 0 });
+  const sceneIndexUpdateMany = jest.fn().mockResolvedValue({ count: 0 });
   const sceneIndexSummaryDeleteMany = jest.fn().mockResolvedValue({ count: 0 });
   const librarySceneIndexUpdateMany = jest.fn().mockResolvedValue({ count: 0 });
+  const requestFindMany = jest.fn().mockResolvedValue([]);
 
   const prisma = {
     integrationConfig: {
@@ -45,12 +47,16 @@ describe('IntegrationsService', () => {
     },
     sceneIndex: {
       deleteMany: sceneIndexDeleteMany,
+      updateMany: sceneIndexUpdateMany,
     },
     sceneIndexSummary: {
       deleteMany: sceneIndexSummaryDeleteMany,
     },
     librarySceneIndex: {
       updateMany: librarySceneIndexUpdateMany,
+    },
+    request: {
+      findMany: requestFindMany,
     },
     $transaction: transaction,
   } as unknown as PrismaService;
@@ -143,7 +149,14 @@ describe('IntegrationsService', () => {
     const result = await service.resetAll();
 
     expect(transaction).toHaveBeenCalledTimes(2);
-    expect(sceneIndexDeleteMany).toHaveBeenCalledWith({});
+    expect(requestFindMany).toHaveBeenCalled();
+    expect(sceneIndexDeleteMany).toHaveBeenCalledWith({
+      where: { stashId: { notIn: [] } },
+    });
+    expect(sceneIndexUpdateMany).toHaveBeenCalledWith({
+      where: { stashId: { in: [] } },
+      data: { stashAvailable: null },
+    });
     expect(sceneIndexSummaryDeleteMany).toHaveBeenCalledWith({});
     expect(librarySceneIndexUpdateMany).toHaveBeenCalled();
     expect(clearAllRuntimeHealth).toHaveBeenCalledTimes(1);
@@ -332,7 +345,14 @@ describe('IntegrationsService', () => {
     const result = await service.reset(IntegrationType.FANSDB);
 
     expect(transaction).toHaveBeenCalledTimes(2);
-    expect(sceneIndexDeleteMany).toHaveBeenCalledWith({});
+    expect(requestFindMany).toHaveBeenCalled();
+    expect(sceneIndexDeleteMany).toHaveBeenCalledWith({
+      where: { stashId: { notIn: [] } },
+    });
+    expect(sceneIndexUpdateMany).toHaveBeenCalledWith({
+      where: { stashId: { in: [] } },
+      data: { stashAvailable: null },
+    });
     expect(sceneIndexSummaryDeleteMany).toHaveBeenCalledWith({});
     expect(librarySceneIndexUpdateMany).toHaveBeenCalledWith({
       data: {
@@ -345,6 +365,31 @@ describe('IntegrationsService', () => {
     });
     expect(clearRuntimeHealth).toHaveBeenCalledWith(RuntimeHealthServiceKey.CATALOG);
     expect(result).toEqual({ type: IntegrationType.FANSDB });
+  });
+
+  it('preserves SceneIndex rows tied to an active request when resetting the catalog provider', async () => {
+    transaction.mockResolvedValue([
+      { type: IntegrationType.STASHDB },
+      { type: IntegrationType.FANSDB },
+    ]);
+    requestFindMany.mockResolvedValueOnce([
+      { stashId: 'stashdb-scene-in-flight-1' },
+      { stashId: 'stashdb-scene-in-flight-2' },
+    ]);
+
+    await service.reset(IntegrationType.FANSDB);
+
+    expect(sceneIndexDeleteMany).toHaveBeenCalledWith({
+      where: {
+        stashId: { notIn: ['stashdb-scene-in-flight-1', 'stashdb-scene-in-flight-2'] },
+      },
+    });
+    expect(sceneIndexUpdateMany).toHaveBeenCalledWith({
+      where: {
+        stashId: { in: ['stashdb-scene-in-flight-1', 'stashdb-scene-in-flight-2'] },
+      },
+      data: { stashAvailable: null },
+    });
   });
 
   it('tests stash integration and stores success metadata', async () => {
