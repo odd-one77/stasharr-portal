@@ -343,7 +343,7 @@ export class TpdbAdapter implements CatalogAdapter {
       );
       const numericId = this.readNumber(performerRecord?._id);
       if (numericId === null) {
-        return { total: 0, scenes: [] };
+        return { total: 0, scenes: [] as StashdbScene[] };
       }
 
       const params: Record<string, string> = {
