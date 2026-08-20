@@ -140,7 +140,11 @@ export class WhisparrMetadataService {
     const row = await this.prisma.sceneIndex.findUnique({
       where: { stashId },
     });
-    const title = row?.title?.trim();
+    if (!row) {
+      return null;
+    }
+
+    const title = row.title?.trim();
     if (!title) {
       return null;
     }
