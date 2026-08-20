@@ -18,6 +18,19 @@
     <span sceneCardTopRight class="top-badge">{{ badge.label }}</span>
   }
 
+  @if (showMarkWatched) {
+    <button
+      type="button"
+      sceneCardTopRight
+      class="mark-watched-button"
+      aria-label="Mark as watched"
+      title="Mark as watched"
+      (click)="markSceneWatched($event)"
+    >
+      <i class="pi pi-check" aria-hidden="true"></i>
+    </button>
+  }
+
   @if (showLargePlayAction()) {
     <button
       type="button"

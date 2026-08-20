@@ -39,6 +39,7 @@ export class DiscoverService {
     tagMode?: SceneTagMatchMode,
     favorites?: SceneFavoritesFilter,
     studioIds?: string[],
+    titleQuery?: string,
   ): Observable<ScenesFeedResponse> {
     let params = new HttpParams().set('page', page.toString()).set('perPage', perPage.toString());
 
@@ -59,6 +60,9 @@ export class DiscoverService {
     }
     if (studioIds && studioIds.length > 0) {
       params = params.set('studioIds', studioIds.join(','));
+    }
+    if (titleQuery && titleQuery.trim().length > 0) {
+      params = params.set('titleQuery', titleQuery.trim());
     }
 
     return this.http.get<ScenesFeedResponse>('/api/scenes', { params });

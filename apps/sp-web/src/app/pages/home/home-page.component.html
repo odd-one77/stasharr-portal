@@ -8,6 +8,136 @@
           Continue watching, catch up on what's new in your library, and see the latest releases
           from the performers and studios you've favorited.
         </p>
+        <div class="hero-search">
+          <div class="hero-search-input-row">
+            <i class="pi pi-search hero-search-icon" aria-hidden="true"></i>
+            <input
+              type="search"
+              inputmode="search"
+              class="hero-search-input"
+              placeholder="Search scenes, performers, or studios"
+              aria-label="Search scenes, performers, or studios"
+              [ngModel]="searchTerm()"
+              (ngModelChange)="onSearchInput($event)"
+              (focus)="onSearchFocus()"
+            />
+            @if (searchTerm().trim().length > 0) {
+              <button
+                type="button"
+                class="hero-search-clear"
+                aria-label="Clear search"
+                (click)="clearSearch()"
+              >
+                <i class="pi pi-times" aria-hidden="true"></i>
+              </button>
+            }
+          </div>
+
+          @if (searchOpen() && searchTerm().trim().length > 0) {
+            <button
+              type="button"
+              class="hero-search-backdrop"
+              aria-label="Close search results"
+              (click)="closeSearch()"
+            ></button>
+
+            <div class="hero-search-panel" role="listbox" aria-label="Search results">
+              @if (searchLoading()) {
+                <p class="hero-search-state">Searching...</p>
+              } @else if (!hasSearchResults()) {
+                <p class="hero-search-state">No matches for "{{ searchTerm() }}".</p>
+              } @else {
+                @if (searchSceneResults().length > 0) {
+                  <div class="hero-search-group">
+                    <p class="hero-search-group-label">Scenes</p>
+                    @for (result of searchSceneResults(); track result.id) {
+                      <a
+                        class="hero-search-result"
+                        [routerLink]="['/scene', result.id]"
+                        (click)="closeSearch()"
+                      >
+                        @if (result.cardImageUrl || result.imageUrl) {
+                          <img
+                            class="hero-search-result-image"
+                            [src]="result.cardImageUrl ?? result.imageUrl"
+                            [alt]="result.title"
+                            loading="lazy"
+                          />
+                        } @else {
+                          <span class="hero-search-result-image placeholder" aria-hidden="true"></span>
+                        }
+                        <span class="hero-search-result-copy">
+                          <span class="hero-search-result-title">{{ result.title }}</span>
+                          @if (result.studio) {
+                            <span class="hero-search-result-meta">{{ result.studio }}</span>
+                          }
+                        </span>
+                      </a>
+                    }
+                  </div>
+                }
+
+                @if (searchPerformerResults().length > 0) {
+                  <div class="hero-search-group">
+                    <p class="hero-search-group-label">Performers</p>
+                    @for (result of searchPerformerResults(); track result.id) {
+                      <a
+                        class="hero-search-result"
+                        [routerLink]="['/performer', result.id]"
+                        (click)="closeSearch()"
+                      >
+                        @if (result.cardImageUrl || result.imageUrl) {
+                          <img
+                            class="hero-search-result-image round"
+                            [src]="result.cardImageUrl ?? result.imageUrl"
+                            [alt]="result.name"
+                            loading="lazy"
+                          />
+                        } @else {
+                          <span
+                            class="hero-search-result-image round placeholder"
+                            aria-hidden="true"
+                          ></span>
+                        }
+                        <span class="hero-search-result-copy">
+                          <span class="hero-search-result-title">{{ result.name }}</span>
+                        </span>
+                      </a>
+                    }
+                  </div>
+                }
+
+                @if (searchStudioResults().length > 0) {
+                  <div class="hero-search-group">
+                    <p class="hero-search-group-label">Studios</p>
+                    @for (result of searchStudioResults(); track result.id) {
+                      <a
+                        class="hero-search-result"
+                        [routerLink]="['/studio', result.id]"
+                        (click)="closeSearch()"
+                      >
+                        @if (result.imageUrl) {
+                          <img
+                            class="hero-search-result-image"
+                            [src]="result.imageUrl"
+                            [alt]="result.name"
+                            loading="lazy"
+                          />
+                        } @else {
+                          <span class="hero-search-result-image placeholder" aria-hidden="true"></span>
+                        }
+                        <span class="hero-search-result-copy">
+                          <span class="hero-search-result-title">{{ result.name }}</span>
+                        </span>
+                      </a>
+                    }
+                  </div>
+                }
+              }
+            </div>
+          }
+        </div>
+
         <div class="hero-actions app-action-row">
           <a class="hero-link" [routerLink]="['/performers']">Find Favorite Performers</a>
           <a class="hero-link secondary" [routerLink]="['/studios']">Find Favorite Studios</a>
@@ -73,7 +203,9 @@
               [sceneQueryParams]="item.activeCatalogSceneId ? { returnTo: currentRouteUrl() } : null"
               [externalHref]="item.activeCatalogSceneId ? null : item.viewUrl"
               [progressPercent]="item.progressPercent"
+              [showMarkWatched]="true"
               (play)="playScene($event)"
+              (markWatched)="markWatched($event)"
             />
           }
         </div>
@@ -123,10 +255,13 @@
               class="rail-card"
               [item]="item"
               variant="rail"
+              [playable]="true"
+              playSize="large"
               [primaryLinkMode]="item.activeCatalogSceneId ? 'scene' : 'external'"
               [sceneRouteId]="item.activeCatalogSceneId"
               [sceneQueryParams]="item.activeCatalogSceneId ? { returnTo: currentRouteUrl() } : null"
               [externalHref]="item.activeCatalogSceneId ? null : item.viewUrl"
+              (play)="playScene($event)"
             />
           }
         </div>

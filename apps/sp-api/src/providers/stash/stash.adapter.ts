@@ -471,6 +471,31 @@ export class StashAdapter {
       .filter((scene): scene is StashContinueWatchingItem => scene !== null);
   }
 
+  async resetSceneProgress(
+    sceneId: string,
+    config: StashAdapterBaseConfig,
+  ): Promise<void> {
+    const normalizedSceneId = this.normalizeEntityId(sceneId);
+    if (!normalizedSceneId) {
+      return;
+    }
+
+    const mutation = `
+      mutation SceneUpdate($input: SceneUpdateInput!) {
+        sceneUpdate(input: $input) {
+          id
+        }
+      }
+    `;
+
+    await this.executeQuery(config, mutation, {
+      input: {
+        id: normalizedSceneId,
+        resume_time: 0,
+      },
+    });
+  }
+
   async getLocalSceneIdentityPage(
     config: StashAdapterBaseConfig,
     pageConfig: StashLocalSceneIdentityPageConfig,

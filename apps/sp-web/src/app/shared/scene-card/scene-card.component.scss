@@ -88,6 +88,30 @@ p {
   gap: var(--scene-card-footer-gap);
 }
 
+.mark-watched-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  padding: 0;
+  border-radius: 999px;
+  border: 1px solid var(--scene-card-glass-border);
+  background: var(--scene-card-glass-background);
+  color: var(--scene-card-footer-text);
+  box-shadow: var(--scene-card-glass-shadow);
+  cursor: pointer;
+}
+
+.mark-watched-button:hover,
+.mark-watched-button:focus-visible {
+  color: var(--focus-ring);
+}
+
+.mark-watched-button i {
+  font-size: 0.85rem;
+}
+
 .media-title {
   font-size: var(--scene-card-title-size);
   line-height: var(--scene-card-title-line-height);

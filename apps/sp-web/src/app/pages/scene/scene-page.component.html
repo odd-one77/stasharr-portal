@@ -72,8 +72,8 @@
 
       <div class="hero-layout">
         <div class="poster-card">
-          @if (scene.imageUrl) {
-            <img class="poster-image" [src]="scene.imageUrl" [alt]="scene.title" />
+          @if (posterImageUrl(scene); as posterUrl) {
+            <img class="poster-image" [src]="posterUrl" [alt]="scene.title" />
           } @else {
             <div class="poster-image placeholder" aria-hidden="true"></div>
           }

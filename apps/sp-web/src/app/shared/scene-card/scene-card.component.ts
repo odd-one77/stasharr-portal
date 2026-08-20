@@ -63,9 +63,11 @@ export class SceneCardComponent {
   @Input() playable = false;
   @Input() playSize: SceneCardPlaySize = 'compact';
   @Input() progressPercent: number | null = null;
+  @Input() showMarkWatched = false;
 
   @Output() request = new EventEmitter<SceneRequestContext>();
   @Output() play = new EventEmitter<string>();
+  @Output() markWatched = new EventEmitter<string>();
 
   protected shellVariant(): 'default' | 'rail' {
     return this.variant === 'rail' ? 'rail' : 'default';
@@ -201,6 +203,12 @@ export class SceneCardComponent {
     event.stopPropagation();
     event.preventDefault();
     this.play.emit(this.item.id);
+  }
+
+  protected markSceneWatched(event: MouseEvent): void {
+    event.stopPropagation();
+    event.preventDefault();
+    this.markWatched.emit(this.item.id);
   }
 
   private sceneRouteIdValue(): string {

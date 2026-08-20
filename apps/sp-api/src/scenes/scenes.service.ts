@@ -49,6 +49,7 @@ export class ScenesService {
     tagMode: SceneTagMatchMode = 'OR',
     favorites?: SceneFavoritesFilter,
     studioIds: string[] = [],
+    titleQuery?: string,
   ): Promise<ScenesFeedResponseDto> {
     const catalogProvider =
       await this.catalogProviderService.getConfiguredCatalogProvider();
@@ -63,6 +64,7 @@ export class ScenesService {
       direction,
       favorites,
       studioIds: normalizedStudioIds,
+      titleQuery,
       tagFilter:
         normalizedTagIds.length > 0
           ? {

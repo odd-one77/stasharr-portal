@@ -434,7 +434,7 @@ describe('LibraryPageComponent', () => {
     const windowOpenSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
 
     const playButton = fixture.nativeElement.querySelector(
-      'button.play-cta',
+      'button.play-center-button',
     ) as HTMLButtonElement;
     expect(playButton).not.toBeNull();
 

@@ -530,6 +530,36 @@ describe('StashAdapter', () => {
     ]);
   });
 
+  it('resets a scene resume_time via sceneUpdate to clear it from continue watching', async () => {
+    fetchMock.mockResolvedValue({
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          data: { sceneUpdate: { id: '411' } },
+        }),
+    } as Response);
+
+    await adapter.resetSceneProgress('411', {
+      baseUrl: 'http://stash.local',
+      apiKey: 'secret',
+    });
+
+    const [, init] = fetchMock.mock.calls[0] ?? [];
+    const body = JSON.parse(String(init?.body));
+    expect(String(body.query)).toContain('sceneUpdate');
+    expect(body.variables).toEqual({
+      input: { id: '411', resume_time: 0 },
+    });
+  });
+
+  it('does not call stash when resetting an invalid scene id', async () => {
+    await adapter.resetSceneProgress('../bad-id', {
+      baseUrl: 'http://stash.local',
+    });
+
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
   it('returns paginated local scene identity snapshots for bulk stash sync', async () => {
     fetchMock.mockResolvedValue({
       ok: true,

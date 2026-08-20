@@ -37,6 +37,7 @@ export interface StashdbAdapterSceneFeedConfig extends StashdbAdapterTrendingCon
   favorites?: StashdbSceneFeedFavorites;
   tagFilter?: StashdbSceneTagFilter;
   studioIds?: string[];
+  titleQuery?: string;
 }
 
 export type StashdbSceneFeedFavorites = 'PERFORMER' | 'STUDIO' | 'ALL';
@@ -1311,10 +1312,13 @@ export class StashdbAdapter {
       'studioIds' in config && config.studioIds
         ? [...new Set(config.studioIds.map((id) => id.trim()).filter(Boolean))]
         : [];
+    const titleQuery =
+      'titleQuery' in config ? (config.titleQuery?.trim() ?? '') : '';
     const tagModifier = tagFilter?.mode === 'AND' ? 'INCLUDES_ALL' : 'INCLUDES';
     const tagVariableDeclaration = tagFilter ? ', $tagIds: [ID!]!' : '';
     const studioVariableDeclaration =
       studioIds.length > 0 ? ', $studioIds: [ID!]!' : '';
+    const titleVariableDeclaration = titleQuery ? ', $titleQuery: String!' : '';
     const favoritesInput = favorites ? `, favorites: ${favorites}` : '';
     const tagInput = tagFilter
       ? `, tags: { value: $tagIds, modifier: ${tagModifier} }`
@@ -1323,9 +1327,10 @@ export class StashdbAdapter {
       studioIds.length > 0
         ? ', studios: { value: $studioIds, modifier: INCLUDES }'
         : '';
+    const titleInput = titleQuery ? ', title: $titleQuery' : '';
     const query = `
-      query QueryScenes($page: Int!, $perPage: Int!${tagVariableDeclaration}${studioVariableDeclaration}) {
-        queryScenes(input: { sort: ${sort}, direction: ${direction}, page: $page, per_page: $perPage${favoritesInput}${tagInput}${studioInput} }) {
+      query QueryScenes($page: Int!, $perPage: Int!${tagVariableDeclaration}${studioVariableDeclaration}${titleVariableDeclaration}) {
+        queryScenes(input: { sort: ${sort}, direction: ${direction}, page: $page, per_page: $perPage${favoritesInput}${tagInput}${studioInput}${titleInput} }) {
           count
           scenes {
             id
@@ -1366,6 +1371,9 @@ export class StashdbAdapter {
     }
     if (studioIds.length > 0) {
       variables.studioIds = studioIds;
+    }
+    if (titleQuery) {
+      variables.titleQuery = titleQuery;
     }
 
     const payload = await this.executeQuery(config, query, variables);

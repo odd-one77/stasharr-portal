@@ -45,6 +45,17 @@
 
     <div class="controls-row">
       <label class="control-field">
+        <span>Search</span>
+        <input
+          type="search"
+          inputmode="search"
+          [ngModel]="titleQuery()"
+          (ngModelChange)="onTitleQueryChanged($event)"
+          placeholder="Search scene titles"
+        />
+      </label>
+
+      <label class="control-field">
         <span>Studio Filter</span>
         <div class="studio-picker-shell">
           <p-multiselect
@@ -205,6 +216,7 @@
           [item]="item"
           [requestable]="isRequestable(item)"
           [playable]="true"
+          playSize="large"
           [sceneQueryParams]="{ returnTo: currentRouteUrl() }"
           studioBadgeRoute="scenes"
           (request)="openRequestModal($event)"

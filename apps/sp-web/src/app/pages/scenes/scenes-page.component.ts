@@ -123,8 +123,10 @@ export class ScenesPageComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly studioSearchTerms = new Subject<string>();
   private readonly tagSearchTerms = new Subject<string>();
+  private readonly titleQueryTerms = new Subject<string>();
   private studioSearchSubscription: Subscription | null = null;
   private tagSearchSubscription: Subscription | null = null;
+  private titleQuerySubscription: Subscription | null = null;
   private queryParamSubscription: Subscription | null = null;
   private observer: IntersectionObserver | null = null;
   private sentinelElement: HTMLDivElement | null = null;
@@ -163,6 +165,7 @@ export class ScenesPageComponent implements OnInit, AfterViewInit, OnDestroy {
   protected readonly requestModalOpen = signal(false);
   protected readonly requestContext = signal<SceneRequestContext | null>(null);
   protected readonly playingStashIds = signal<ReadonlySet<string>>(new Set());
+  protected readonly titleQuery = signal('');
   protected readonly selectedSort = signal<SceneFeedSort>(ScenesPageComponent.DEFAULT_SORT);
   protected readonly selectedDirection = signal<SortDirection>(
     ScenesPageComponent.DEFAULT_DIRECTION,
@@ -202,6 +205,7 @@ export class ScenesPageComponent implements OnInit, AfterViewInit, OnDestroy {
     this.runtimeHealthService.ensureStarted();
     this.setupStudioSearch();
     this.setupTagSearch();
+    this.setupTitleQuerySearch();
     this.setupUrlStateSync();
   }
 
@@ -216,7 +220,31 @@ export class ScenesPageComponent implements OnInit, AfterViewInit, OnDestroy {
     this.observer?.disconnect();
     this.studioSearchSubscription?.unsubscribe();
     this.tagSearchSubscription?.unsubscribe();
+    this.titleQuerySubscription?.unsubscribe();
     this.queryParamSubscription?.unsubscribe();
+  }
+
+  protected onTitleQueryChanged(nextValue: string): void {
+    const normalized = nextValue.trimStart();
+    if (this.titleQuery() === normalized) {
+      return;
+    }
+
+    this.titleQuery.set(normalized);
+    this.syncUrlWithCurrentFilters(false);
+    this.titleQueryTerms.next(normalized);
+  }
+
+  private setupTitleQuerySearch(): void {
+    this.titleQuerySubscription = this.titleQueryTerms
+      .pipe(
+        map((value) => value.trim()),
+        debounceTime(250),
+        distinctUntilChanged(),
+      )
+      .subscribe(() => {
+        this.resetFeedAndReload();
+      });
   }
 
   protected hasItems(): boolean {
@@ -344,6 +372,7 @@ export class ScenesPageComponent implements OnInit, AfterViewInit, OnDestroy {
 
   protected hasActiveFilters(): boolean {
     return (
+      this.titleQuery().trim().length > 0 ||
       this.selectedSort() !== ScenesPageComponent.DEFAULT_SORT ||
       this.selectedDirection() !== ScenesPageComponent.DEFAULT_DIRECTION ||
       this.selectedFavorites() !== ScenesPageComponent.DEFAULT_FAVORITES ||
@@ -358,6 +387,8 @@ export class ScenesPageComponent implements OnInit, AfterViewInit, OnDestroy {
       return;
     }
 
+    this.titleQuery.set('');
+    this.titleQueryTerms.next('');
     this.selectedSort.set(ScenesPageComponent.DEFAULT_SORT);
     this.selectedDirection.set(ScenesPageComponent.DEFAULT_DIRECTION);
     this.selectedFavorites.set(ScenesPageComponent.DEFAULT_FAVORITES);
@@ -572,6 +603,7 @@ export class ScenesPageComponent implements OnInit, AfterViewInit, OnDestroy {
         this.selectedTagMode(),
         this.selectedFavoritesFilter(),
         this.selectedStudioIds(),
+        this.titleQuery(),
       )
       .pipe(
         finalize(() => {
@@ -690,6 +722,7 @@ export class ScenesPageComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private readUrlState(queryParamMap: import('@angular/router').ParamMap): {
+    query: string;
     sort: SceneFeedSort;
     direction: SortDirection;
     favorites: FavoritesFilterOption;
@@ -699,6 +732,7 @@ export class ScenesPageComponent implements OnInit, AfterViewInit, OnDestroy {
     studioIds: string[];
     studioNamesById: Map<string, string>;
   } {
+    const query = queryParamMap.get('query')?.trim() ?? '';
     const sortParam = queryParamMap.get('sort');
     const sort: SceneFeedSort =
       sortParam === 'DATE' ||
@@ -761,6 +795,7 @@ export class ScenesPageComponent implements OnInit, AfterViewInit, OnDestroy {
     const studioIds = this.dedupeStrings(rawStudioIds);
 
     return {
+      query,
       sort,
       direction,
       favorites,
@@ -773,6 +808,7 @@ export class ScenesPageComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private applyUrlState(state: {
+    query: string;
     sort: SceneFeedSort;
     direction: SortDirection;
     favorites: FavoritesFilterOption;
@@ -787,6 +823,7 @@ export class ScenesPageComponent implements OnInit, AfterViewInit, OnDestroy {
     const tagsChanged = !this.areStringArraysEqual(currentSelectedIds, state.tagIds);
     const studiosChanged = !this.areStringArraysEqual(currentSelectedStudioIds, state.studioIds);
     const changed =
+      this.titleQuery() !== state.query ||
       this.selectedSort() !== state.sort ||
       this.selectedDirection() !== state.direction ||
       this.selectedFavorites() !== state.favorites ||
@@ -798,6 +835,7 @@ export class ScenesPageComponent implements OnInit, AfterViewInit, OnDestroy {
       return false;
     }
 
+    this.titleQuery.set(state.query);
     this.selectedSort.set(state.sort);
     this.selectedDirection.set(state.direction);
     this.selectedFavorites.set(state.favorites);
@@ -842,6 +880,7 @@ export class ScenesPageComponent implements OnInit, AfterViewInit, OnDestroy {
 
   private syncUrlWithCurrentFilters(replaceUrl: boolean): void {
     const next = {
+      query: this.titleQuery().trim().length > 0 ? this.titleQuery().trim() : null,
       sort: this.selectedSort() === ScenesPageComponent.DEFAULT_SORT ? null : this.selectedSort(),
       dir:
         this.selectedDirection() === ScenesPageComponent.DEFAULT_DIRECTION
@@ -877,6 +916,7 @@ export class ScenesPageComponent implements OnInit, AfterViewInit, OnDestroy {
     };
 
     const current = this.route.snapshot.queryParamMap;
+    const currentQuery = current.get('query');
     const currentSort = current.get('sort');
     const currentFav = current.get('fav');
     const currentDir = current.get('dir');
@@ -891,6 +931,7 @@ export class ScenesPageComponent implements OnInit, AfterViewInit, OnDestroy {
     const currentStudios = current.get('studios');
     const currentStudioNames = current.get('studioNames');
     if (
+      (currentQuery ?? null) === next.query &&
       (currentSort ?? null) === next.sort &&
       (currentDir ?? null) === next.dir &&
       (currentFav ?? null) === next.fav &&

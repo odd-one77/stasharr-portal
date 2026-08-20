@@ -187,6 +187,16 @@ export class HomeService {
     }
   }
 
+  async resetContinueWatchingProgress(sceneId: string): Promise<void> {
+    const normalizedSceneId = sceneId.trim();
+    if (!normalizedSceneId) {
+      throw new BadRequestException('Scene id is required.');
+    }
+
+    const config = await this.getRequiredStashConfig();
+    await this.stashAdapter.resetSceneProgress(normalizedSceneId, config);
+  }
+
   async getRecentlyAdded(): Promise<HomeRailContentDto> {
     try {
       const items = await this.libraryService.getScenesPreview(

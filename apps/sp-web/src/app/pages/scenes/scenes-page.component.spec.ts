@@ -207,6 +207,7 @@ describe('ScenesPageComponent', () => {
       'OR',
       undefined,
       [],
+      '',
     );
     expect(navigateSpy).not.toHaveBeenCalled();
     expect(resetButton?.disabled).toBe(true);
@@ -246,7 +247,7 @@ describe('ScenesPageComponent', () => {
     const windowOpenSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
 
     const playButton = fixture.nativeElement.querySelector(
-      'button.play-cta',
+      'button.play-center-button',
     ) as HTMLButtonElement;
     expect(playButton).not.toBeNull();
 
@@ -295,10 +296,12 @@ describe('ScenesPageComponent', () => {
       'OR',
       undefined,
       [],
+      '',
     );
     expect(navigateSpy).toHaveBeenCalledWith([], {
       relativeTo: expect.anything(),
       queryParams: {
+        query: null,
         sort: null,
         dir: null,
         fav: null,
@@ -335,10 +338,12 @@ describe('ScenesPageComponent', () => {
       'OR',
       undefined,
       [],
+      '',
     );
     expect(navigateSpy).toHaveBeenCalledWith([], {
       relativeTo: expect.anything(),
       queryParams: {
+        query: null,
         sort: null,
         dir: null,
         fav: null,

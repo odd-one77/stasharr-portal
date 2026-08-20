@@ -110,6 +110,19 @@ export class ScenePageComponent implements OnInit, OnDestroy {
     return scene.whisparr?.exists === true && scene.whisparr.viewUrl.length > 0;
   }
 
+  protected posterImageUrl(scene: SceneDetails): string | null {
+    const portraitImages = scene.images
+      .filter(
+        (image): image is typeof image & { width: number; height: number } =>
+          typeof image.width === 'number' &&
+          typeof image.height === 'number' &&
+          image.height > image.width,
+      )
+      .sort((a, b) => b.height / b.width - a.height / a.width);
+
+    return portraitImages[0]?.url ?? scene.imageUrl;
+  }
+
   protected selectedStashViewUrl(scene: SceneDetails): string | null {
     const selected = this.selectedStashCopyUrl();
     if (selected) {

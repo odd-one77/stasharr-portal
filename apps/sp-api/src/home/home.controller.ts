@@ -26,6 +26,13 @@ export class HomeController {
     return this.homeService.getRecentlyAdded();
   }
 
+  @Post('continue-watching/:sceneId/reset')
+  async resetContinueWatchingProgress(
+    @Param('sceneId') sceneId: string,
+  ): Promise<void> {
+    await this.homeService.resetContinueWatchingProgress(sceneId);
+  }
+
   @Get('stash/tags')
   searchStashTags(@Query('query') query?: string): Promise<SceneTagOptionDto[]> {
     return this.homeService.searchStashTags(query);

@@ -33,6 +33,13 @@ export class HomeService {
     return this.http.get<HomeRailContentResponse>('/api/home/recently-added');
   }
 
+  resetContinueWatchingProgress(sceneId: string): Observable<void> {
+    return this.http.post<void>(
+      `/api/home/continue-watching/${encodeURIComponent(sceneId)}/reset`,
+      {},
+    );
+  }
+
   searchStashTags(query: string): Observable<SceneTagOption[]> {
     const params = new HttpParams().set('query', query);
     return this.http.get<SceneTagOption[]>('/api/home/stash/tags', { params });

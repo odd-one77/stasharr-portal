@@ -143,6 +143,12 @@ describe('HomePageComponent', () => {
             ? throwError(() => new Error('feed failed'))
             : of(options?.favoriteFeed ?? buildFavoriteFeed()),
         ),
+      getPerformersFeed: vi
+        .fn()
+        .mockReturnValue(of({ total: 0, page: 1, perPage: 5, hasMore: false, items: [] })),
+      getStudiosFeed: vi
+        .fn()
+        .mockReturnValue(of({ total: 0, page: 1, perPage: 5, hasMore: false, items: [] })),
       getSceneRequestOptions: vi.fn().mockReturnValue(of(null)),
       submitSceneRequest: vi.fn().mockReturnValue(of(null)),
     };
@@ -153,6 +159,7 @@ describe('HomePageComponent', () => {
       getRecentlyAdded: vi
         .fn()
         .mockReturnValue(of(options?.recentlyAdded ?? { items: [], message: null })),
+      resetContinueWatchingProgress: vi.fn().mockReturnValue(of(undefined)),
     };
     const runtimeHealthService = {
       ensureStarted: vi.fn(),
@@ -269,6 +276,29 @@ describe('HomePageComponent', () => {
     windowOpenSpy.mockRestore();
   });
 
+  it('marks a scene watched and removes it from Continue Watching', async () => {
+    const { fixture, homeService } = await renderPage({
+      continueWatching: {
+        items: [buildRailItem({ id: 'in-progress-3', title: 'To Dismiss' })],
+        message: null,
+      },
+    });
+
+    const section = railSectionByTitle(fixture, 'Pick up where you left off');
+    const markWatchedButton = section.querySelector(
+      '.mark-watched-button',
+    ) as HTMLButtonElement | null;
+    expect(markWatchedButton).toBeTruthy();
+
+    markWatchedButton?.click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(homeService.resetContinueWatchingProgress).toHaveBeenCalledWith('in-progress-3');
+    expect(fixture.nativeElement.textContent).not.toContain('To Dismiss');
+  });
+
   it('routes Continue Watching externally when no catalog scene is linked', async () => {
     const { fixture } = await renderPage({
       continueWatching: {
@@ -348,5 +378,81 @@ describe('HomePageComponent', () => {
 
     expect(fixture.nativeElement.querySelector('.empty-state')).toBeTruthy();
     expect(fixture.nativeElement.textContent).toContain('Browse Scenes');
+  });
+
+  it('searches scenes, performers, and studios together from the hero search bar', async () => {
+    const { fixture, discoverService } = await renderPage();
+    discoverService.getPerformersFeed.mockReturnValue(
+      of({
+        total: 1,
+        page: 1,
+        perPage: 5,
+        hasMore: false,
+        items: [
+          {
+            id: 'performer-1',
+            name: 'Performer One',
+            gender: null,
+            sceneCount: 3,
+            isFavorite: false,
+            imageUrl: null,
+            cardImageUrl: null,
+          },
+        ],
+      }),
+    );
+    discoverService.getStudiosFeed.mockReturnValue(
+      of({
+        total: 1,
+        page: 1,
+        perPage: 5,
+        hasMore: false,
+        items: [
+          {
+            id: 'studio-1',
+            name: 'Studio One',
+            isFavorite: false,
+            imageUrl: null,
+            parentStudio: null,
+            childStudios: [],
+          },
+        ],
+      }),
+    );
+
+    const searchInput = fixture.nativeElement.querySelector(
+      '.hero-search-input',
+    ) as HTMLInputElement;
+    searchInput.value = 'one';
+    searchInput.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+
+    await new Promise((resolve) => setTimeout(resolve, 350));
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(discoverService.getScenesFeed).toHaveBeenLastCalledWith(
+      1,
+      5,
+      'TITLE',
+      'ASC',
+      [],
+      undefined,
+      undefined,
+      [],
+      'one',
+    );
+    expect(discoverService.getPerformersFeed).toHaveBeenCalledWith(1, 5, { name: 'one' });
+    expect(discoverService.getStudiosFeed).toHaveBeenCalledWith(1, 5, { name: 'one' });
+
+    const panel = fixture.nativeElement.querySelector('.hero-search-panel') as HTMLElement;
+    expect(panel).toBeTruthy();
+    expect(panel.textContent).toContain('Performer One');
+    expect(panel.textContent).toContain('Studio One');
+
+    const performerLink = panel.querySelector(
+      'a[href="/performer/performer-1"]',
+    ) as HTMLAnchorElement | null;
+    expect(performerLink).toBeTruthy();
   });
 });

@@ -76,4 +76,8 @@ export class ScenesQueryDto extends DiscoverQueryDto {
   @IsOptional()
   @IsIn(SCENE_FAVORITES_FILTER_VALUES)
   favorites?: SceneFavoritesFilter;
+
+  @IsOptional()
+  @IsString()
+  titleQuery?: string;
 }
