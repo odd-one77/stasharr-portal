@@ -1,6 +1,7 @@
 import {
   BadGatewayException,
   Injectable,
+  Logger,
   NotFoundException,
   ServiceUnavailableException,
 } from '@nestjs/common';
@@ -16,6 +17,8 @@ export interface StashSceneStreamResponse {
 
 @Injectable()
 export class MediaService {
+  private readonly logger = new Logger(MediaService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly stashAdapter: StashAdapter,
@@ -59,11 +62,32 @@ export class MediaService {
     let response: Response;
     try {
       response = await fetchWithTimeout(streamUrl, { headers: requestHeaders });
-    } catch {
+    } catch (error) {
+      this.logger.error(
+        `Failed to reach Stash for scene ${sceneId} stream: ${this.redactUrl(streamUrl)} — ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
       throw new BadGatewayException('Failed to reach Stash provider endpoint.');
     }
 
     if (!response.ok && response.status !== 206) {
+      let bodySnippet = '<unreadable body>';
+      try {
+        bodySnippet = (await response.text()).slice(0, 500);
+      } catch {
+        // best-effort diagnostics only
+      }
+      this.logger.error(
+        `Stash returned ${response.status} for scene ${sceneId} stream: ${this.redactUrl(
+          streamUrl,
+        )} — ${bodySnippet}`,
+      );
+
+      if (response.status === 404) {
+        throw new NotFoundException('Stash media asset not found.');
+      }
+
       throw new BadGatewayException(
         `Stash provider returned ${response.status} for stream request.`,
       );
@@ -90,6 +114,18 @@ export class MediaService {
       headers,
       body: response.body,
     };
+  }
+
+  private redactUrl(url: string): string {
+    try {
+      const parsed = new URL(url);
+      if (parsed.searchParams.has('apikey')) {
+        parsed.searchParams.set('apikey', '<redacted>');
+      }
+      return parsed.toString();
+    } catch {
+      return url;
+    }
   }
 
   private async getStashConfig(): Promise<{ baseUrl: string; apiKey?: string | null }> {

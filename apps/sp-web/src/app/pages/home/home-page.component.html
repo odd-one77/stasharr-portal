@@ -20,6 +20,7 @@
               [ngModel]="searchTerm()"
               (ngModelChange)="onSearchInput($event)"
               (focus)="onSearchFocus()"
+              (keydown.enter)="submitSearch()"
             />
             @if (searchTerm().trim().length > 0) {
               <button
@@ -37,7 +38,14 @@
             <div class="hero-search-overlay" (click)="closeSearch()">
               <div class="hero-search-overlay-inner" (click)="$event.stopPropagation()">
                 <div class="hero-search-overlay-head">
-                  <p class="hero-search-overlay-title">Results for "{{ searchTerm() }}"</p>
+                  <a
+                    class="hero-search-overlay-title"
+                    [routerLink]="['/search']"
+                    [queryParams]="{ q: searchTerm() }"
+                    (click)="closeSearch()"
+                  >
+                    See all results for "{{ searchTerm() }}"
+                  </a>
                   <button
                     type="button"
                     class="hero-search-close"

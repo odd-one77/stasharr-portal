@@ -126,7 +126,7 @@ describe('SceneCardComponent', () => {
     expect(emitted).toEqual(['scene-1']);
   });
 
-  it('makes the whole card the play trigger when playSize is large, with a decorative icon and no compact CTA', async () => {
+  it('shows a large centered play button that plays without navigating, leaving the card link to scene info', async () => {
     const { fixture, component } = await renderCard();
     const emitted: string[] = [];
     component.item = buildSceneCardItem({ status: { state: 'AVAILABLE' } });
@@ -137,35 +137,21 @@ describe('SceneCardComponent', () => {
 
     fixture.detectChanges();
 
-    const cardButton = fixture.nativeElement.querySelector(
-      'button.media-link-stretch',
+    const cardLink = fixture.nativeElement.querySelector(
+      'a.media-link-stretch',
+    ) as HTMLAnchorElement | null;
+    const playButton = fixture.nativeElement.querySelector(
+      '.play-center-button',
     ) as HTMLButtonElement | null;
-    const decorativeIcon = fixture.nativeElement.querySelector('.play-center-icon');
     const compactButton = fixture.nativeElement.querySelector('.play-cta');
 
-    expect(cardButton).toBeTruthy();
-    expect(decorativeIcon).toBeTruthy();
+    expect(cardLink?.getAttribute('href')).toContain('/scene/scene-1');
+    expect(playButton).toBeTruthy();
     expect(compactButton).toBeNull();
 
-    cardButton?.click();
+    playButton?.click();
 
     expect(emitted).toEqual(['scene-1']);
-  });
-
-  it('shows a secondary info link to scene details when playSize is large', async () => {
-    const { fixture, component } = await renderCard();
-    component.item = buildSceneCardItem({ status: { state: 'AVAILABLE' } });
-    component.requestable = false;
-    component.playable = true;
-    component.playSize = 'large';
-
-    fixture.detectChanges();
-
-    const infoLink = fixture.nativeElement.querySelector(
-      '.info-link',
-    ) as HTMLAnchorElement | null;
-
-    expect(infoLink?.getAttribute('href')).toContain('/scene/scene-1');
   });
 
   it('does not show a play CTA for playable non-available scenes', async () => {

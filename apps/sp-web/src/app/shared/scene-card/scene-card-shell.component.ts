@@ -1,4 +1,4 @@
-import { Component, ContentChild, Directive, EventEmitter, Input, Output } from '@angular/core';
+import { Component, ContentChild, Directive, Input } from '@angular/core';
 import { Params, RouterLink } from '@angular/router';
 
 export interface SceneCardShellItem {
@@ -22,10 +22,6 @@ export type SceneCardShellLink =
   | {
       kind: 'external';
       href: string;
-      ariaLabel?: string | null;
-    }
-  | {
-      kind: 'action';
       ariaLabel?: string | null;
     };
 
@@ -76,8 +72,6 @@ export class SceneCardShellComponent {
   @Input() studioBadgeLink: SceneCardShellLink | null = null;
   @Input() progressPercent: number | null = null;
 
-  @Output() primaryAction = new EventEmitter<void>();
-
   protected hasProgressBar(): boolean {
     return this.progressPercent !== null && this.progressPercent > 0;
   }
@@ -124,10 +118,6 @@ export class SceneCardShellComponent {
 
   protected primaryLinkIsExternal(): boolean {
     return this.primaryLink?.kind === 'external';
-  }
-
-  protected primaryLinkIsAction(): boolean {
-    return this.primaryLink?.kind === 'action';
   }
 
   protected primaryRouterCommands(): string | readonly unknown[] | null {

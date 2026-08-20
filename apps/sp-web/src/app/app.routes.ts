@@ -26,6 +26,7 @@ import { PerformersPageComponent } from './pages/performers/performers-page.comp
 import { PerformerPageComponent } from './pages/performer/performer-page.component';
 import { StudiosPageComponent } from './pages/studios/studios-page.component';
 import { StudioPageComponent } from './pages/studio/studio-page.component';
+import { SearchPageComponent } from './pages/search/search-page.component';
 
 export const routes: Routes = [
   {
@@ -60,6 +61,10 @@ export const routes: Routes = [
       {
         path: 'scenes',
         component: ScenesPageComponent,
+      },
+      {
+        path: 'search',
+        component: SearchPageComponent,
       },
       {
         path: 'acquisition',

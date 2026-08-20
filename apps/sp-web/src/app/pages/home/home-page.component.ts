@@ -119,6 +119,16 @@ export class HomePageComponent implements OnInit, OnDestroy {
     this.searchOpen.set(false);
   }
 
+  protected submitSearch(): void {
+    const query = this.searchTerm().trim();
+    if (!query) {
+      return;
+    }
+
+    this.closeSearch();
+    void this.router.navigate(['/search'], { queryParams: { q: query } });
+  }
+
   protected onSearchFocus(): void {
     if (this.searchTerm().trim().length > 0) {
       this.searchOpen.set(true);

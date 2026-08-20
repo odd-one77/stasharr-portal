@@ -200,46 +200,46 @@ p {
   font-size: 0.85em;
 }
 
-.play-center-icon {
+.play-center-button {
   display: grid;
   place-items: center;
   width: 3.6rem;
   height: 3.6rem;
+  margin: 0;
   border-radius: 999px;
   border: 1px solid color-mix(in srgb, var(--focus-ring) 55%, var(--border-strong));
   background: color-mix(in srgb, rgb(0 0 0 / 45%) 60%, var(--focus-ring) 18%);
   color: #fff;
+  cursor: pointer;
   backdrop-filter: blur(3px);
   box-shadow: 0 6px 18px rgb(0 0 0 / 35%);
-  pointer-events: none;
+  transition:
+    transform 140ms ease,
+    background-color 140ms ease;
+  // Deliberately self-contained: the shell's `.media-center` sets
+  // pointer-events:none on itself with a `> *` override meant to re-enable
+  // clicks on projected content, but that rule lives in a different
+  // component's stylesheet and Angular's view encapsulation means it never
+  // actually matches content projected in from here — so pointer-events
+  // must be re-enabled directly on this element's own (same-component)
+  // rule, not relied on from the shell.
+  pointer-events: auto;
 }
 
-.play-center-icon i {
+.play-center-button:hover,
+.play-center-button:focus-visible {
+  transform: scale(1.08);
+  background: color-mix(in srgb, rgb(0 0 0 / 45%) 42%, var(--focus-ring) 38%);
+}
+
+.play-center-button:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 3px;
+}
+
+.play-center-button i {
   font-size: 1.4rem;
   margin-left: 0.15rem;
-}
-
-.info-link {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 1.75rem;
-  height: 1.75rem;
-  border-radius: 999px;
-  border: 1px solid var(--scene-card-glass-border);
-  background: var(--scene-card-glass-background);
-  color: var(--scene-card-footer-text);
-  box-shadow: var(--scene-card-glass-shadow);
-  text-decoration: none;
-}
-
-.info-link:hover,
-.info-link:focus-visible {
-  color: var(--focus-ring);
-}
-
-.info-link i {
-  font-size: 0.85rem;
 }
 
 .footer-link,

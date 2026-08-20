@@ -481,18 +481,13 @@ export class StashAdapter {
     }
 
     const mutation = `
-      mutation SceneUpdate($input: SceneUpdateInput!) {
-        sceneUpdate(input: $input) {
-          id
-        }
+      mutation SceneResetActivity($id: ID!) {
+        sceneResetActivity(id: $id, reset_resume: true)
       }
     `;
 
     await this.executeQuery(config, mutation, {
-      input: {
-        id: normalizedSceneId,
-        resume_time: 0,
-      },
+      id: normalizedSceneId,
     });
   }
 
