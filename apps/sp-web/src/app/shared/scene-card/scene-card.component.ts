@@ -79,6 +79,13 @@ export class SceneCardComponent {
   }
 
   protected primaryLink(): SceneCardShellLink {
+    if (this.showLargePlayAction()) {
+      return {
+        kind: 'action',
+        ariaLabel: `Play ${this.item.title}`,
+      };
+    }
+
     if (this.primaryLinkMode === 'external') {
       return {
         kind: 'external',
@@ -93,6 +100,22 @@ export class SceneCardComponent {
       queryParams: this.sceneQueryParams,
       ariaLabel: this.item.title,
     };
+  }
+
+  protected showInfoLink(): boolean {
+    if (!this.showLargePlayAction()) {
+      return false;
+    }
+
+    return this.primaryLinkMode === 'scene' || !!this.externalHref;
+  }
+
+  protected infoLinkIsExternal(): boolean {
+    return this.primaryLinkMode === 'external';
+  }
+
+  protected infoLinkCommands(): readonly unknown[] {
+    return ['/scene', this.sceneRouteIdValue()];
   }
 
   protected studioBadgeLink(): SceneCardShellLink | null {
@@ -202,6 +225,10 @@ export class SceneCardComponent {
   protected playScene(event: MouseEvent): void {
     event.stopPropagation();
     event.preventDefault();
+    this.play.emit(this.item.id);
+  }
+
+  protected triggerPlay(): void {
     this.play.emit(this.item.id);
   }
 

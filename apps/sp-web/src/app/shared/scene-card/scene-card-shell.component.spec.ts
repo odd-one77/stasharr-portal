@@ -20,6 +20,7 @@ import {
       [primaryLink]="primaryLink"
       [studioBadgeLink]="studioBadgeLink"
       [progressPercent]="progressPercent"
+      (primaryAction)="primaryActionCount = primaryActionCount + 1"
     >
       <div sceneCardPlaceholder class="placeholder-copy">Missing artwork</div>
       <span sceneCardTopRight class="top-right">Top Flag</span>
@@ -60,6 +61,7 @@ class SceneCardShellHostComponent {
     ariaLabel: 'Filter library by studio Studio One',
   };
   progressPercent: number | null = null;
+  primaryActionCount = 0;
 }
 
 describe('SceneCardShellComponent', () => {
@@ -128,5 +130,30 @@ describe('SceneCardShellComponent', () => {
 
     expect(progressTrack?.getAttribute('aria-valuenow')).toBe('67');
     expect(progressFill?.style.width).toBe('67%');
+  });
+
+  it('renders the primary link as a button and emits primaryAction when the link kind is action', async () => {
+    await TestBed.configureTestingModule({
+      imports: [SceneCardShellHostComponent],
+      providers: [provideRouter([])],
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(SceneCardShellHostComponent);
+    fixture.componentInstance.primaryLink = { kind: 'action', ariaLabel: 'Play Shared Shell Scene' };
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const primaryButton = fixture.nativeElement.querySelector(
+      'button.media-link-stretch',
+    ) as HTMLButtonElement | null;
+
+    expect(primaryButton).toBeTruthy();
+    expect(primaryButton?.getAttribute('aria-label')).toBe('Play Shared Shell Scene');
+    expect(primaryButton?.hasAttribute('href')).toBe(false);
+
+    primaryButton?.click();
+
+    expect(fixture.componentInstance.primaryActionCount).toBe(1);
   });
 });

@@ -257,12 +257,14 @@ describe('HomePageComponent', () => {
 
     const section = railSectionByTitle(fixture, 'Pick up where you left off');
     const progressFill = section.querySelector('.progress-fill') as HTMLElement | null;
-    const largePlay = section.querySelector('.play-center-button') as HTMLButtonElement | null;
-    const sceneLink = section.querySelector('.media-link-stretch') as HTMLAnchorElement | null;
+    const largePlay = section.querySelector(
+      'button.media-link-stretch',
+    ) as HTMLButtonElement | null;
+    const infoLink = section.querySelector('.info-link') as HTMLAnchorElement | null;
 
     expect(progressFill?.style.width).toBe('42%');
     expect(largePlay).toBeTruthy();
-    expect(sceneLink?.getAttribute('href')).toContain('/scene/catalog-411');
+    expect(infoLink?.getAttribute('href')).toContain('/scene/catalog-411');
 
     const windowOpenSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
     largePlay?.click();
@@ -315,9 +317,13 @@ describe('HomePageComponent', () => {
     });
 
     const section = railSectionByTitle(fixture, 'Pick up where you left off');
-    const sceneLink = section.querySelector('.media-link-stretch') as HTMLAnchorElement | null;
+    const cardButton = section.querySelector(
+      'button.media-link-stretch',
+    ) as HTMLButtonElement | null;
+    const infoLink = section.querySelector('.info-link') as HTMLAnchorElement | null;
 
-    expect(sceneLink?.getAttribute('href')).toBe('http://stash.local/scenes/in-progress-2');
+    expect(cardButton).toBeTruthy();
+    expect(infoLink?.getAttribute('href')).toBe('http://stash.local/scenes/in-progress-2');
   });
 
   it('renders Recently Added scenes and routes internally when linked', async () => {
@@ -335,10 +341,10 @@ describe('HomePageComponent', () => {
     });
 
     const section = railSectionByTitle(fixture, 'Fresh in your library');
-    const sceneLink = section.querySelector('.media-link-stretch') as HTMLAnchorElement | null;
+    const infoLink = section.querySelector('.info-link') as HTMLAnchorElement | null;
 
     expect(section.textContent).toContain('Fresh Scene');
-    expect(sceneLink?.getAttribute('href')).toContain('/scene/catalog-fresh-1');
+    expect(infoLink?.getAttribute('href')).toContain('/scene/catalog-fresh-1');
   });
 
   it('renders recently released favorites with a working request flow', async () => {

@@ -126,7 +126,7 @@ describe('SceneCardComponent', () => {
     expect(emitted).toEqual(['scene-1']);
   });
 
-  it('shows a large centered play button instead of the compact footer CTA when playSize is large', async () => {
+  it('makes the whole card the play trigger when playSize is large, with a decorative icon and no compact CTA', async () => {
     const { fixture, component } = await renderCard();
     const emitted: string[] = [];
     component.item = buildSceneCardItem({ status: { state: 'AVAILABLE' } });
@@ -137,17 +137,35 @@ describe('SceneCardComponent', () => {
 
     fixture.detectChanges();
 
-    const largeButton = fixture.nativeElement.querySelector(
-      '.play-center-button',
+    const cardButton = fixture.nativeElement.querySelector(
+      'button.media-link-stretch',
     ) as HTMLButtonElement | null;
+    const decorativeIcon = fixture.nativeElement.querySelector('.play-center-icon');
     const compactButton = fixture.nativeElement.querySelector('.play-cta');
 
-    expect(largeButton).toBeTruthy();
+    expect(cardButton).toBeTruthy();
+    expect(decorativeIcon).toBeTruthy();
     expect(compactButton).toBeNull();
 
-    largeButton?.click();
+    cardButton?.click();
 
     expect(emitted).toEqual(['scene-1']);
+  });
+
+  it('shows a secondary info link to scene details when playSize is large', async () => {
+    const { fixture, component } = await renderCard();
+    component.item = buildSceneCardItem({ status: { state: 'AVAILABLE' } });
+    component.requestable = false;
+    component.playable = true;
+    component.playSize = 'large';
+
+    fixture.detectChanges();
+
+    const infoLink = fixture.nativeElement.querySelector(
+      '.info-link',
+    ) as HTMLAnchorElement | null;
+
+    expect(infoLink?.getAttribute('href')).toContain('/scene/scene-1');
   });
 
   it('does not show a play CTA for playable non-available scenes', async () => {

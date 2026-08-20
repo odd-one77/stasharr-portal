@@ -404,10 +404,13 @@ describe('LibraryPageComponent', () => {
       fixture.nativeElement.querySelectorAll('article.card'),
     ) as HTMLElement[];
 
-    expect(articles[0]?.querySelector('.media-link-stretch')?.getAttribute('href')).toContain(
+    expect(
+      articles[0]?.querySelector('button.media-link-stretch'),
+    ).toBeTruthy();
+    expect(articles[0]?.querySelector('.info-link')?.getAttribute('href')).toContain(
       '/scene/stash-411',
     );
-    expect(articles[0]?.querySelector('.media-link-stretch')?.getAttribute('href')).toContain(
+    expect(articles[0]?.querySelector('.info-link')?.getAttribute('href')).toContain(
       'returnTo=%2Flibrary',
     );
     expect(articles[0]?.querySelector('.studio-badge-link')?.getAttribute('href')).toContain(
@@ -421,7 +424,10 @@ describe('LibraryPageComponent', () => {
     expect(articles[0]?.querySelector('.card-links')).toBeNull();
     expect(articles[0]?.querySelector('.card-stat-pills')).toBeNull();
 
-    expect(articles[1]?.querySelector('.media-link-stretch')?.getAttribute('href')).toBe(
+    expect(
+      articles[1]?.querySelector('button.media-link-stretch'),
+    ).toBeTruthy();
+    expect(articles[1]?.querySelector('.info-link')?.getAttribute('href')).toBe(
       'http://stash.local/scenes/412',
     );
     expect(articles[1]?.querySelector('.footer-pill')?.textContent).toContain('Local only');
@@ -434,7 +440,7 @@ describe('LibraryPageComponent', () => {
     const windowOpenSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
 
     const playButton = fixture.nativeElement.querySelector(
-      'button.play-center-button',
+      'button.media-link-stretch',
     ) as HTMLButtonElement;
     expect(playButton).not.toBeNull();
 

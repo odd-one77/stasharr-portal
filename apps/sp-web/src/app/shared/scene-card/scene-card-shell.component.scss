@@ -66,6 +66,12 @@
   inset: 0;
   z-index: 0;
   border-radius: var(--scene-card-card-radius);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  cursor: pointer;
 }
 
 .media-link-stretch:focus-visible {

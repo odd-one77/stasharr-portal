@@ -247,7 +247,7 @@ describe('ScenesPageComponent', () => {
     const windowOpenSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
 
     const playButton = fixture.nativeElement.querySelector(
-      'button.play-center-button',
+      'button.media-link-stretch',
     ) as HTMLButtonElement;
     expect(playButton).not.toBeNull();
 

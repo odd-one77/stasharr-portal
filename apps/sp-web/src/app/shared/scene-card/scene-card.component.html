@@ -4,6 +4,7 @@
   [primaryLink]="primaryLink()"
   [studioBadgeLink]="studioBadgeLink()"
   [progressPercent]="progressPercent"
+  (primaryAction)="triggerPlay()"
 >
   @if (statusIcon(); as statusIcon) {
     <app-scene-status-badge
@@ -31,16 +32,39 @@
     </button>
   }
 
+  @if (showInfoLink()) {
+    @if (infoLinkIsExternal()) {
+      <a
+        sceneCardTopRight
+        class="info-link"
+        [attr.href]="externalHref"
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label="View in Stash in a new tab"
+        title="View in Stash in a new tab"
+        (click)="$event.stopPropagation()"
+      >
+        <i class="pi pi-info-circle" aria-hidden="true"></i>
+      </a>
+    } @else {
+      <a
+        sceneCardTopRight
+        class="info-link"
+        [routerLink]="infoLinkCommands()"
+        [queryParams]="sceneQueryParams"
+        aria-label="View scene details"
+        title="View scene details"
+        (click)="$event.stopPropagation()"
+      >
+        <i class="pi pi-info-circle" aria-hidden="true"></i>
+      </a>
+    }
+  }
+
   @if (showLargePlayAction()) {
-    <button
-      type="button"
-      sceneCardCenterAction
-      class="play-center-button"
-      aria-label="Play"
-      (click)="playScene($event)"
-    >
+    <span sceneCardCenterAction class="play-center-icon" aria-hidden="true">
       <i class="pi pi-play" aria-hidden="true"></i>
-    </button>
+    </span>
   }
 
   <div sceneCardMediaFooter class="media-footer">

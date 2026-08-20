@@ -1,6 +1,13 @@
 <article class="card">
   <div class="media">
-    @if (primaryLinkIsExternal()) {
+    @if (primaryLinkIsAction()) {
+      <button
+        type="button"
+        class="media-link-stretch"
+        [attr.aria-label]="primaryLinkLabel()"
+        (click)="primaryAction.emit()"
+      ></button>
+    } @else if (primaryLinkIsExternal()) {
       <a
         class="media-link-stretch"
         [attr.href]="primaryExternalHref()"
