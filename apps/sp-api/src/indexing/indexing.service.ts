@@ -980,6 +980,7 @@ export class IndexingService {
     const now = new Date();
     const movies = await this.whisparrAdapter.getMovieSnapshot(config);
     const snapshotMovieIds = new Set<number>();
+    const snapshotStashIds = new Set<string>();
     const patches: SceneIndexPatch[] = [];
 
     const rowsMissingTitle = movies.length
@@ -997,6 +998,7 @@ export class IndexingService {
 
     for (const movie of movies) {
       snapshotMovieIds.add(movie.movieId);
+      snapshotStashIds.add(movie.stashId);
       const patch: SceneIndexPatch = {
         stashId: movie.stashId,
         whisparrMovieId: movie.movieId,
@@ -1043,24 +1045,9 @@ export class IndexingService {
       },
     });
 
-    // A row only lands here if it previously had a whisparrMovieId that is
-    // no longer in Whisparr's own snapshot — i.e. someone deleted the movie
-    // directly in Whisparr, not something the portal did itself (the
-    // portal's own remove-request flow already clears these fields and
-    // deletes the Request row synchronously). Mirror that same cleanup here
-    // so a deletion made in Whisparr doesn't leave a ghost "Requested" entry
-    // behind in the portal forever.
-    if (staleRows.length > 0) {
-      await this.prisma.request.deleteMany({
-        where: { stashId: { in: staleRows.map((row) => row.stashId) } },
-      });
-    }
-
     for (const row of staleRows) {
       patches.push({
         stashId: row.stashId,
-        requestStatus: null,
-        requestUpdatedAt: now,
         whisparrMovieId: null,
         whisparrHasFile: null,
         whisparrQueuePosition: null,
@@ -1072,22 +1059,54 @@ export class IndexingService {
       });
     }
 
+    // Any Request whose scene has no live Whisparr movie right now is dead
+    // weight: either the movie was deleted in Whisparr after being linked
+    // (covered by staleRows above too), or — for rows that predate this
+    // cleanup, or came from an earlier bug — it was never captured at all.
+    // A genuinely fresh request always gets whisparrMovieId set
+    // synchronously at submission time (RequestsService.submitSceneRequest
+    // awaits Whisparr's createMovie before ever writing the Request row),
+    // so nothing healthy can be mistakenly caught here.
+    const orphanedRequests = await this.prisma.request.findMany({
+      where: snapshotStashIds.size
+        ? { stashId: { notIn: Array.from(snapshotStashIds) } }
+        : {},
+      select: { stashId: true },
+    });
+
+    if (orphanedRequests.length > 0) {
+      const orphanedStashIds = orphanedRequests.map((row) => row.stashId);
+      await this.prisma.request.deleteMany({
+        where: { stashId: { in: orphanedStashIds } },
+      });
+
+      for (const stashId of orphanedStashIds) {
+        patches.push({
+          stashId,
+          requestStatus: null,
+          requestUpdatedAt: now,
+        });
+      }
+    }
+
     await this.applySceneIndexPatches(patches);
     this.logger.debug(
       `Whisparr movie sync completed: ${this.safeJson({
         reason,
         movies: movies.length,
         staleRows: staleRows.length,
+        orphanedRequests: orphanedRequests.length,
       })}`,
     );
 
     return {
-      processedCount: movies.length + staleRows.length,
+      processedCount: movies.length + staleRows.length + orphanedRequests.length,
       updatedCount: patches.length,
       diagnostics: {
         whisparrMovies: movies.length,
         whisparrMovieIds: snapshotMovieIds.size,
         staleMovieRows: staleRows.length,
+        orphanedRequests: orphanedRequests.length,
         patchCount: patches.length,
       },
     };

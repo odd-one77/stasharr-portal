@@ -367,14 +367,19 @@ function createPrismaMock(config: {
 
   const request = {
     findMany: jest.fn(async (args?: Record<string, unknown>) => {
-      const filter = args?.where as { stashId?: { in?: string[] } } | undefined;
-      if (!filter?.stashId?.in) {
-        return requestRows;
+      const filter = args?.where as
+        | { stashId?: { in?: string[]; notIn?: string[] } }
+        | undefined;
+      if (filter?.stashId?.in) {
+        return requestRows.filter((row) => filter.stashId?.in?.includes(row.stashId));
+      }
+      if (filter?.stashId?.notIn) {
+        return requestRows.filter(
+          (row) => !filter.stashId?.notIn?.includes(row.stashId),
+        );
       }
 
-      return requestRows.filter((row) =>
-        filter.stashId?.in?.includes(row.stashId),
-      );
+      return requestRows;
     }),
     count: jest.fn(async () => requestRows.length),
     deleteMany: jest.fn(async (args?: Record<string, unknown>) => {
@@ -982,6 +987,98 @@ describe('IndexingService', () => {
         whisparrMovieId: null,
         whisparrHasFile: null,
         computedLifecycle: 'NOT_REQUESTED',
+      }),
+    );
+  });
+
+  it('also cancels a request that was never linked to a real Whisparr movie at all (legacy/orphaned rows)', async () => {
+    const { prisma, sceneIndexStore } = createPrismaMock({
+      sceneIndexRows: [
+        // whisparrMovieId is already null here -- this row never got a real
+        // Whisparr link (e.g. it predates this cleanup, or came from an
+        // earlier bug), so it would never have matched the old
+        // "previously linked, now missing" staleRows check.
+        buildSceneIndexRow({
+          stashId: 'scene-orphan',
+          requestStatus: RequestStatus.REQUESTED,
+          whisparrMovieId: null,
+          computedLifecycle: 'REQUESTED',
+          lifecycleSortOrder: 1,
+        }),
+      ],
+      requestRows: [
+        {
+          stashId: 'scene-orphan',
+          status: RequestStatus.REQUESTED,
+          updatedAt: new Date('2026-03-27T00:00:00.000Z'),
+        },
+      ],
+    });
+    getMovieSnapshotMock.mockResolvedValue([]);
+
+    const service = new IndexingService(
+      prisma,
+      integrationsService,
+      catalogProviderService,
+      whisparrAdapter,
+      stashAdapter,
+      syncStateService,
+    );
+
+    await service.syncWhisparrMovies('test', true);
+
+    expect(prisma.request.deleteMany).toHaveBeenCalledWith({
+      where: { stashId: { in: ['scene-orphan'] } },
+    });
+    expect(sceneIndexStore.get('scene-orphan')).toEqual(
+      expect.objectContaining({
+        requestStatus: null,
+        computedLifecycle: 'NOT_REQUESTED',
+      }),
+    );
+  });
+
+  it('leaves a request alone when its movie is still present in Whisparr', async () => {
+    const { prisma, sceneIndexStore } = createPrismaMock({
+      sceneIndexRows: [
+        buildSceneIndexRow({
+          stashId: 'scene-active',
+          requestStatus: RequestStatus.REQUESTED,
+          whisparrMovieId: 77,
+          whisparrHasFile: false,
+          computedLifecycle: 'REQUESTED',
+          lifecycleSortOrder: 1,
+        }),
+      ],
+      requestRows: [
+        {
+          stashId: 'scene-active',
+          status: RequestStatus.REQUESTED,
+          updatedAt: new Date('2026-03-27T00:00:00.000Z'),
+        },
+      ],
+    });
+    getMovieSnapshotMock.mockResolvedValue([
+      { movieId: 77, stashId: 'scene-active', hasFile: false },
+    ]);
+
+    const service = new IndexingService(
+      prisma,
+      integrationsService,
+      catalogProviderService,
+      whisparrAdapter,
+      stashAdapter,
+      syncStateService,
+    );
+
+    await service.syncWhisparrMovies('test', true);
+
+    expect(prisma.request.deleteMany).not.toHaveBeenCalled();
+    expect(sceneIndexStore.get('scene-active')).toEqual(
+      expect.objectContaining({
+        requestStatus: RequestStatus.REQUESTED,
+        whisparrMovieId: 77,
+        computedLifecycle: 'REQUESTED',
       }),
     );
   });
