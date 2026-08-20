@@ -1,6 +1,11 @@
-import { Injectable, ServiceUnavailableException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { IntegrationStatus, IntegrationType } from '@prisma/client';
 import { IntegrationsService } from '../integrations/integrations.service';
+import { PrismaService } from '../prisma/prisma.service';
 import { TpdbAdapter } from '../providers/tpdb/tpdb.adapter';
 import {
   StashdbPerformerDetails,
@@ -34,6 +39,7 @@ export class WhisparrMetadataService {
   constructor(
     private readonly integrationsService: IntegrationsService,
     private readonly tpdbAdapter: TpdbAdapter,
+    private readonly prisma: PrismaService,
   ) {}
 
   async searchScenes(query: string): Promise<unknown[]> {
@@ -103,8 +109,60 @@ export class WhisparrMetadataService {
 
   async getScene(sceneId: string): Promise<unknown> {
     const config = await this.getTpdbConfig();
-    const scene = await this.tpdbAdapter.getSceneById(sceneId, config);
-    return this.mapMovieResource(scene);
+
+    try {
+      const scene = await this.tpdbAdapter.getSceneById(sceneId, config);
+      return this.mapMovieResource(scene);
+    } catch (error) {
+      if (!(error instanceof NotFoundException)) {
+        throw error;
+      }
+
+      // TPDB doesn't recognize this id — most likely a scene that was
+      // originally added under a since-replaced catalog provider (e.g.
+      // StashDB), so its id lives in an id space TPDB has never heard of.
+      // Whisparr hits this route by id when it tries to re-match an existing
+      // library folder to a movie (e.g. its "Library Import" scan) — fall
+      // back to whatever we cached locally for this exact id in SceneIndex,
+      // so Whisparr can still re-link the folder instead of failing outright.
+      const cachedScene = await this.buildSceneFromCachedIndex(sceneId);
+      if (!cachedScene) {
+        throw error;
+      }
+
+      return this.mapMovieResource(cachedScene);
+    }
+  }
+
+  private async buildSceneFromCachedIndex(
+    stashId: string,
+  ): Promise<StashdbSceneDetails | null> {
+    const row = await this.prisma.sceneIndex.findUnique({
+      where: { stashId },
+    });
+    const title = row?.title?.trim();
+    if (!title) {
+      return null;
+    }
+
+    return {
+      id: stashId,
+      title,
+      details: row.description,
+      imageUrl: row.imageUrl,
+      images: row.imageUrl
+        ? [{ id: 'image', url: row.imageUrl, width: null, height: null }]
+        : [],
+      studioId: row.studioId,
+      studioIsFavorite: false,
+      studioName: row.studioName,
+      studioImageUrl: row.studioImageUrl,
+      releaseDate: row.releaseDate,
+      duration: row.duration,
+      tags: [],
+      performers: [],
+      sourceUrls: [],
+    };
   }
 
   async getScenesChanged(): Promise<string[]> {

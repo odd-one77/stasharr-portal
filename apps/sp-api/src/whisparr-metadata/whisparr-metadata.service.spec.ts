@@ -1,6 +1,7 @@
-import { ServiceUnavailableException } from '@nestjs/common';
+import { NotFoundException, ServiceUnavailableException } from '@nestjs/common';
 import { IntegrationStatus, IntegrationType } from '@prisma/client';
 import { IntegrationsService } from '../integrations/integrations.service';
+import { PrismaService } from '../prisma/prisma.service';
 import { TpdbAdapter } from '../providers/tpdb/tpdb.adapter';
 import { WhisparrMetadataService } from './whisparr-metadata.service';
 
@@ -11,6 +12,7 @@ describe('WhisparrMetadataService', () => {
   const getPerformerByIdMock = jest.fn();
   const getPerformersFeedMock = jest.fn();
   const getStudioByIdMock = jest.fn();
+  const sceneIndexFindUniqueMock = jest.fn();
 
   const integrationsService = {
     findOne: findOneMock,
@@ -24,6 +26,12 @@ describe('WhisparrMetadataService', () => {
     getStudioById: getStudioByIdMock,
   } as unknown as TpdbAdapter;
 
+  const prisma = {
+    sceneIndex: {
+      findUnique: sceneIndexFindUniqueMock,
+    },
+  } as unknown as PrismaService;
+
   let service: WhisparrMetadataService;
 
   const tpdbIntegration = {
@@ -35,13 +43,18 @@ describe('WhisparrMetadataService', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    service = new WhisparrMetadataService(integrationsService, tpdbAdapter);
+    service = new WhisparrMetadataService(
+      integrationsService,
+      tpdbAdapter,
+      prisma,
+    );
     findOneMock.mockImplementation((type: IntegrationType) => {
       if (type === IntegrationType.TPDB) {
         return tpdbIntegration;
       }
       throw new Error('Unexpected integration type');
     });
+    sceneIndexFindUniqueMock.mockResolvedValue(null);
   });
 
   it('throws ServiceUnavailableException when TPDB is not configured', async () => {
@@ -134,6 +147,62 @@ describe('WhisparrMetadataService', () => {
     const resource = (await service.getScene('tpdb-scene-uuid')) as { studio: unknown };
 
     expect(resource.studio).toBeNull();
+  });
+
+  it('falls back to the locally cached SceneIndex row when TPDB no longer recognizes an id, so Whisparr can re-link an existing library folder', async () => {
+    getSceneByIdMock.mockRejectedValue(new NotFoundException('TPDB resource not found.'));
+    sceneIndexFindUniqueMock.mockResolvedValue({
+      stashId: 'old-stashdb-scene-uuid',
+      title: 'Cached Title',
+      description: 'Cached description',
+      imageUrl: 'http://cdn.local/cached-image.jpg',
+      studioId: 'cached-studio-id',
+      studioName: 'Cached Studio',
+      studioImageUrl: 'http://cdn.local/cached-studio.jpg',
+      releaseDate: '2026-01-01',
+      duration: 900,
+    });
+
+    const resource = (await service.getScene('old-stashdb-scene-uuid')) as {
+      title: string;
+      foreignIds: { stashId: string };
+      studio: { title: string } | null;
+    };
+
+    expect(resource.title).toBe('Cached Title');
+    expect(resource.foreignIds.stashId).toBe('old-stashdb-scene-uuid');
+    expect(resource.studio?.title).toBe('Cached Studio');
+    expect(sceneIndexFindUniqueMock).toHaveBeenCalledWith({
+      where: { stashId: 'old-stashdb-scene-uuid' },
+    });
+  });
+
+  it('rethrows NotFoundException when neither TPDB nor the local cache has the scene', async () => {
+    getSceneByIdMock.mockRejectedValue(new NotFoundException('TPDB resource not found.'));
+    sceneIndexFindUniqueMock.mockResolvedValue(null);
+
+    await expect(service.getScene('unknown-scene-uuid')).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
+  });
+
+  it('rethrows NotFoundException when the cached row exists but has no title yet', async () => {
+    getSceneByIdMock.mockRejectedValue(new NotFoundException('TPDB resource not found.'));
+    sceneIndexFindUniqueMock.mockResolvedValue({
+      stashId: 'pending-scene-uuid',
+      title: null,
+      description: null,
+      imageUrl: null,
+      studioId: null,
+      studioName: null,
+      studioImageUrl: null,
+      releaseDate: null,
+      duration: null,
+    });
+
+    await expect(service.getScene('pending-scene-uuid')).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
   });
 
   it('enriches scene search results with studio names, since the list endpoint only returns a studio id', async () => {
