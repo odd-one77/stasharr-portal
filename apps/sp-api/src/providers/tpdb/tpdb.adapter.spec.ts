@@ -111,7 +111,9 @@ describe('TpdbAdapter', () => {
         studioId: '42',
         studioName: null,
         studioImageUrl: null,
+        date: '2026-03-01',
         releaseDate: '2026-03-01',
+        productionDate: null,
         duration: 600,
       },
     ]);

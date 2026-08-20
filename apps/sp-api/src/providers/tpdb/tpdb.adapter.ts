@@ -12,6 +12,7 @@ import {
   StashdbPerformerFeedItem,
   StashdbPerformerScenesConfig,
   StashdbPerformersFeedResult,
+  StashdbScene,
   StashdbSceneDetails,
   StashdbSceneImage,
   StashdbSceneMetadata,
@@ -115,7 +116,7 @@ export class TpdbAdapter implements CatalogAdapter {
         total,
         scenes: items
           .map((entry) => this.mapSceneListEntry(entry))
-          .filter((scene): scene is StashdbSceneMetadata => scene !== null),
+          .filter((scene): scene is StashdbScene => scene !== null),
       };
     });
   }
@@ -365,7 +366,7 @@ export class TpdbAdapter implements CatalogAdapter {
         total,
         scenes: items
           .map((entry) => this.mapSceneListEntry(entry))
-          .filter((scene): scene is StashdbSceneMetadata => scene !== null),
+          .filter((scene): scene is StashdbScene => scene !== null),
       };
     });
   }
@@ -488,7 +489,7 @@ export class TpdbAdapter implements CatalogAdapter {
     }, false);
   }
 
-  private mapSceneListEntry(entry: unknown): StashdbSceneMetadata | null {
+  private mapSceneListEntry(entry: unknown): StashdbScene | null {
     const record = this.asRecord(entry);
     const id = this.readIdAsString(record?.id);
     const title = this.readString(record?.title);
@@ -498,6 +499,7 @@ export class TpdbAdapter implements CatalogAdapter {
 
     const images = this.sceneImages(record);
     const studioId = this.readNumberAsString(record.site_id);
+    const date = this.readString(record.date);
 
     return {
       id,
@@ -507,7 +509,9 @@ export class TpdbAdapter implements CatalogAdapter {
       studioId,
       studioName: null,
       studioImageUrl: null,
-      releaseDate: this.readString(record.date),
+      date,
+      releaseDate: date,
+      productionDate: null,
       duration: this.readNumber(record.duration),
     };
   }

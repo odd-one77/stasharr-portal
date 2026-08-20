@@ -3,6 +3,7 @@ import { IntegrationStatus, IntegrationType } from '@prisma/client';
 import { IntegrationsService } from '../integrations/integrations.service';
 import { TpdbAdapter } from '../providers/tpdb/tpdb.adapter';
 import {
+  StashdbPerformerDetails,
   StashdbSceneDetails,
   StashdbSceneImage,
   StashdbScenePerformer,
@@ -332,13 +333,7 @@ export class WhisparrMetadataService {
     };
   }
 
-  private mapPerformerResource(performer: {
-    id: string;
-    name: string;
-    gender: string | null;
-    imageUrl: string | null;
-    images: StashdbSceneImage[];
-  }): unknown {
+  private mapPerformerResource(performer: StashdbPerformerDetails): unknown {
     return {
       name: performer.name,
       foreignIds: this.mapForeignIds(performer.id),

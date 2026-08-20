@@ -17,6 +17,7 @@ import { IndexingService } from '../indexing/indexing.service';
 import { IntegrationsService } from '../integrations/integrations.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { CatalogProviderService } from '../providers/catalog/catalog-provider.service';
+import { CatalogProviderKey } from '../providers/catalog/catalog-provider.util';
 import { withStashImageSize } from '../providers/stashdb/stashdb-image-url.util';
 import { WhisparrAdapter } from '../providers/whisparr/whisparr.adapter';
 import {
@@ -185,7 +186,7 @@ export class AcquisitionService {
   private toAcquisitionItem(
     row: SceneIndex,
     whisparrBaseUrl: string | null,
-    source: 'STASHDB' | 'FANSDB',
+    source: CatalogProviderKey,
   ): AcquisitionSceneItemDto {
     const title = row.title?.trim() || row.stashId;
     const description =

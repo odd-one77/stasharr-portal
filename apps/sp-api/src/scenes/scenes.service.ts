@@ -288,7 +288,7 @@ export class ScenesService {
       date: string | null;
       duration: number | null;
     },
-    source: 'STASHDB' | 'FANSDB',
+    source: CatalogProviderKey,
     status: SceneStatusDto,
     requestable: boolean,
   ) {
