@@ -140,6 +140,7 @@
             [options]="sortOptions"
             optionLabel="label"
             optionValue="value"
+            [disabled]="!sortControlsSupported()"
             [appendTo]="'body'"
             panelStyleClass="app-overlay-panel"
           />
@@ -147,12 +148,20 @@
             type="button"
             class="sort-direction-toggle"
             [attr.aria-label]="sortDirectionToggleLabel()"
-            [attr.title]="sortDirectionToggleLabel()"
+            [attr.title]="
+              sortControlsSupported()
+                ? sortDirectionToggleLabel()
+                : 'ThePornDB only supports newest-first ordering'
+            "
+            [disabled]="!sortControlsSupported()"
             (click)="toggleSortDirection()"
           >
             <i [class]="sortDirectionIconClass()" aria-hidden="true"></i>
           </button>
         </div>
+        @if (!sortControlsSupported()) {
+          <p class="sort-note">ThePornDB only supports newest-first ordering.</p>
+        }
       </div>
 
       <label class="control-field">

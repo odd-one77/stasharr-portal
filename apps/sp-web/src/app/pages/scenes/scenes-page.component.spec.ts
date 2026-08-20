@@ -403,4 +403,33 @@ describe('ScenesPageComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('Repair integrations');
     expect(repairLink).toBeTruthy();
   });
+
+  it('disables sort controls for TPDB, since it only supports one fixed ordering', async () => {
+    const { fixture } = await renderPage(
+      {},
+      { setupStatus: buildSetupStatus({ catalogProvider: 'TPDB' }) },
+    );
+
+    const directionToggle = fixture.nativeElement.querySelector(
+      '.sort-direction-toggle',
+    ) as HTMLButtonElement | null;
+
+    expect(directionToggle?.disabled).toBe(true);
+    expect(fixture.nativeElement.textContent).toContain(
+      'ThePornDB only supports newest-first ordering.',
+    );
+  });
+
+  it('leaves sort controls enabled for StashDB', async () => {
+    const { fixture } = await renderPage();
+
+    const directionToggle = fixture.nativeElement.querySelector(
+      '.sort-direction-toggle',
+    ) as HTMLButtonElement | null;
+
+    expect(directionToggle?.disabled).toBe(false);
+    expect(fixture.nativeElement.textContent).not.toContain(
+      'ThePornDB only supports newest-first ordering.',
+    );
+  });
 });

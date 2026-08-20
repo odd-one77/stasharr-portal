@@ -200,6 +200,12 @@ export class ScenesPageComponent implements OnInit, AfterViewInit, OnDestroy {
       this.runtimeHealthService.status(),
     ),
   );
+  // TPDB only supports a single, non-reversible newest-first ordering — no
+  // sort option or direction toggle changes anything against it. Disable
+  // the controls for TPDB rather than let them silently no-op.
+  protected readonly sortControlsSupported = computed(
+    () => this.setupStatusStore.status()?.catalogProvider !== 'TPDB',
+  );
 
   ngOnInit(): void {
     this.runtimeHealthService.ensureStarted();
