@@ -1,4 +1,5 @@
 import { BadRequestException, Controller, Get, Param, Query } from '@nestjs/common';
+import { Public } from '../auth/decorators/public.decorator';
 import { WhisparrMetadataService } from './whisparr-metadata.service';
 
 /**
@@ -10,8 +11,14 @@ import { WhisparrMetadataService } from './whisparr-metadata.service';
  *
  * Static routes (search/changed) are declared before the :id param routes on
  * the same prefix so they aren't shadowed.
+ *
+ * @Public(): Whisparr calls these routes directly with no session cookie, so
+ * they must bypass the app's global AdminSessionGuard. Keep this reachable
+ * only from trusted networks (e.g. not exposed past your firewall) — it has
+ * no auth of its own beyond that.
  */
 @Controller('api/whisparr-metadata')
+@Public()
 export class WhisparrMetadataController {
   constructor(private readonly whisparrMetadataService: WhisparrMetadataService) {}
 
