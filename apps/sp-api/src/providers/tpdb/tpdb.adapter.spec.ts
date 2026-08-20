@@ -167,6 +167,50 @@ describe('TpdbAdapter', () => {
     expect(scene.sourceUrls).toEqual([{ url: 'https://example.com/scene', type: null }]);
   });
 
+  it('prefers a scene performer\'s parent id over its site-specific id, since only the parent id is independently fetchable', async () => {
+    fetchMock.mockResolvedValue(
+      jsonResponse(200, {
+        data: {
+          id: 'scene-uuid-1',
+          title: 'A Scene',
+          description: 'desc',
+          date: '2026-03-01',
+          duration: 600,
+          performers: [
+            {
+              // Confirmed live against TPDB: this site-specific id 404s when
+              // fetched directly via GET /performers/{id}.
+              id: 'site-performer-uuid',
+              name: 'Cassandra Cruz',
+              extra: { gender: 'Female' },
+              image: 'http://cdn.local/site-performer.jpg',
+              parent: {
+                id: 'parent-performer-uuid',
+                name: 'Cassandra Cruz',
+                extras: { gender: 'Female' },
+                image: 'http://cdn.local/parent-performer.jpg',
+              },
+            },
+          ],
+          tags: [],
+          url: null,
+        },
+      }),
+    );
+
+    const scene = await adapter.getSceneById('scene-uuid-1', config);
+
+    expect(scene.performers).toEqual([
+      {
+        id: 'parent-performer-uuid',
+        name: 'Cassandra Cruz',
+        gender: 'Female',
+        isFavorite: false,
+        imageUrl: 'http://cdn.local/parent-performer.jpg',
+      },
+    ]);
+  });
+
   it('throws NotFoundException when a scene does not exist', async () => {
     fetchMock.mockResolvedValue(jsonResponse(404, { message: 'Not Found' }));
 

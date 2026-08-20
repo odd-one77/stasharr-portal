@@ -411,18 +411,30 @@ export class TpdbAdapter implements CatalogAdapter {
       const performers: StashdbScenePerformer[] = this.readArray(record.performers)
         .map((entry) => this.asRecord(entry))
         .map((performer): StashdbScenePerformer | null => {
-          const performerId = this.readIdAsString(performer?.id);
-          const performerName = this.readString(performer?.name);
+          // A scene's performers[] entries are site-specific profiles — their
+          // own `id` is NOT independently fetchable via GET /performers/{id}
+          // (confirmed live: it 404s). The aggregate, fetchable performer
+          // lives at performer.parent.{id,name,extras,image,...}; prefer it
+          // whenever present, since it's also the richer record (full bio,
+          // full extras, higher-res images) rather than the thin site entry.
+          const parent = this.asRecord(performer?.parent);
+          const performerId = this.readIdAsString(parent?.id ?? performer?.id);
+          const performerName = this.readString(parent?.name ?? performer?.name);
           if (!performerId || !performerName) {
             return null;
           }
-          const extra = this.asRecord(performer?.extra);
+          const extra = parent
+            ? this.asRecord(parent.extras)
+            : this.asRecord(performer?.extra);
           return {
             id: performerId,
             name: performerName,
             gender: this.readString(extra?.gender),
             isFavorite: false,
             imageUrl:
+              this.readString(parent?.image) ??
+              this.readString(parent?.thumbnail) ??
+              this.readString(parent?.face) ??
               this.readString(performer?.image) ??
               this.readString(performer?.thumbnail) ??
               this.readString(performer?.face) ??
