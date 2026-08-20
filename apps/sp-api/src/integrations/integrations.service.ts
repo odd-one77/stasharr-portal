@@ -253,6 +253,29 @@ export class IntegrationsService {
         ),
       );
 
+      // Scene/performer/studio ids from the old catalog provider never
+      // match the new one's id space, so anything indexed against the
+      // previous provider would otherwise sit around as permanently broken
+      // links (e.g. "waiting for import" on scenes that are actually in the
+      // library, dead performer links inside old scene records). Clear the
+      // derived index rather than leave stale data — it rebuilds naturally
+      // from Stash/the new provider on the next sync. Request rows are
+      // deliberately left untouched: they're real user history, not a
+      // derived cache.
+      await this.prisma.$transaction([
+        this.prisma.sceneIndex.deleteMany({}),
+        this.prisma.sceneIndexSummary.deleteMany({}),
+        this.prisma.librarySceneIndex.updateMany({
+          data: {
+            linkedStashId: null,
+            linkedCatalogRefs: [],
+            hasFavoritePerformer: false,
+            favoriteStudio: false,
+            hasFavoriteTag: false,
+          },
+        }),
+      ]);
+
       const resetIntegration = resetRecords.find(
         (integration) => integration.type === type,
       );
@@ -293,6 +316,23 @@ export class IntegrationsService {
     );
 
     await this.runtimeHealthService.clearAllServices();
+
+    // Same reasoning as reset()'s catalog-provider branch: the derived index
+    // is keyed off the (now-cleared) catalog provider's id space, so it
+    // would otherwise be left behind as stale/unreadable data.
+    await this.prisma.$transaction([
+      this.prisma.sceneIndex.deleteMany({}),
+      this.prisma.sceneIndexSummary.deleteMany({}),
+      this.prisma.librarySceneIndex.updateMany({
+        data: {
+          linkedStashId: null,
+          linkedCatalogRefs: [],
+          hasFavoritePerformer: false,
+          favoriteStudio: false,
+          hasFavoriteTag: false,
+        },
+      }),
+    ]);
 
     return resetRecords.sort((a, b) => a.type.localeCompare(b.type));
   }

@@ -32,12 +32,25 @@ describe('IntegrationsService', () => {
   const recordManualRecovery = jest.fn();
   const getRuntimeHealthSummary = jest.fn();
 
+  const sceneIndexDeleteMany = jest.fn().mockResolvedValue({ count: 0 });
+  const sceneIndexSummaryDeleteMany = jest.fn().mockResolvedValue({ count: 0 });
+  const librarySceneIndexUpdateMany = jest.fn().mockResolvedValue({ count: 0 });
+
   const prisma = {
     integrationConfig: {
       upsert,
       updateMany,
       findMany,
       findUnique,
+    },
+    sceneIndex: {
+      deleteMany: sceneIndexDeleteMany,
+    },
+    sceneIndexSummary: {
+      deleteMany: sceneIndexSummaryDeleteMany,
+    },
+    librarySceneIndex: {
+      updateMany: librarySceneIndexUpdateMany,
     },
     $transaction: transaction,
   } as unknown as PrismaService;
@@ -129,7 +142,10 @@ describe('IntegrationsService', () => {
 
     const result = await service.resetAll();
 
-    expect(transaction).toHaveBeenCalledTimes(1);
+    expect(transaction).toHaveBeenCalledTimes(2);
+    expect(sceneIndexDeleteMany).toHaveBeenCalledWith({});
+    expect(sceneIndexSummaryDeleteMany).toHaveBeenCalledWith({});
+    expect(librarySceneIndexUpdateMany).toHaveBeenCalled();
     expect(clearAllRuntimeHealth).toHaveBeenCalledTimes(1);
     expect(result.map((integration) => integration.type)).toEqual([
       IntegrationType.FANSDB,
@@ -315,7 +331,18 @@ describe('IntegrationsService', () => {
 
     const result = await service.reset(IntegrationType.FANSDB);
 
-    expect(transaction).toHaveBeenCalledTimes(1);
+    expect(transaction).toHaveBeenCalledTimes(2);
+    expect(sceneIndexDeleteMany).toHaveBeenCalledWith({});
+    expect(sceneIndexSummaryDeleteMany).toHaveBeenCalledWith({});
+    expect(librarySceneIndexUpdateMany).toHaveBeenCalledWith({
+      data: {
+        linkedStashId: null,
+        linkedCatalogRefs: [],
+        hasFavoritePerformer: false,
+        favoriteStudio: false,
+        hasFavoriteTag: false,
+      },
+    });
     expect(clearRuntimeHealth).toHaveBeenCalledWith(RuntimeHealthServiceKey.CATALOG);
     expect(result).toEqual({ type: IntegrationType.FANSDB });
   });
