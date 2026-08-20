@@ -9,6 +9,7 @@ import { RuntimeHealthResponse } from '../../core/api/runtime-health.types';
 import { SetupStatusStore } from '../../core/api/setup-status.store';
 import { SetupStatusResponse } from '../../core/api/setup.types';
 import { AppNotificationsService } from '../../core/notifications/app-notifications.service';
+import { PlayerService } from '../../core/player/player.service';
 import { ScenesPageComponent } from './scenes-page.component';
 
 function buildScene(overrides: Partial<SceneExplorerItem> = {}): SceneExplorerItem {
@@ -130,9 +131,14 @@ describe('ScenesPageComponent', () => {
       getScenesFeed: vi.fn().mockReturnValue(of(options?.feedResponse ?? buildFeedResponse())),
       searchSceneTags: vi.fn().mockReturnValue(of([])),
       searchPerformerStudios: vi.fn().mockReturnValue(of([])),
-      getSceneStreamUrl: vi
-        .fn()
-        .mockReturnValue(of({ streamUrl: 'http://stash.local/stream?apikey=secret' })),
+      getSceneStreamUrl: vi.fn().mockReturnValue(
+        of({
+          streamUrl: 'http://stash.local/stream?apikey=secret',
+          stashSceneId: 'stash-scene-1',
+          resumeSeconds: 0,
+          duration: 640,
+        }),
+      ),
     };
     const runtimeHealthService = {
       ensureStarted: vi.fn(),
@@ -147,6 +153,9 @@ describe('ScenesPageComponent', () => {
       snapshot: {
         queryParamMap,
       },
+    };
+    const playerService = {
+      openByCatalogSceneId: vi.fn(),
     };
 
     await TestBed.configureTestingModule({
@@ -164,6 +173,10 @@ describe('ScenesPageComponent', () => {
             error: vi.fn(),
             info: vi.fn(),
           },
+        },
+        {
+          provide: PlayerService,
+          useValue: playerService,
         },
         {
           provide: ActivatedRoute,
@@ -188,7 +201,7 @@ describe('ScenesPageComponent', () => {
     await fixture.whenStable();
     fixture.detectChanges();
 
-    return { fixture, discoverService, navigateSpy, runtimeHealthService };
+    return { fixture, discoverService, navigateSpy, runtimeHealthService, playerService };
   }
 
   it('initializes the canonical scenes discovery view with TRENDING sort', async () => {
@@ -238,13 +251,12 @@ describe('ScenesPageComponent', () => {
     });
   });
 
-  it('plays an available scene in a new tab', async () => {
-    const { fixture, discoverService } = await renderPage(undefined, {
+  it('opens the embedded player for an available scene', async () => {
+    const { fixture, playerService } = await renderPage(undefined, {
       feedResponse: buildFeedResponse([
         buildScene({ status: { state: 'AVAILABLE' }, requestable: false }),
       ]),
     });
-    const windowOpenSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
 
     const playButton = fixture.nativeElement.querySelector(
       '.play-center-button',
@@ -254,14 +266,10 @@ describe('ScenesPageComponent', () => {
     playButton.click();
     await fixture.whenStable();
 
-    expect(discoverService.getSceneStreamUrl).toHaveBeenCalledWith('scene-1');
-    expect(windowOpenSpy).toHaveBeenCalledWith(
-      'http://stash.local/stream?apikey=secret',
-      '_blank',
-      'noopener,noreferrer',
-    );
-
-    windowOpenSpy.mockRestore();
+    expect(playerService.openByCatalogSceneId).toHaveBeenCalledWith({
+      title: 'Scene Title',
+      catalogStashId: 'scene-1',
+    });
   });
 
   it('clears active filters back to the default trending discovery state', async () => {

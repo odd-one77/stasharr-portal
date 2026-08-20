@@ -135,8 +135,6 @@
                       pButton
                       type="button"
                       class="hero-action-button play-action"
-                      [disabled]="streamLoading()"
-                      [attr.aria-busy]="streamLoading()"
                       [attr.aria-label]="'Play ' + selectedStashLabel(scene)"
                       [attr.title]="'Play ' + selectedStashLabel(scene)"
                       (click)="playSelectedStashCopy(scene)"
@@ -171,8 +169,6 @@
                     pButton
                     type="button"
                     class="hero-action-button play-action"
-                    [disabled]="streamLoading()"
-                    [attr.aria-busy]="streamLoading()"
                     aria-label="Play"
                     title="Play"
                     (click)="playSelectedStashCopy(scene)"

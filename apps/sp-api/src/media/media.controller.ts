@@ -1,8 +1,9 @@
-import { Controller, Get, Param, Req, Res } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Req, Res } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { Readable } from 'node:stream';
 import type { ReadableStream as NodeWebReadableStream } from 'node:stream/web';
 import { MediaService } from './media.service';
+import { SaveScenePlaybackProgressDto } from './dto/save-scene-playback-progress.dto';
 
 @Controller('api/media')
 export class MediaController {
@@ -57,6 +58,25 @@ export class MediaController {
       response.destroy();
     });
     upstream.pipe(response);
+  }
+
+  @Get('stash/scenes/:sceneId/playback-info')
+  getScenePlaybackInfo(
+    @Param('sceneId') sceneId: string,
+  ): Promise<{ resumeSeconds: number; duration: number | null }> {
+    return this.mediaService.getScenePlaybackInfo(sceneId);
+  }
+
+  @Post('stash/scenes/:sceneId/progress')
+  saveScenePlaybackProgress(
+    @Param('sceneId') sceneId: string,
+    @Body() body: SaveScenePlaybackProgressDto,
+  ): Promise<void> {
+    return this.mediaService.saveScenePlaybackProgress(
+      sceneId,
+      body.resumeSeconds,
+      body.playDuration ?? null,
+    );
   }
 
   private writeAssetResponse(

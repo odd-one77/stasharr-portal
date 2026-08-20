@@ -160,7 +160,29 @@ export class ScenesService {
     };
   }
 
-  async getSceneStreamUrl(stashId: string, copyId?: string): Promise<string> {
+  async getSceneStreamUrl(
+    stashId: string,
+    copyId?: string,
+  ): Promise<{
+    streamUrl: string;
+    stashSceneId: string;
+    resumeSeconds: number;
+    duration: number | null;
+  }> {
+    const copy = await this.resolveStashCopy(stashId, copyId);
+
+    return {
+      streamUrl: `/api/media/stash/scenes/${encodeURIComponent(copy.id)}/stream`,
+      stashSceneId: copy.id,
+      resumeSeconds: copy.resumeSeconds,
+      duration: copy.duration,
+    };
+  }
+
+  private async resolveStashCopy(
+    stashId: string,
+    copyId?: string,
+  ): Promise<{ id: string; resumeSeconds: number; duration: number | null }> {
     const sceneId = stashId.trim();
     if (!sceneId) {
       throw new BadRequestException('Scene stashId is required.');
@@ -198,7 +220,7 @@ export class ScenesService {
       throw new NotFoundException('No linked Stash scene found for playback.');
     }
 
-    return `/api/media/stash/scenes/${encodeURIComponent(targetCopy.id)}/stream`;
+    return targetCopy;
   }
 
   async favoriteStudio(

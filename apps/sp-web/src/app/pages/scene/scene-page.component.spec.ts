@@ -3,6 +3,7 @@ import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/route
 import { of } from 'rxjs';
 import { DiscoverService } from '../../core/api/discover.service';
 import { AppNotificationsService } from '../../core/notifications/app-notifications.service';
+import { PlayerService } from '../../core/player/player.service';
 import { SceneDetails } from '../../core/api/discover.types';
 import { ScenePageComponent } from './scene-page.component';
 
@@ -35,9 +36,14 @@ describe('ScenePageComponent', () => {
   async function renderScene(scene: SceneDetails) {
     const discoverService = {
       getSceneDetails: vi.fn().mockReturnValue(of(scene)),
-      getSceneStreamUrl: vi
-        .fn()
-        .mockReturnValue(of({ streamUrl: 'http://stash.local/stream?apikey=secret' })),
+      getSceneStreamUrl: vi.fn().mockReturnValue(
+        of({
+          streamUrl: 'http://stash.local/stream?apikey=secret',
+          stashSceneId: 'stash-scene-1',
+          resumeSeconds: 0,
+          duration: 600,
+        }),
+      ),
     };
     const activatedRoute = {
       paramMap: of(convertToParamMap({ stashId: scene.id })),
@@ -45,6 +51,10 @@ describe('ScenePageComponent', () => {
       snapshot: {
         paramMap: convertToParamMap({ stashId: scene.id }),
       },
+    };
+
+    const playerService = {
+      openByCatalogSceneId: vi.fn(),
     };
 
     await TestBed.configureTestingModule({
@@ -64,6 +74,10 @@ describe('ScenePageComponent', () => {
           },
         },
         {
+          provide: PlayerService,
+          useValue: playerService,
+        },
+        {
           provide: ActivatedRoute,
           useValue: activatedRoute,
         },
@@ -75,7 +89,7 @@ describe('ScenePageComponent', () => {
     await fixture.whenStable();
     fixture.detectChanges();
 
-    return { fixture, discoverService };
+    return { fixture, discoverService, playerService };
   }
 
   afterEach(() => {
@@ -110,7 +124,7 @@ describe('ScenePageComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('Request in Whisparr');
   });
 
-  it('plays the linked stash copy in a new tab', async () => {
+  it('opens the embedded player for the linked stash copy', async () => {
     const scene = buildScene({
       stash: {
         exists: true,
@@ -127,8 +141,7 @@ describe('ScenePageComponent', () => {
       },
     });
 
-    const { fixture, discoverService } = await renderScene(scene);
-    const windowOpenSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
+    const { fixture, playerService } = await renderScene(scene);
 
     const playButton = fixture.nativeElement.querySelector(
       'button.play-action',
@@ -138,13 +151,10 @@ describe('ScenePageComponent', () => {
     playButton.click();
     await fixture.whenStable();
 
-    expect(discoverService.getSceneStreamUrl).toHaveBeenCalledWith('scene-1', 'stash-scene-1');
-    expect(windowOpenSpy).toHaveBeenCalledWith(
-      'http://stash.local/stream?apikey=secret',
-      '_blank',
-      'noopener,noreferrer',
-    );
-
-    windowOpenSpy.mockRestore();
+    expect(playerService.openByCatalogSceneId).toHaveBeenCalledWith({
+      title: 'Scene Title',
+      catalogStashId: 'scene-1',
+      copyId: 'stash-scene-1',
+    });
   });
 });

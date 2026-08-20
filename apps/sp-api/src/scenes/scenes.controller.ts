@@ -49,11 +49,15 @@ export class ScenesController {
   }
 
   @Get(':stashId/stream')
-  async getSceneStreamUrl(
+  getSceneStreamUrl(
     @Param('stashId') stashId: string,
     @Query('copyId') copyId?: string,
-  ): Promise<{ streamUrl: string }> {
-    const streamUrl = await this.scenesService.getSceneStreamUrl(stashId, copyId);
-    return { streamUrl };
+  ): Promise<{
+    streamUrl: string;
+    stashSceneId: string;
+    resumeSeconds: number;
+    duration: number | null;
+  }> {
+    return this.scenesService.getSceneStreamUrl(stashId, copyId);
   }
 }

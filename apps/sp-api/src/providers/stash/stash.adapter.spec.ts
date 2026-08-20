@@ -87,6 +87,8 @@ describe('StashAdapter', () => {
         height: 2160,
         viewUrl: 'http://stash.local/base/scenes/3027',
         label: '2160p',
+        duration: null,
+        resumeSeconds: 0,
       },
       {
         id: '3030',
@@ -94,6 +96,8 @@ describe('StashAdapter', () => {
         height: 1080,
         viewUrl: 'http://stash.local/base/scenes/3030',
         label: '1080p',
+        duration: null,
+        resumeSeconds: 0,
       },
     ]);
 
@@ -122,6 +126,39 @@ describe('StashAdapter', () => {
       },
     });
     expect(runtimeHealthService.recordSuccess).toHaveBeenCalledWith('STASH');
+  });
+
+  it('includes resume position and duration for playback, when Stash has them', async () => {
+    fetchMock.mockResolvedValue({
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          data: {
+            findScenes: {
+              count: 1,
+              scenes: [
+                {
+                  id: '3027',
+                  resume_time: 245.6,
+                  files: [{ width: 3840, height: 2160, duration: 1800 }],
+                },
+              ],
+            },
+          },
+        }),
+    } as Response);
+
+    await expect(
+      adapter.findScenesByStashId('stash-1', {
+        baseUrl: 'http://stash.local',
+      }),
+    ).resolves.toEqual([
+      expect.objectContaining({
+        id: '3027',
+        duration: 1800,
+        resumeSeconds: 245.6,
+      }),
+    ]);
   });
 
   it('filters scene links to the requested catalog provider', async () => {
@@ -176,6 +213,8 @@ describe('StashAdapter', () => {
         height: 2160,
         viewUrl: 'http://stash.local/scenes/3027',
         label: '2160p',
+        duration: null,
+        resumeSeconds: 0,
       },
     ]);
   });
@@ -210,6 +249,8 @@ describe('StashAdapter', () => {
         height: null,
         viewUrl: 'http://stash.local/scenes/3027',
         label: 'Scene #3027',
+        duration: null,
+        resumeSeconds: 0,
       },
     ]);
   });
@@ -243,6 +284,8 @@ describe('StashAdapter', () => {
         height: 720,
         viewUrl: 'http://stash.local/scenes/3040',
         label: '720p',
+        duration: null,
+        resumeSeconds: 0,
       },
     ]);
   });
@@ -554,6 +597,38 @@ describe('StashAdapter', () => {
 
   it('does not call stash when resetting an invalid scene id', async () => {
     await adapter.resetSceneProgress('../bad-id', {
+      baseUrl: 'http://stash.local',
+    });
+
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('saves playback progress via sceneSaveActivity', async () => {
+    fetchMock.mockResolvedValue({
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          data: { sceneSaveActivity: true },
+        }),
+    } as Response);
+
+    await adapter.saveSceneProgress('411', 245.6, 1800, {
+      baseUrl: 'http://stash.local',
+      apiKey: 'secret',
+    });
+
+    const [, init] = fetchMock.mock.calls[0] ?? [];
+    const body = JSON.parse(String(init?.body));
+    expect(String(body.query)).toContain('sceneSaveActivity');
+    expect(body.variables).toEqual({
+      id: '411',
+      resumeTime: 245.6,
+      playDuration: 1800,
+    });
+  });
+
+  it('does not call stash when saving progress for an invalid scene id', async () => {
+    await adapter.saveSceneProgress('../bad-id', 10, null, {
       baseUrl: 'http://stash.local',
     });
 

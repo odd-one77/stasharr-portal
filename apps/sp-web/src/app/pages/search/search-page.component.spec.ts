@@ -3,6 +3,7 @@ import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/route
 import { BehaviorSubject, of } from 'rxjs';
 import { AppNotificationsService } from '../../core/notifications/app-notifications.service';
 import { DiscoverService } from '../../core/api/discover.service';
+import { PlayerService } from '../../core/player/player.service';
 import {
   PerformerFeedResponse,
   ScenesFeedResponse,
@@ -102,13 +103,21 @@ describe('SearchPageComponent', () => {
         .fn()
         .mockReturnValue(of(options?.performersResponse ?? buildPerformersResponse())),
       getStudiosFeed: vi.fn().mockReturnValue(of(options?.studiosResponse ?? buildStudiosResponse())),
-      getSceneStreamUrl: vi
-        .fn()
-        .mockReturnValue(of({ streamUrl: 'http://stash.local/stream?apikey=secret' })),
+      getSceneStreamUrl: vi.fn().mockReturnValue(
+        of({
+          streamUrl: 'http://stash.local/stream?apikey=secret',
+          stashSceneId: 'stash-scene-1',
+          resumeSeconds: 0,
+          duration: 600,
+        }),
+      ),
     };
     const activatedRoute = {
       queryParamMap: queryParamMap$.asObservable(),
       snapshot: { queryParamMap },
+    };
+    const playerService = {
+      openByCatalogSceneId: vi.fn(),
     };
 
     await TestBed.configureTestingModule({
@@ -120,12 +129,13 @@ describe('SearchPageComponent', () => {
           provide: AppNotificationsService,
           useValue: { success: vi.fn(), error: vi.fn(), info: vi.fn() },
         },
+        { provide: PlayerService, useValue: playerService },
         { provide: ActivatedRoute, useValue: activatedRoute },
       ],
     }).compileComponents();
 
     const fixture = TestBed.createComponent(SearchPageComponent);
-    return { fixture, discoverService };
+    return { fixture, discoverService, playerService };
   }
 
   it('shows a prompt state before any query is entered', async () => {

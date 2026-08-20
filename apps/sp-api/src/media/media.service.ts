@@ -116,6 +116,32 @@ export class MediaService {
     };
   }
 
+  async getScenePlaybackInfo(
+    sceneId: string,
+  ): Promise<{ resumeSeconds: number; duration: number | null }> {
+    const config = await this.getStashConfig();
+    const info = await this.stashAdapter.getScenePlaybackInfo(sceneId, config);
+    if (!info) {
+      throw new NotFoundException('Stash scene not found.');
+    }
+
+    return info;
+  }
+
+  async saveScenePlaybackProgress(
+    sceneId: string,
+    resumeSeconds: number,
+    playDuration: number | null,
+  ): Promise<void> {
+    const config = await this.getStashConfig();
+    await this.stashAdapter.saveSceneProgress(
+      sceneId,
+      resumeSeconds,
+      playDuration,
+      config,
+    );
+  }
+
   private redactUrl(url: string): string {
     try {
       const parsed = new URL(url);

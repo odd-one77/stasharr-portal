@@ -1,0 +1,76 @@
+:host {
+  display: contents;
+}
+
+.player-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1300;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--media-dialog-scrim);
+  backdrop-filter: blur(5px);
+  padding: clamp(0.7rem, 2.4vw, 1.5rem);
+}
+
+.player-shell {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: min(96vw, 1280px);
+  max-height: 94dvh;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid var(--media-dialog-border);
+  box-shadow: var(--media-dialog-shadow);
+  background: var(--media-dialog-background);
+}
+
+.player-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.7rem 0.6rem 0.7rem 1rem;
+  border-bottom: 1px solid var(--media-dialog-border);
+  background: var(--media-dialog-header-background);
+}
+
+.player-header h2 {
+  margin: 0;
+  font-size: clamp(0.95rem, 2vw, 1.15rem);
+  color: var(--media-dialog-heading-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.player-body {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40vh;
+  background: #000;
+}
+
+.player-video {
+  width: 100%;
+  max-height: 82dvh;
+  display: block;
+  background: #000;
+}
+
+.player-status {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 3rem 1.5rem;
+  color: var(--media-dialog-muted-text, #ddd);
+}
+
+.player-status-error {
+  color: var(--danger-text, #f28b82);
+}

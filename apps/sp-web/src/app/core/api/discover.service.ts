@@ -16,6 +16,7 @@ import {
   SortDirection,
   SceneTagMatchMode,
   SceneTagOption,
+  ScenePlaybackSource,
   SceneDetails,
   SceneRequestOptions,
   ScenesFeedResponse,
@@ -77,13 +78,13 @@ export class DiscoverService {
     return this.http.get<SceneDetails>(`/api/scenes/${encodeURIComponent(stashId)}`);
   }
 
-  getSceneStreamUrl(stashId: string, copyId?: string): Observable<{ streamUrl: string }> {
+  getSceneStreamUrl(stashId: string, copyId?: string): Observable<ScenePlaybackSource> {
     let params = new HttpParams();
     if (copyId) {
       params = params.set('copyId', copyId);
     }
 
-    return this.http.get<{ streamUrl: string }>(
+    return this.http.get<ScenePlaybackSource>(
       `/api/scenes/${encodeURIComponent(stashId)}/stream`,
       { params },
     );

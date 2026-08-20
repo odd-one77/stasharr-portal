@@ -17,6 +17,7 @@ import {
 } from '../../core/api/discover.types';
 import { SceneRequestModalComponent } from '../../shared/scene-request-modal/scene-request-modal.component';
 import { SceneStatusBadgeComponent } from '../../shared/scene-status-badge/scene-status-badge.component';
+import { PlayerService } from '../../core/player/player.service';
 
 interface SceneLifecycleStep {
   system: string;
@@ -45,6 +46,7 @@ export class ScenePageComponent implements OnInit, OnDestroy {
   private readonly router = inject(Router);
   private readonly discoverService = inject(DiscoverService);
   private readonly notifications = inject(AppNotificationsService);
+  private readonly playerService = inject(PlayerService);
   private previousFocusedElement: HTMLElement | null = null;
   private routeSubscription: Subscription | null = null;
 
@@ -59,7 +61,6 @@ export class ScenePageComponent implements OnInit, OnDestroy {
   protected readonly requestModalOpen = signal(false);
   protected readonly requestContext = signal<SceneRequestContext | null>(null);
   protected readonly favoritingStudio = signal(false);
-  protected readonly streamLoading = signal(false);
   protected readonly performerFavoriteInFlightById = signal<Record<string, boolean>>({});
   protected readonly backLinkPath = signal('/scenes');
   protected readonly backLinkQueryParams = signal<Params>({});
@@ -156,26 +157,15 @@ export class ScenePageComponent implements OnInit, OnDestroy {
 
   protected playSelectedStashCopy(scene: SceneDetails): void {
     const copyId = this.selectedStashCopyId(scene);
-    if (!copyId || this.streamLoading()) {
+    if (!copyId) {
       return;
     }
 
-    this.streamLoading.set(true);
-    this.discoverService
-      .getSceneStreamUrl(scene.id, copyId)
-      .pipe(
-        finalize(() => {
-          this.streamLoading.set(false);
-        }),
-      )
-      .subscribe({
-        next: (result) => {
-          window.open(result.streamUrl, '_blank', 'noopener,noreferrer');
-        },
-        error: () => {
-          this.notifications.error('Failed to load stream from Stash');
-        },
-      });
+    this.playerService.openByCatalogSceneId({
+      title: scene.title,
+      catalogStashId: scene.id,
+      copyId,
+    });
   }
 
   protected studioLogoAriaLabel(scene: SceneDetails): string {

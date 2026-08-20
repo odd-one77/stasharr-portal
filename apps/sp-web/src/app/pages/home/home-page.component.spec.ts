@@ -7,6 +7,7 @@ import { DiscoverService } from '../../core/api/discover.service';
 import { SceneExplorerItem, ScenesFeedResponse } from '../../core/api/discover.types';
 import { HomeService } from '../../core/api/home.service';
 import { HomeRailContentResponse, HomeRailItem } from '../../core/api/home.types';
+import { PlayerService } from '../../core/player/player.service';
 import { RuntimeHealthService } from '../../core/api/runtime-health.service';
 import { RuntimeHealthResponse } from '../../core/api/runtime-health.types';
 import { SetupStatusStore } from '../../core/api/setup-status.store';
@@ -169,6 +170,9 @@ describe('HomePageComponent', () => {
       status: signal(options?.setupStatus ?? buildSetupStatus()),
       sync: vi.fn(),
     };
+    const playerService = {
+      openByLocalSceneId: vi.fn(),
+    };
 
     await TestBed.configureTestingModule({
       imports: [HomePageComponent],
@@ -178,6 +182,7 @@ describe('HomePageComponent', () => {
         { provide: HomeService, useValue: homeService },
         { provide: RuntimeHealthService, useValue: runtimeHealthService },
         { provide: SetupStatusStore, useValue: setupStatusStore },
+        { provide: PlayerService, useValue: playerService },
         {
           provide: AppNotificationsService,
           useValue: { success: vi.fn(), error: vi.fn(), info: vi.fn() },
@@ -190,7 +195,7 @@ describe('HomePageComponent', () => {
     await fixture.whenStable();
     fixture.detectChanges();
 
-    return { fixture, discoverService, homeService, runtimeHealthService };
+    return { fixture, discoverService, homeService, runtimeHealthService, playerService };
   }
 
   function railSectionByTitle(
@@ -241,7 +246,7 @@ describe('HomePageComponent', () => {
   });
 
   it('renders Continue Watching with a large play button and routes internally when linked', async () => {
-    const { fixture } = await renderPage({
+    const { fixture, playerService } = await renderPage({
       continueWatching: {
         items: [
           buildRailItem({
@@ -266,16 +271,12 @@ describe('HomePageComponent', () => {
     expect(largePlay).toBeTruthy();
     expect(cardLink?.getAttribute('href')).toContain('/scene/catalog-411');
 
-    const windowOpenSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
     largePlay?.click();
 
-    expect(windowOpenSpy).toHaveBeenCalledWith(
-      '/api/media/stash/scenes/in-progress-1/stream',
-      '_blank',
-      'noopener,noreferrer',
-    );
-
-    windowOpenSpy.mockRestore();
+    expect(playerService.openByLocalSceneId).toHaveBeenCalledWith({
+      title: 'Half Watched',
+      localSceneId: 'in-progress-1',
+    });
   });
 
   it('marks a scene watched and removes it from Continue Watching', async () => {

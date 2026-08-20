@@ -14,7 +14,7 @@ import {
   StudioFeedResponse,
   isSceneStatusRequestable,
 } from '../../core/api/discover.types';
-import { AppNotificationsService } from '../../core/notifications/app-notifications.service';
+import { PlayerService } from '../../core/player/player.service';
 import { SceneCardComponent } from '../../shared/scene-card/scene-card.component';
 import { SceneRequestModalComponent } from '../../shared/scene-request-modal/scene-request-modal.component';
 
@@ -34,7 +34,7 @@ export class SearchPageComponent implements OnInit, OnDestroy {
   private static readonly RESULTS_PER_SOURCE = 24;
 
   private readonly discoverService = inject(DiscoverService);
-  private readonly notifications = inject(AppNotificationsService);
+  private readonly playerService = inject(PlayerService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
 
@@ -50,7 +50,6 @@ export class SearchPageComponent implements OnInit, OnDestroy {
   protected readonly studioResults = signal<StudioFeedItem[]>([]);
   protected readonly requestModalOpen = signal(false);
   protected readonly requestContext = signal<SceneRequestContext | null>(null);
-  protected readonly playingStashIds = signal<ReadonlySet<string>>(new Set());
 
   ngOnInit(): void {
     this.setupSearch();
@@ -92,30 +91,11 @@ export class SearchPageComponent implements OnInit, OnDestroy {
   }
 
   protected playScene(stashId: string): void {
-    if (this.playingStashIds().has(stashId)) {
-      return;
-    }
-
-    this.playingStashIds.update((current) => new Set(current).add(stashId));
-    this.discoverService
-      .getSceneStreamUrl(stashId)
-      .pipe(
-        finalize(() => {
-          this.playingStashIds.update((current) => {
-            const next = new Set(current);
-            next.delete(stashId);
-            return next;
-          });
-        }),
-      )
-      .subscribe({
-        next: (result) => {
-          window.open(result.streamUrl, '_blank', 'noopener,noreferrer');
-        },
-        error: () => {
-          this.notifications.error('Failed to load stream from Stash');
-        },
-      });
+    const title = this.sceneResults().find((item) => item.id === stashId)?.title ?? 'Scene';
+    this.playerService.openByCatalogSceneId({
+      title,
+      catalogStashId: stashId,
+    });
   }
 
   protected openRequestModal(item: SceneRequestContext): void {

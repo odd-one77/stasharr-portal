@@ -33,6 +33,7 @@ import {
 } from '../../core/api/discover.types';
 import { HomeService } from '../../core/api/home.service';
 import { HomeRailContentResponse, HomeRailItem } from '../../core/api/home.types';
+import { PlayerService } from '../../core/player/player.service';
 import { RuntimeHealthService } from '../../core/api/runtime-health.service';
 import { SetupStatusStore } from '../../core/api/setup-status.store';
 import { SceneCardComponent } from '../../shared/scene-card/scene-card.component';
@@ -58,6 +59,7 @@ import {
 export class HomePageComponent implements OnInit, OnDestroy {
   private readonly discoverService = inject(DiscoverService);
   private readonly homeService = inject(HomeService);
+  private readonly playerService = inject(PlayerService);
   private readonly runtimeHealthService = inject(RuntimeHealthService);
   private readonly setupStatusStore = inject(SetupStatusStore);
   private readonly router = inject(Router);
@@ -291,11 +293,11 @@ export class HomePageComponent implements OnInit, OnDestroy {
   }
 
   protected playScene(localSceneId: string): void {
-    window.open(
-      `/api/media/stash/scenes/${encodeURIComponent(localSceneId)}/stream`,
-      '_blank',
-      'noopener,noreferrer',
-    );
+    const title =
+      this.continueWatchingItems().find((item) => item.id === localSceneId)?.title ??
+      this.recentlyAddedItems().find((item) => item.id === localSceneId)?.title ??
+      'Scene';
+    this.playerService.openByLocalSceneId({ title, localSceneId });
   }
 
   protected markWatched(localSceneId: string): void {

@@ -346,3 +346,10 @@ export interface StudioDetails {
   parentStudio: StudioDetailsParent | null;
   childStudios: StudioDetailsChild[];
 }
+
+export interface ScenePlaybackSource {
+  streamUrl: string;
+  stashSceneId: string;
+  resumeSeconds: number;
+  duration: number | null;
+}

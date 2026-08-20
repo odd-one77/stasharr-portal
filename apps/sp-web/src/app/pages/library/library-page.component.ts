@@ -28,6 +28,7 @@ import { MultiSelect } from 'primeng/multiselect';
 import { ProgressSpinner } from 'primeng/progressspinner';
 import { Select } from 'primeng/select';
 import { LibraryService } from '../../core/api/library.service';
+import { PlayerService } from '../../core/player/player.service';
 import { RuntimeHealthService } from '../../core/api/runtime-health.service';
 import { SetupStatusStore } from '../../core/api/setup-status.store';
 import {
@@ -104,6 +105,7 @@ export class LibraryPageComponent implements OnInit, AfterViewInit, OnDestroy {
   private static readonly LOCAL_CARD_BADGES: readonly SceneCardBadge[] = [{ label: 'Local' }];
 
   private readonly libraryService = inject(LibraryService);
+  private readonly playerService = inject(PlayerService);
   private readonly runtimeHealthService = inject(RuntimeHealthService);
   private readonly setupStatusStore = inject(SetupStatusStore);
   private readonly router = inject(Router);
@@ -591,11 +593,8 @@ export class LibraryPageComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   protected playScene(localSceneId: string): void {
-    window.open(
-      `/api/media/stash/scenes/${encodeURIComponent(localSceneId)}/stream`,
-      '_blank',
-      'noopener,noreferrer',
-    );
+    const title = this.items().find((item) => item.id === localSceneId)?.title ?? 'Scene';
+    this.playerService.openByLocalSceneId({ title, localSceneId });
   }
 
   protected libraryFooterLink(item: LibrarySceneItem): SceneCardShellLink | null {

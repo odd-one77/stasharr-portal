@@ -12,6 +12,8 @@ describe('MediaService', () => {
   const openSceneScreenshotMock = jest.fn();
   const openStudioLogoMock = jest.fn();
   const getSceneStreamUrlMock = jest.fn();
+  const getScenePlaybackInfoMock = jest.fn();
+  const saveSceneProgressMock = jest.fn();
   let originalFetch: typeof fetch;
   const fetchMock: jest.MockedFunction<typeof fetch> = jest.fn();
 
@@ -25,6 +27,8 @@ describe('MediaService', () => {
     openSceneScreenshot: openSceneScreenshotMock,
     openStudioLogo: openStudioLogoMock,
     getSceneStreamUrl: getSceneStreamUrlMock,
+    getScenePlaybackInfo: getScenePlaybackInfoMock,
+    saveSceneProgress: saveSceneProgressMock,
   } as unknown as StashAdapter;
 
   let service: MediaService;
@@ -220,6 +224,63 @@ describe('MediaService', () => {
 
       await expect(service.streamStashScene('411')).rejects.toBeInstanceOf(
         BadGatewayException,
+      );
+    });
+  });
+
+  describe('getScenePlaybackInfo', () => {
+    beforeEach(() => {
+      integrationFindUniqueMock.mockResolvedValue({
+        type: 'STASH',
+        enabled: true,
+        status: 'CONFIGURED',
+        baseUrl: 'http://stash.local',
+        apiKey: 'secret',
+      });
+    });
+
+    it('returns resume position and duration for the scene', async () => {
+      getScenePlaybackInfoMock.mockResolvedValue({
+        resumeSeconds: 245.6,
+        duration: 1800,
+      });
+
+      await expect(service.getScenePlaybackInfo('411')).resolves.toEqual({
+        resumeSeconds: 245.6,
+        duration: 1800,
+      });
+      expect(getScenePlaybackInfoMock).toHaveBeenCalledWith('411', {
+        baseUrl: 'http://stash.local',
+        apiKey: 'secret',
+      });
+    });
+
+    it('throws not found when stash has no matching scene', async () => {
+      getScenePlaybackInfoMock.mockResolvedValue(null);
+
+      await expect(service.getScenePlaybackInfo('411')).rejects.toBeInstanceOf(
+        NotFoundException,
+      );
+    });
+  });
+
+  describe('saveScenePlaybackProgress', () => {
+    it('forwards resume position and play duration to the adapter', async () => {
+      integrationFindUniqueMock.mockResolvedValue({
+        type: 'STASH',
+        enabled: true,
+        status: 'CONFIGURED',
+        baseUrl: 'http://stash.local',
+        apiKey: 'secret',
+      });
+
+      await service.saveScenePlaybackProgress('411', 245.6, 1800);
+
+      expect(saveSceneProgressMock).toHaveBeenCalledWith(
+        '411',
+        245.6,
+        1800,
+        { baseUrl: 'http://stash.local', apiKey: 'secret' },
       );
     });
   });

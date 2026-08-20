@@ -4,6 +4,7 @@ import { ActivatedRoute, Router, convertToParamMap, provideRouter } from '@angul
 import { BehaviorSubject, of } from 'rxjs';
 import { LibraryService } from '../../core/api/library.service';
 import { LibrarySceneItem, LibraryScenesFeedResponse } from '../../core/api/library.types';
+import { PlayerService } from '../../core/player/player.service';
 import { RuntimeHealthService } from '../../core/api/runtime-health.service';
 import { RuntimeHealthResponse } from '../../core/api/runtime-health.types';
 import { SetupStatusStore } from '../../core/api/setup-status.store';
@@ -161,6 +162,9 @@ describe('LibraryPageComponent', () => {
         queryParamMap,
       },
     };
+    const playerService = {
+      openByLocalSceneId: vi.fn(),
+    };
 
     await TestBed.configureTestingModule({
       imports: [LibraryPageComponent],
@@ -177,6 +181,10 @@ describe('LibraryPageComponent', () => {
         {
           provide: SetupStatusStore,
           useValue: setupStatusStore,
+        },
+        {
+          provide: PlayerService,
+          useValue: playerService,
         },
         {
           provide: ActivatedRoute,
@@ -197,7 +205,7 @@ describe('LibraryPageComponent', () => {
     await fixture.whenStable();
     fixture.detectChanges();
 
-    return { fixture, libraryService, navigateSpy, runtimeHealthService };
+    return { fixture, libraryService, navigateSpy, runtimeHealthService, playerService };
   }
 
   it('loads the default local-library view from the dedicated library API', async () => {
@@ -433,11 +441,10 @@ describe('LibraryPageComponent', () => {
     expect(articles[1]?.querySelector('.footer-pill')?.textContent).toContain('Local only');
   });
 
-  it('plays a local library scene directly via the stash media proxy', async () => {
-    const { fixture } = await renderPage({
+  it('opens the embedded player for a local library scene', async () => {
+    const { fixture, playerService } = await renderPage({
       feedResponse: buildFeedResponse([buildScene({ id: '411', activeCatalogSceneId: 'stash-411' })]),
     });
-    const windowOpenSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
 
     const playButton = fixture.nativeElement.querySelector(
       '.play-center-button',
@@ -446,12 +453,9 @@ describe('LibraryPageComponent', () => {
 
     playButton.click();
 
-    expect(windowOpenSpy).toHaveBeenCalledWith(
-      '/api/media/stash/scenes/411/stream',
-      '_blank',
-      'noopener,noreferrer',
-    );
-
-    windowOpenSpy.mockRestore();
+    expect(playerService.openByLocalSceneId).toHaveBeenCalledWith({
+      title: 'Fresh Local Scene',
+      localSceneId: '411',
+    });
   });
 });

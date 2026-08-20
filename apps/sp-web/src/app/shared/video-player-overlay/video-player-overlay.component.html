@@ -1,0 +1,44 @@
+@if (state(); as s) {
+  <div class="player-backdrop" (click)="closePlayer()">
+    <div class="player-shell" (click)="$event.stopPropagation()">
+      <div class="player-header">
+        <h2>{{ s.title }}</h2>
+        <button
+          pButton
+          type="button"
+          icon="pi pi-times"
+          class="p-button-text p-button-rounded close-player"
+          aria-label="Close player"
+          (click)="closePlayer()"
+        ></button>
+      </div>
+
+      <div class="player-body">
+        @switch (s.status) {
+          @case ('loading') {
+            <div class="player-status">
+              <p-progressSpinner strokeWidth="4" [style]="{ width: '3rem', height: '3rem' }" />
+              <p>Loading stream&hellip;</p>
+            </div>
+          }
+          @case ('error') {
+            <div class="player-status player-status-error">
+              <p>{{ s.message }}</p>
+            </div>
+          }
+          @case ('ready') {
+            <video
+              #videoEl
+              class="player-video"
+              [src]="s.source.streamUrl"
+              controls
+              autoplay
+              (loadedmetadata)="onVideoLoadedMetadata()"
+              (pause)="onVideoPause()"
+            ></video>
+          }
+        }
+      </div>
+    </div>
+  </div>
+}

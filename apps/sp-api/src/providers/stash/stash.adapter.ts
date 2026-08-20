@@ -20,6 +20,8 @@ export interface StashSceneMatch {
   height: number | null;
   viewUrl: string;
   label: string;
+  duration: number | null;
+  resumeSeconds: number;
 }
 
 export const STASH_SCENE_FEED_SORT_VALUES = [
@@ -218,6 +220,8 @@ interface StashSceneAssetRecord {
     screenshot?: unknown;
     stream?: unknown;
   } | null;
+  resume_time?: unknown;
+  files?: Array<{ duration?: unknown }>;
 }
 
 interface StashStudioAssetRecord {
@@ -304,9 +308,11 @@ export class StashAdapter {
           count
           scenes {
             id
+            resume_time
             files {
               height
               width
+              duration
             }
             stash_ids {
               endpoint
@@ -469,6 +475,30 @@ export class StashAdapter {
         ),
       )
       .filter((scene): scene is StashContinueWatchingItem => scene !== null);
+  }
+
+  async saveSceneProgress(
+    sceneId: string,
+    resumeSeconds: number,
+    playDuration: number | null,
+    config: StashAdapterBaseConfig,
+  ): Promise<void> {
+    const normalizedSceneId = this.normalizeEntityId(sceneId);
+    if (!normalizedSceneId) {
+      return;
+    }
+
+    const mutation = `
+      mutation SceneSaveActivity($id: ID!, $resumeTime: Float, $playDuration: Float) {
+        sceneSaveActivity(id: $id, resume_time: $resumeTime, playDuration: $playDuration)
+      }
+    `;
+
+    await this.executeQuery(config, mutation, {
+      id: normalizedSceneId,
+      resumeTime: Math.max(0, resumeSeconds),
+      playDuration: playDuration !== null ? Math.max(0, playDuration) : null,
+    });
   }
 
   async resetSceneProgress(
@@ -725,6 +755,47 @@ export class StashAdapter {
     }
 
     return this.fetchProtectedAsset(config, screenshotUrl);
+  }
+
+  async getScenePlaybackInfo(
+    sceneId: string,
+    config: StashAdapterBaseConfig,
+  ): Promise<{ resumeSeconds: number; duration: number | null } | null> {
+    const normalizedSceneId = this.normalizeEntityId(sceneId);
+    if (!normalizedSceneId) {
+      return null;
+    }
+
+    const query = `
+      query FindScene($id: ID!) {
+        findScene(id: $id) {
+          id
+          resume_time
+          files {
+            duration
+          }
+        }
+      }
+    `;
+
+    const payload = await this.executeQuery(config, query, {
+      id: normalizedSceneId,
+    });
+    const scene = payload.data?.findScene;
+    if (!scene) {
+      return null;
+    }
+
+    const resumeSeconds =
+      typeof scene.resume_time === 'number' && scene.resume_time > 0
+        ? scene.resume_time
+        : 0;
+    const duration =
+      typeof scene.files?.[0]?.duration === 'number'
+        ? scene.files[0].duration
+        : null;
+
+    return { resumeSeconds, duration };
   }
 
   async getSceneStreamUrl(
@@ -1106,6 +1177,14 @@ export class StashAdapter {
     }
 
     const { width, height } = this.pickBestResolution(scene.files ?? []);
+    const duration =
+      typeof scene.files?.[0]?.duration === 'number'
+        ? scene.files[0].duration
+        : null;
+    const resumeSeconds =
+      typeof scene.resume_time === 'number' && scene.resume_time > 0
+        ? scene.resume_time
+        : 0;
 
     return {
       id,
@@ -1113,6 +1192,8 @@ export class StashAdapter {
       height,
       viewUrl: this.resolveSceneViewUrl(baseUrl, id),
       label: this.buildSceneLabel(id, height),
+      duration,
+      resumeSeconds,
     };
   }
 

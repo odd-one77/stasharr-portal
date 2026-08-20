@@ -626,6 +626,8 @@ describe('ScenesService', () => {
         height: 2160,
         viewUrl: 'http://stash.local/scene/3027',
         label: '2160p',
+        duration: 600,
+        resumeSeconds: 120,
       },
       {
         id: '3030',
@@ -633,6 +635,8 @@ describe('ScenesService', () => {
         height: 1080,
         viewUrl: 'http://stash.local/scene/3030',
         label: '1080p',
+        duration: 600,
+        resumeSeconds: 0,
       },
     ];
 
@@ -643,20 +647,29 @@ describe('ScenesService', () => {
     it('resolves the best available copy when no copyId is given', async () => {
       await expect(
         service.getSceneStreamUrl('stashdb-scene-1'),
-      ).resolves.toBe('/api/media/stash/scenes/3027/stream');
+      ).resolves.toEqual({
+        streamUrl: '/api/media/stash/scenes/3027/stream',
+        stashSceneId: '3027',
+        resumeSeconds: 120,
+        duration: 600,
+      });
 
       expect(stashAdapter.findScenesByStashId).toHaveBeenCalledWith(
         'stashdb-scene-1',
         { baseUrl: stashIntegration.baseUrl, apiKey: stashIntegration.apiKey },
         { providerKey: 'STASHDB' },
       );
-      expect(stashAdapter.getSceneStreamUrl).not.toHaveBeenCalled();
     });
 
     it('resolves a specific copy when copyId is given', async () => {
       await expect(
         service.getSceneStreamUrl('stashdb-scene-1', '3030'),
-      ).resolves.toBe('/api/media/stash/scenes/3030/stream');
+      ).resolves.toEqual({
+        streamUrl: '/api/media/stash/scenes/3030/stream',
+        stashSceneId: '3030',
+        resumeSeconds: 0,
+        duration: 600,
+      });
     });
 
     it('throws not found when no stash copy matches', async () => {
