@@ -583,15 +583,37 @@ export class TpdbAdapter implements CatalogAdapter {
 
   private sceneImages(record: Record<string, unknown> | null): StashdbSceneImage[] {
     const images: StashdbSceneImage[] = [];
-    const poster = this.readString(record?.poster) ?? this.readString(record?.image);
-    if (poster) {
-      images.push({ id: 'poster', url: poster, width: null, height: null });
-    }
+
+    // background.* is a direct, wide/landscape CDN asset (no known fixed
+    // size) — put it first so it's what scene.imageUrl (hero backdrop, list
+    // thumbnails) resolves to, matching a landscape banner.
     const background = this.asRecord(record?.background);
     const backgroundUrl = this.readString(background?.full) ?? this.readString(background?.large);
     if (backgroundUrl) {
       images.push({ id: 'background', url: backgroundUrl, width: null, height: null });
     }
+
+    // TPDB's `poster` field is always served through their smart-crop
+    // resize proxy at a fixed 800x1200 (confirmed live across every scene
+    // sampled — the dimensions are literally in the URL path). Tagging the
+    // real portrait dimensions here is what lets the frontend's portrait-
+    // poster filter (scene-page.component.ts's posterImageUrl, which
+    // requires real width/height with height > width) actually find it —
+    // without this it was always empty for TPDB, silently falling back to
+    // whatever scene.imageUrl happened to be.
+    const poster = this.readString(record?.poster);
+    if (poster) {
+      images.push({ id: 'poster', url: poster, width: 800, height: 1200 });
+    } else {
+      // Only fall back to the generic `image` field when there's no
+      // dedicated poster — its dimensions aren't known, so leave them null
+      // rather than guessing a portrait aspect that may not be true.
+      const fallbackImage = this.readString(record?.image);
+      if (fallbackImage) {
+        images.push({ id: 'poster', url: fallbackImage, width: null, height: null });
+      }
+    }
+
     return images;
   }
 

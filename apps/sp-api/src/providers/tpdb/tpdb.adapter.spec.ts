@@ -167,6 +167,57 @@ describe('TpdbAdapter', () => {
     expect(scene.sourceUrls).toEqual([{ url: 'https://example.com/scene', type: null }]);
   });
 
+  it('prefers the landscape background for scene.imageUrl and tags the poster with its known portrait dimensions', async () => {
+    fetchMock.mockResolvedValue(
+      jsonResponse(200, {
+        data: {
+          id: 'scene-uuid-1',
+          title: 'A Scene',
+          description: null,
+          date: null,
+          duration: null,
+          poster: 'http://cdn.local/poster.jpg',
+          background: { full: 'http://cdn.local/background.jpg' },
+          performers: [],
+          tags: [],
+          url: null,
+        },
+      }),
+    );
+
+    const scene = await adapter.getSceneById('scene-uuid-1', config);
+
+    expect(scene.imageUrl).toBe('http://cdn.local/background.jpg');
+    expect(scene.images).toEqual([
+      { id: 'background', url: 'http://cdn.local/background.jpg', width: null, height: null },
+      { id: 'poster', url: 'http://cdn.local/poster.jpg', width: 800, height: 1200 },
+    ]);
+  });
+
+  it('falls back to the generic image field with unknown dimensions when there is no dedicated poster', async () => {
+    fetchMock.mockResolvedValue(
+      jsonResponse(200, {
+        data: {
+          id: 'scene-uuid-1',
+          title: 'A Scene',
+          description: null,
+          date: null,
+          duration: null,
+          image: 'http://cdn.local/fallback.jpg',
+          performers: [],
+          tags: [],
+          url: null,
+        },
+      }),
+    );
+
+    const scene = await adapter.getSceneById('scene-uuid-1', config);
+
+    expect(scene.images).toEqual([
+      { id: 'poster', url: 'http://cdn.local/fallback.jpg', width: null, height: null },
+    ]);
+  });
+
   it('prefers a scene performer\'s parent id over its site-specific id, since only the parent id is independently fetchable', async () => {
     fetchMock.mockResolvedValue(
       jsonResponse(200, {
