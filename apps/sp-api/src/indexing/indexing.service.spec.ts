@@ -377,6 +377,17 @@ function createPrismaMock(config: {
       );
     }),
     count: jest.fn(async () => requestRows.length),
+    deleteMany: jest.fn(async (args?: Record<string, unknown>) => {
+      const filter = args?.where as { stashId?: { in?: string[] } } | undefined;
+      const idsToDelete = filter?.stashId?.in ?? null;
+      const remaining = idsToDelete
+        ? requestRows.filter((row) => !idsToDelete.includes(row.stashId))
+        : [];
+      const deletedCount = requestRows.length - remaining.length;
+      requestRows.length = 0;
+      requestRows.push(...remaining);
+      return { count: deletedCount };
+    }),
   };
 
   const syncState = {
@@ -923,6 +934,54 @@ describe('IndexingService', () => {
       expect.objectContaining({
         title: 'Provider Title',
         description: 'Provider description',
+      }),
+    );
+  });
+
+  it('cancels the request and drops the scene back to NOT_REQUESTED when its movie is deleted directly in Whisparr', async () => {
+    const { prisma, sceneIndexStore } = createPrismaMock({
+      sceneIndexRows: [
+        buildSceneIndexRow({
+          stashId: 'scene-1',
+          requestStatus: RequestStatus.REQUESTED,
+          whisparrMovieId: 22,
+          whisparrHasFile: false,
+          computedLifecycle: 'REQUESTED',
+          lifecycleSortOrder: 1,
+        }),
+      ],
+      requestRows: [
+        {
+          stashId: 'scene-1',
+          status: RequestStatus.REQUESTED,
+          updatedAt: new Date('2026-03-27T00:00:00.000Z'),
+        },
+      ],
+    });
+    // Whisparr's own snapshot no longer contains movie 22 -- someone
+    // deleted it directly in Whisparr, not through the portal.
+    getMovieSnapshotMock.mockResolvedValue([]);
+
+    const service = new IndexingService(
+      prisma,
+      integrationsService,
+      catalogProviderService,
+      whisparrAdapter,
+      stashAdapter,
+      syncStateService,
+    );
+
+    await service.syncWhisparrMovies('test', true);
+
+    expect(prisma.request.deleteMany).toHaveBeenCalledWith({
+      where: { stashId: { in: ['scene-1'] } },
+    });
+    expect(sceneIndexStore.get('scene-1')).toEqual(
+      expect.objectContaining({
+        requestStatus: null,
+        whisparrMovieId: null,
+        whisparrHasFile: null,
+        computedLifecycle: 'NOT_REQUESTED',
       }),
     );
   });

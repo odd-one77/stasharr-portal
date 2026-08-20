@@ -1043,9 +1043,24 @@ export class IndexingService {
       },
     });
 
+    // A row only lands here if it previously had a whisparrMovieId that is
+    // no longer in Whisparr's own snapshot — i.e. someone deleted the movie
+    // directly in Whisparr, not something the portal did itself (the
+    // portal's own remove-request flow already clears these fields and
+    // deletes the Request row synchronously). Mirror that same cleanup here
+    // so a deletion made in Whisparr doesn't leave a ghost "Requested" entry
+    // behind in the portal forever.
+    if (staleRows.length > 0) {
+      await this.prisma.request.deleteMany({
+        where: { stashId: { in: staleRows.map((row) => row.stashId) } },
+      });
+    }
+
     for (const row of staleRows) {
       patches.push({
         stashId: row.stashId,
+        requestStatus: null,
+        requestUpdatedAt: now,
         whisparrMovieId: null,
         whisparrHasFile: null,
         whisparrQueuePosition: null,
