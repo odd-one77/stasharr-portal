@@ -252,7 +252,7 @@ describe('AcquisitionService', () => {
       ['scene-missing-metadata'],
       'acquisition-page',
     );
-    expect(result.items[0]?.title).toBe('scene-missing-metadata');
+    expect(result.items[0]?.title).toBe('Unknown scene (scene-mi)');
   });
 
   it('marks acquisition scenes with the active FANSDB provider source', async () => {

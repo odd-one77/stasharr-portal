@@ -188,12 +188,12 @@ export class AcquisitionService {
     whisparrBaseUrl: string | null,
     source: CatalogProviderKey,
   ): AcquisitionSceneItemDto {
-    const title = row.title?.trim() || row.stashId;
+    const title = row.title?.trim() || `Unknown scene (${row.stashId.slice(0, 8)})`;
     const description =
       row.description ??
       (row.title
         ? null
-        : 'Scene metadata is unavailable from the catalog provider configured for this instance.');
+        : 'Scene metadata is unavailable from the catalog provider configured for this instance — likely because it was requested under a previously-configured catalog provider that no longer matches this scene’s id. This does not affect whether Whisparr can still download and import it.');
 
     return {
       id: row.stashId,
