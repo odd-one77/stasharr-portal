@@ -296,15 +296,19 @@
     <section class="rail-section">
       <header class="rail-head">
         <div class="rail-copy">
-          <p class="rail-kicker">Favorites</p>
-          <h2>Recently released from your favorites</h2>
+          <p class="rail-kicker">{{ favoriteReleasesKicker() }}</p>
+          <h2>{{ favoriteReleasesTitle() }}</h2>
         </div>
 
         <div class="rail-actions app-action-row">
           <a
             class="see-all-link"
             [routerLink]="['/scenes']"
-            [queryParams]="{ fav: 'ALL', sort: 'DATE', dir: 'DESC' }"
+            [queryParams]="
+              favoritingSupported()
+                ? { fav: 'ALL', sort: 'DATE', dir: 'DESC' }
+                : { sort: 'DATE', dir: 'DESC' }
+            "
           >
             See all
           </a>
@@ -312,7 +316,7 @@
             type="button"
             class="scroll-button"
             (click)="scrollRail('favorite-releases', 'prev')"
-            aria-label="Scroll Recently released from your favorites left"
+            [attr.aria-label]="'Scroll ' + favoriteReleasesTitle() + ' left'"
           >
             <i class="pi pi-angle-left" aria-hidden="true"></i>
           </button>
@@ -320,7 +324,7 @@
             type="button"
             class="scroll-button"
             (click)="scrollRail('favorite-releases', 'next')"
-            aria-label="Scroll Recently released from your favorites right"
+            [attr.aria-label]="'Scroll ' + favoriteReleasesTitle() + ' right'"
           >
             <i class="pi pi-angle-right" aria-hidden="true"></i>
           </button>

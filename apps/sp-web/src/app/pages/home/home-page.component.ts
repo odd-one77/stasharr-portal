@@ -85,6 +85,17 @@ export class HomePageComponent implements OnInit, OnDestroy {
       this.runtimeHealthService.status(),
     ),
   );
+  protected readonly favoritingSupported = computed(
+    () => this.setupStatusStore.status()?.catalogProvider !== 'TPDB',
+  );
+  protected readonly favoriteReleasesKicker = computed(() =>
+    this.favoritingSupported() ? 'Favorites' : 'Recently added',
+  );
+  protected readonly favoriteReleasesTitle = computed(() =>
+    this.favoritingSupported()
+      ? 'Recently released from your favorites'
+      : 'Recently released scenes',
+  );
 
   protected readonly searchTerm = signal('');
   protected readonly searchOpen = signal(false);
@@ -218,7 +229,16 @@ export class HomePageComponent implements OnInit, OnDestroy {
     this.error.set(null);
 
     this.favoriteReleasesSubscription = this.discoverService
-      .getScenesFeed(1, 16, 'DATE', 'DESC', [], undefined, 'ALL', [])
+      .getScenesFeed(
+        1,
+        16,
+        'DATE',
+        'DESC',
+        [],
+        undefined,
+        this.favoritingSupported() ? 'ALL' : undefined,
+        [],
+      )
       .pipe(finalize(() => this.loading.set(false)))
       .subscribe({
         next: (response) => {

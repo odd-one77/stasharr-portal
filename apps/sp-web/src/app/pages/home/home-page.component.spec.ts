@@ -377,6 +377,30 @@ describe('HomePageComponent', () => {
     expect(discoverService.getScenesFeed).toHaveBeenCalledTimes(2);
   });
 
+  it('relabels the favorites rail and drops the favorites filter when TPDB is the active provider', async () => {
+    const { fixture, discoverService } = await renderPage({
+      favoriteFeed: buildFavoriteFeed([buildFavoriteItem()]),
+      setupStatus: buildSetupStatus({ catalogProvider: 'TPDB' }),
+    });
+
+    expect(discoverService.getScenesFeed).toHaveBeenCalledWith(
+      1,
+      16,
+      'DATE',
+      'DESC',
+      [],
+      undefined,
+      undefined,
+      [],
+    );
+
+    const section = railSectionByTitle(fixture, 'Recently released scenes');
+    expect(section.textContent).toContain('Recently added');
+    expect(
+      fixture.nativeElement.textContent.includes('Recently released from your favorites'),
+    ).toBe(false);
+  });
+
   it('shows the empty state when nothing is available anywhere', async () => {
     const { fixture } = await renderPage({ favoriteFeed: buildFavoriteFeed([]) });
 

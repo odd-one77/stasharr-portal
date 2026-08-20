@@ -93,12 +93,14 @@ export class TpdbAdapter implements CatalogAdapter {
       if (filters.titleQuery?.trim()) {
         params.q = filters.titleQuery.trim();
       }
-      // TPDB's confirmed sort support is narrower than stash-box's; only
-      // DATE has a confirmed working mapping, everything else falls back to
-      // TPDB's default relevance ordering rather than guessing a param.
-      if (filters.sort === 'DATE') {
-        params.sort = 'date';
-      }
+      // Confirmed live against TPDB: `sort=date` is the only value that
+      // actually changes ordering. title/created_at/updated_at/trending/
+      // popular/rank/rating/views/hot are all silently ignored and fall back
+      // to TPDB's own undefined internal ordering. Since there's no honest
+      // "trending" signal to give, always sort by date for TPDB rather than
+      // let unmapped requests (e.g. TRENDING) fall through to that
+      // undefined ordering.
+      params.sort = 'date';
       // TPDB only filters scenes by a single site_id at a time; use the
       // first requested studio if any were given.
       const studioId = filters.studioIds?.[0]?.trim();
@@ -350,6 +352,7 @@ export class TpdbAdapter implements CatalogAdapter {
         page: String(config.page),
         per_page: String(config.perPage || TpdbAdapter.DEFAULT_PAGE_SIZE),
         performer_id: String(numericId),
+        sort: 'date',
       };
       const studioId = config.studioIds?.[0]?.trim();
       if (studioId) {
