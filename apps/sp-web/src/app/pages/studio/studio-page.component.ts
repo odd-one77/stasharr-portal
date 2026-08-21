@@ -29,6 +29,8 @@ import { ProgressSpinner } from 'primeng/progressspinner';
 import { Select } from 'primeng/select';
 import { ToggleSwitch } from 'primeng/toggleswitch';
 import { DiscoverService } from '../../core/api/discover.service';
+import { fetchAllPages } from '../../core/api/fetch-all-pages.util';
+import { SetupStatusStore } from '../../core/api/setup-status.store';
 import { AppNotificationsService } from '../../core/notifications/app-notifications.service';
 import {
   DiscoverItem,
@@ -108,6 +110,7 @@ export class StudioPageComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly discoverService = inject(DiscoverService);
+  private readonly setupStatusStore = inject(SetupStatusStore);
   private readonly notifications = inject(AppNotificationsService);
   private readonly tagSearchTerms = new Subject<string>();
   private routeSubscription: Subscription | null = null;
@@ -570,6 +573,11 @@ export class StudioPageComponent implements OnInit, AfterViewInit, OnDestroy {
       return;
     }
 
+    if (this.scenesPage() === 0 && this.needsClientSideAscendingSort()) {
+      this.loadAllScenesAscending(currentStudioId);
+      return;
+    }
+
     const nextPage = this.scenesPage() + 1;
     const isInitialPage = nextPage === 1;
     const requestVersion = this.scenesFeedVersion;
@@ -642,6 +650,95 @@ export class StudioPageComponent implements OnInit, AfterViewInit, OnDestroy {
           }
         },
       });
+  }
+
+  // TPDB only ever returns scenes newest-first, with no way to reverse that
+  // order server-side. When the user wants oldest-first on a TPDB-backed
+  // instance, fetch every page for this studio visit and sort in memory
+  // instead of paginating — this is intentionally not persisted anywhere.
+  private needsClientSideAscendingSort(): boolean {
+    return (
+      this.sceneSort() === 'DATE' &&
+      this.sceneSortDirection() === 'ASC' &&
+      this.setupStatusStore.status()?.catalogProvider === 'TPDB'
+    );
+  }
+
+  private loadAllScenesAscending(studioId: string): void {
+    const requestVersion = this.scenesFeedVersion;
+    this.scenesInFlight.set(true);
+    this.loadingScenes.set(true);
+    this.scenesError.set(null);
+
+    fetchAllPages((page) =>
+      this.discoverService
+        .getScenesFeed(
+          page,
+          StudioPageComponent.SCENES_PAGE_SIZE,
+          this.sceneSort(),
+          'DESC',
+          this.selectedTagIds(),
+          this.selectedTagMode(),
+          this.selectedFavoritesFilter(),
+          [studioId],
+        )
+        .pipe(
+          map((response) => ({
+            items: response.items,
+            hasMore: response.hasMore,
+          })),
+        ),
+    )
+      .pipe(
+        finalize(() => {
+          this.scenesInFlight.set(false);
+
+          if (requestVersion !== this.scenesFeedVersion) {
+            if (this.pendingScenesReload) {
+              this.pendingScenesReload = false;
+              this.loadNextScenesPage();
+            }
+            return;
+          }
+
+          this.loadingScenes.set(false);
+        }),
+      )
+      .subscribe({
+        next: (items) => {
+          if (requestVersion !== this.scenesFeedVersion) {
+            return;
+          }
+
+          const sorted = [...items].sort((a, b) =>
+            this.compareReleaseDateAscending(a, b),
+          );
+          this.scenes.set(sorted);
+          this.scenesTotal.set(sorted.length);
+          this.scenesPage.set(1);
+          this.scenesHasMore.set(false);
+        },
+        error: () => {
+          if (requestVersion !== this.scenesFeedVersion) {
+            return;
+          }
+
+          this.scenesError.set('Failed to load studio scenes.');
+        },
+      });
+  }
+
+  private compareReleaseDateAscending(a: DiscoverItem, b: DiscoverItem): number {
+    if (!a.releaseDate && !b.releaseDate) {
+      return 0;
+    }
+    if (!a.releaseDate) {
+      return 1;
+    }
+    if (!b.releaseDate) {
+      return -1;
+    }
+    return a.releaseDate.localeCompare(b.releaseDate);
   }
 
   private resetScenesAndReload(): void {
