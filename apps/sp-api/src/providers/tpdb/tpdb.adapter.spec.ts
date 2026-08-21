@@ -86,6 +86,7 @@ describe('TpdbAdapter', () => {
             duration: 600,
             poster: 'http://cdn.local/poster.jpg',
             site_id: 42,
+            site: { id: 42, name: 'Studio Name', logo: 'http://cdn.local/logo.png' },
           },
         ],
         meta: { current_page: 1, last_page: 3, total: 55 },
@@ -109,8 +110,8 @@ describe('TpdbAdapter', () => {
         details: 'desc',
         imageUrl: 'http://cdn.local/poster.jpg',
         studioId: '42',
-        studioName: null,
-        studioImageUrl: null,
+        studioName: 'Studio Name',
+        studioImageUrl: 'http://cdn.local/logo.png',
         date: '2026-03-01',
         releaseDate: '2026-03-01',
         productionDate: null,
@@ -122,6 +123,37 @@ describe('TpdbAdapter', () => {
     expect(requestedUrl).toContain('/scenes?');
     expect(requestedUrl).toContain('q=test');
     expect(requestedUrl).toContain('sort=date');
+  });
+
+  it('falls back to the bare site_id when a scenes feed entry has no embedded site object', async () => {
+    fetchMock.mockResolvedValue(
+      jsonResponse(200, {
+        data: [
+          {
+            id: 'scene-uuid-1',
+            title: 'A Scene',
+            description: 'desc',
+            date: '2026-03-01',
+            duration: 600,
+            poster: 'http://cdn.local/poster.jpg',
+            site_id: 42,
+          },
+        ],
+        meta: { current_page: 1, last_page: 1, total: 1 },
+      }),
+    );
+
+    const result = await adapter.getScenesBySort({
+      baseUrl: config.baseUrl,
+      apiKey: config.apiKey,
+      page: 1,
+      perPage: 20,
+      sort: 'DATE',
+    });
+
+    expect(result.scenes[0].studioId).toBe('42');
+    expect(result.scenes[0].studioName).toBeNull();
+    expect(result.scenes[0].studioImageUrl).toBeNull();
   });
 
   it('maps a single scene, placing the TPDB id in both stashId and tpdbId slots', async () => {

@@ -516,7 +516,10 @@ export class TpdbAdapter implements CatalogAdapter {
     }
 
     const images = this.sceneImages(record);
-    const studioId = this.readNumberAsString(record.site_id);
+    const site = this.asRecord(record.site);
+    const studioId = this.readIdAsString(site?.id) ?? this.readNumberAsString(record.site_id);
+    const studioName = this.readString(site?.name);
+    const studioImages = site ? this.studioImages(site) : [];
     const date = this.readString(record.date);
 
     return {
@@ -525,8 +528,8 @@ export class TpdbAdapter implements CatalogAdapter {
       details: this.readString(record.description),
       imageUrl: images[0]?.url ?? null,
       studioId,
-      studioName: null,
-      studioImageUrl: null,
+      studioName,
+      studioImageUrl: studioImages[0]?.url ?? null,
       date,
       releaseDate: date,
       productionDate: null,
