@@ -33,6 +33,7 @@ describe('app routes', () => {
       '',
       'integrations',
       'indexing',
+      'content',
       'account',
       'about',
     ]);

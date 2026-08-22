@@ -6,6 +6,7 @@ import { StashAdapter } from '../providers/stash/stash.adapter';
 import { StashdbSceneDetails } from '../providers/stashdb/stashdb.adapter';
 import { WhisparrAdapter } from '../providers/whisparr/whisparr.adapter';
 import { SceneStatusService } from '../scene-status/scene-status.service';
+import { AppSettingsService } from '../settings/app-settings.service';
 import { ScenesService } from './scenes.service';
 
 describe('ScenesService', () => {
@@ -37,6 +38,10 @@ describe('ScenesService', () => {
     findMovieByStashId: jest.fn(),
     buildSceneViewUrl: jest.fn(),
   } as unknown as WhisparrAdapter;
+
+  const appSettingsService = {
+    get: jest.fn(),
+  } as unknown as AppSettingsService;
 
   const stashdbIntegration = {
     enabled: true,
@@ -86,6 +91,7 @@ describe('ScenesService', () => {
       sceneStatusService,
       stashAdapter,
       whisparrAdapter,
+      appSettingsService,
     );
 
     integrationsService.findOne = jest
@@ -146,6 +152,9 @@ describe('ScenesService', () => {
       .mockResolvedValue(
         new Map([['stashdb-scene-1', { state: 'AVAILABLE' }]]),
       );
+    appSettingsService.get = jest
+      .fn()
+      .mockResolvedValue({ hideAmateurNetworkResults: false });
     stashAdapter.findScenesByStashId = jest.fn().mockResolvedValue([]);
     whisparrAdapter.findMovieByStashId = jest.fn().mockResolvedValue(null);
     whisparrAdapter.buildSceneViewUrl = jest
@@ -266,6 +275,95 @@ describe('ScenesService', () => {
       studioIds: [],
     });
     expect(stashAdapter.findScenesByStashId).not.toHaveBeenCalled();
+  });
+
+  it('hides a non-library excluded-network scene when hideAmateurNetworkResults is on', async () => {
+    appSettingsService.get = jest
+      .fn()
+      .mockResolvedValue({ hideAmateurNetworkResults: true });
+    catalogAdapter.getScenesBySort = jest.fn().mockResolvedValue({
+      total: 2,
+      scenes: [
+        {
+          id: 'stashdb-scene-1',
+          title: 'Scene',
+          details: 'Description',
+          imageUrl: 'http://cdn.local/image.jpg',
+          studioId: 'studio-1',
+          studioName: 'Studio',
+          studioImageUrl: 'http://studio-image',
+          date: '2026-01-01',
+          releaseDate: '2026-01-02',
+          productionDate: '2026-01-03',
+          duration: 300,
+          isFromExcludedNetwork: false,
+        },
+        {
+          id: 'amateur-scene-1',
+          title: 'Amateur Scene',
+          details: null,
+          imageUrl: null,
+          studioId: null,
+          studioName: null,
+          studioImageUrl: null,
+          date: null,
+          releaseDate: null,
+          productionDate: null,
+          duration: null,
+          isFromExcludedNetwork: true,
+        },
+      ],
+    });
+    sceneStatusService.resolveForScenes = jest
+      .fn()
+      .mockResolvedValue(
+        new Map([
+          ['stashdb-scene-1', { state: 'AVAILABLE' }],
+          ['amateur-scene-1', { state: 'NOT_REQUESTED' }],
+        ]),
+      );
+
+    const result = await service.getScenesFeed();
+
+    expect(result.items.map((item) => item.id)).toEqual(['stashdb-scene-1']);
+    // total/hasMore intentionally stay tied to the provider's raw count --
+    // there's no way to make the provider's own pagination aware of a
+    // locally-known "already in my library" exception.
+    expect(result.total).toBe(2);
+  });
+
+  it('keeps an already-library excluded-network scene visible even when hideAmateurNetworkResults is on', async () => {
+    appSettingsService.get = jest
+      .fn()
+      .mockResolvedValue({ hideAmateurNetworkResults: true });
+    catalogAdapter.getScenesBySort = jest.fn().mockResolvedValue({
+      total: 1,
+      scenes: [
+        {
+          id: 'amateur-scene-1',
+          title: 'Amateur Scene',
+          details: null,
+          imageUrl: null,
+          studioId: null,
+          studioName: null,
+          studioImageUrl: null,
+          date: null,
+          releaseDate: null,
+          productionDate: null,
+          duration: null,
+          isFromExcludedNetwork: true,
+        },
+      ],
+    });
+    sceneStatusService.resolveForScenes = jest
+      .fn()
+      .mockResolvedValue(
+        new Map([['amateur-scene-1', { state: 'AVAILABLE' }]]),
+      );
+
+    const result = await service.getScenesFeed();
+
+    expect(result.items.map((item) => item.id)).toEqual(['amateur-scene-1']);
   });
 
   it('uses the active FANSDB provider for discovery feed and scene detail source', async () => {

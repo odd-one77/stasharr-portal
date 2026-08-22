@@ -10,7 +10,9 @@ import {
   SceneStatusDto,
   isSceneStatusRequestable,
 } from '../scene-status/dto/scene-status.dto';
+import { filterExcludedNetworkScenes } from '../scene-status/exclude-network-scenes.util';
 import { SceneStatusService } from '../scene-status/scene-status.service';
+import { AppSettingsService } from '../settings/app-settings.service';
 import { SceneTagOptionDto } from './dto/scene-tag-option.dto';
 import {
   SceneDetailsDto,
@@ -36,6 +38,7 @@ export class ScenesService {
     private readonly sceneStatusService: SceneStatusService,
     private readonly stashAdapter: StashAdapter,
     private readonly whisparrAdapter: WhisparrAdapter,
+    private readonly appSettingsService: AppSettingsService,
   ) {}
 
   async getScenesFeed(
@@ -55,34 +58,48 @@ export class ScenesService {
       await this.catalogProviderService.getConfiguredCatalogAdapter();
     const normalizedTagIds = this.normalizeTagIds(tagIds);
     const normalizedStudioIds = this.normalizeStudioIds(studioIds);
-    const scenes = await catalogAdapter.getScenesBySort({
-      baseUrl: catalogProvider.baseUrl,
-      apiKey: catalogProvider.apiKey,
-      page,
-      perPage,
-      sort,
-      direction,
-      favorites,
-      studioIds: normalizedStudioIds,
-      titleQuery,
-      tagFilter:
-        normalizedTagIds.length > 0
-          ? {
-              tagIds: normalizedTagIds,
-              mode: tagMode,
-            }
-          : undefined,
-    });
+    const [scenes, appSettings] = await Promise.all([
+      catalogAdapter.getScenesBySort({
+        baseUrl: catalogProvider.baseUrl,
+        apiKey: catalogProvider.apiKey,
+        page,
+        perPage,
+        sort,
+        direction,
+        favorites,
+        studioIds: normalizedStudioIds,
+        titleQuery,
+        tagFilter:
+          normalizedTagIds.length > 0
+            ? {
+                tagIds: normalizedTagIds,
+                mode: tagMode,
+              }
+            : undefined,
+      }),
+      this.appSettingsService.get(),
+    ]);
     const statuses = await this.sceneStatusService.resolveForScenes(
       scenes.scenes.map((scene) => scene.id),
     );
+    const visibleScenes = filterExcludedNetworkScenes(
+      scenes.scenes,
+      statuses,
+      appSettings.hideAmateurNetworkResults,
+    );
 
     return {
+      // total/hasMore still reflect the catalog provider's raw, unfiltered
+      // count -- there's no way to know "is this scene already in my
+      // library" without resolving status locally, so an excluded-network
+      // scene can't be excluded from the provider's own pagination math.
+      // Worst case this slightly overstates the count and infinite-scroll
+      // makes one extra (empty) request at the very end of a feed.
       total: scenes.total,
       page,
       perPage,
       hasMore: page * perPage < scenes.total,
-      items: scenes.scenes.map((scene) => {
+      items: visibleScenes.map((scene) => {
         const status = statuses.get(scene.id) ?? { state: 'NOT_REQUESTED' };
         return this.toScenesFeedItem(
           scene,

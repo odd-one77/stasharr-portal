@@ -220,6 +220,11 @@ export interface StashdbScene {
   releaseDate: string | null;
   productionDate: string | null;
   duration: number | null;
+  /// Whether this scene is sourced from a known amateur/creator platform
+  /// (e.g. ManyVids, FansDB) that a user may want to exclude from discovery
+  /// results unless it's already in their local library. Always false for
+  /// providers with no such concept (StashDB/FansDB).
+  isFromExcludedNetwork: boolean;
 }
 
 export interface StashdbSceneMetadata {
@@ -1791,6 +1796,9 @@ export class StashdbAdapter implements CatalogAdapter {
               ? scene.production_date
               : null,
           duration: typeof scene.duration === 'number' ? scene.duration : null,
+          // StashDB/FansDB are curated, invite-gated databases with no
+          // ManyVids-style amateur firehose, so this concept doesn't apply.
+          isFromExcludedNetwork: false,
         };
       })
       .filter((scene): scene is StashdbScene => scene !== null);

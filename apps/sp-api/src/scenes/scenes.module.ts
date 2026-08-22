@@ -4,6 +4,7 @@ import { StashModule } from '../providers/stash/stash.module';
 import { StashdbModule } from '../providers/stashdb/stashdb.module';
 import { WhisparrModule } from '../providers/whisparr/whisparr.module';
 import { SceneStatusModule } from '../scene-status/scene-status.module';
+import { SettingsModule } from '../settings/settings.module';
 import { ScenesController } from './scenes.controller';
 import { ScenesService } from './scenes.service';
 
@@ -14,6 +15,7 @@ import { ScenesService } from './scenes.service';
     SceneStatusModule,
     StashModule,
     WhisparrModule,
+    SettingsModule,
   ],
   controllers: [ScenesController],
   providers: [ScenesService],

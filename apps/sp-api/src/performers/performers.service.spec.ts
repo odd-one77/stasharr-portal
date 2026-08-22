@@ -1,6 +1,7 @@
 import { CatalogProviderService } from '../providers/catalog/catalog-provider.service';
 import type { CatalogAdapter } from '../providers/catalog/catalog-adapter.interface';
 import { SceneStatusService } from '../scene-status/scene-status.service';
+import { AppSettingsService } from '../settings/app-settings.service';
 import { PerformersService } from './performers.service';
 
 describe('PerformersService', () => {
@@ -21,6 +22,10 @@ describe('PerformersService', () => {
     resolveForScenes: jest.fn(),
   } as unknown as SceneStatusService;
 
+  const appSettingsService = {
+    get: jest.fn(),
+  } as unknown as AppSettingsService;
+
   const stashdbIntegration = {
     integrationType: 'STASHDB',
     providerKey: 'STASHDB',
@@ -36,6 +41,7 @@ describe('PerformersService', () => {
     service = new PerformersService(
       catalogProviderService,
       sceneStatusService,
+      appSettingsService,
     );
 
     catalogProviderService.getConfiguredCatalogProvider = jest
@@ -120,6 +126,9 @@ describe('PerformersService', () => {
     sceneStatusService.resolveForScenes = jest
       .fn()
       .mockResolvedValue(new Map([['scene-1', { state: 'AVAILABLE' }]]));
+    appSettingsService.get = jest
+      .fn()
+      .mockResolvedValue({ hideAmateurNetworkResults: false });
   });
 
   it('uses default query behavior for performers feed', async () => {
@@ -240,6 +249,55 @@ describe('PerformersService', () => {
       tagIds: [],
       onlyFavoriteStudios: false,
     });
+  });
+
+  it('hides a non-library excluded-network scene when hideAmateurNetworkResults is on', async () => {
+    appSettingsService.get = jest
+      .fn()
+      .mockResolvedValue({ hideAmateurNetworkResults: true });
+    catalogAdapter.getScenesForPerformer = jest.fn().mockResolvedValue({
+      total: 2,
+      scenes: [
+        {
+          id: 'scene-1',
+          title: 'Scene One',
+          details: 'Details',
+          imageUrl: 'http://cdn.local/scene.jpg',
+          studioId: 'studio-1',
+          studioName: 'Studio',
+          studioImageUrl: 'http://studio-image',
+          date: '2026-03-01',
+          releaseDate: '2026-03-02',
+          productionDate: null,
+          duration: 420,
+          isFromExcludedNetwork: false,
+        },
+        {
+          id: 'amateur-scene-1',
+          title: 'Amateur Scene',
+          details: null,
+          imageUrl: null,
+          studioId: null,
+          studioName: null,
+          studioImageUrl: null,
+          date: null,
+          releaseDate: null,
+          productionDate: null,
+          duration: null,
+          isFromExcludedNetwork: true,
+        },
+      ],
+    });
+    sceneStatusService.resolveForScenes = jest.fn().mockResolvedValue(
+      new Map([
+        ['scene-1', { state: 'AVAILABLE' }],
+        ['amateur-scene-1', { state: 'NOT_REQUESTED' }],
+      ]),
+    );
+
+    const result = await service.getPerformerScenes('p-1');
+
+    expect(result.items.map((item) => item.id)).toEqual(['scene-1']);
   });
 
   it('forwards performer-scoped scene filters', async () => {

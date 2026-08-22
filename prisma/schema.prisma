@@ -277,3 +277,11 @@ model RuntimeIntegrationHealth {
   createdAt           DateTime                @default(now())
   updatedAt           DateTime                @updatedAt
 }
+
+model AppSettings {
+  id                        String   @id @default(cuid())
+  singletonKey              Int      @unique @default(1)
+  hideAmateurNetworkResults Boolean  @default(false)
+  createdAt                 DateTime @default(now())
+  updatedAt                 DateTime @updatedAt
+}

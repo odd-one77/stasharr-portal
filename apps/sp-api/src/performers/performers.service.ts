@@ -8,6 +8,8 @@ import {
 import { CatalogProviderService } from '../providers/catalog/catalog-provider.service';
 import { withStashImageSize } from '../providers/stashdb/stashdb-image-url.util';
 import { SceneStatusService } from '../scene-status/scene-status.service';
+import { filterExcludedNetworkScenes } from '../scene-status/exclude-network-scenes.util';
+import { AppSettingsService } from '../settings/app-settings.service';
 import { PerformerDetailsDto } from './dto/performer-details.dto';
 import { PerformerFeedResponseDto } from './dto/performer-feed-response.dto';
 import {
@@ -32,6 +34,7 @@ export class PerformersService {
   constructor(
     private readonly catalogProviderService: CatalogProviderService,
     private readonly sceneStatusService: SceneStatusService,
+    private readonly appSettingsService: AppSettingsService,
   ) {}
 
   async getPerformersFeed(
@@ -149,22 +152,32 @@ export class PerformersService {
       await this.catalogProviderService.getConfiguredCatalogProvider();
     const catalogAdapter =
       await this.catalogProviderService.getConfiguredCatalogAdapter();
-    const scenes = await catalogAdapter.getScenesForPerformer({
-      baseUrl: catalogProvider.baseUrl,
-      apiKey: catalogProvider.apiKey,
-      performerId: normalizedPerformerId,
-      page,
-      perPage,
-      sort: filters?.sort ?? 'DATE',
-      direction: filters?.direction ?? PerformersService.DEFAULT_SCENES_SORT_DIRECTION,
-      studioIds: this.normalizeIds(filters?.studioIds ?? []),
-      tagIds: this.normalizeIds(filters?.tagIds ?? []),
-      onlyFavoriteStudios: filters?.onlyFavoriteStudios === true,
-    });
+    const [scenes, appSettings] = await Promise.all([
+      catalogAdapter.getScenesForPerformer({
+        baseUrl: catalogProvider.baseUrl,
+        apiKey: catalogProvider.apiKey,
+        performerId: normalizedPerformerId,
+        page,
+        perPage,
+        sort: filters?.sort ?? 'DATE',
+        direction: filters?.direction ?? PerformersService.DEFAULT_SCENES_SORT_DIRECTION,
+        studioIds: this.normalizeIds(filters?.studioIds ?? []),
+        tagIds: this.normalizeIds(filters?.tagIds ?? []),
+        onlyFavoriteStudios: filters?.onlyFavoriteStudios === true,
+      }),
+      this.appSettingsService.get(),
+    ]);
 
+    // total/hasMore still reflect the catalog provider's raw, unfiltered
+    // count -- see the identical note in ScenesService.getScenesFeed.
     const hasMore = page * perPage < scenes.total;
     const statuses = await this.sceneStatusService.resolveForScenes(
       scenes.scenes.map((scene) => scene.id),
+    );
+    const visibleScenes = filterExcludedNetworkScenes(
+      scenes.scenes,
+      statuses,
+      appSettings.hideAmateurNetworkResults,
     );
 
     return {
@@ -172,7 +185,7 @@ export class PerformersService {
       page,
       perPage,
       hasMore,
-      items: scenes.scenes.map((scene) => ({
+      items: visibleScenes.map((scene) => ({
         id: scene.id,
         title: scene.title,
         description: scene.details,

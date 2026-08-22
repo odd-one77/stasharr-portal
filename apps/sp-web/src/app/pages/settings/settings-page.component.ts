@@ -29,6 +29,10 @@ export class SettingsPageComponent {
       route: '/settings/indexing',
     },
     {
+      label: 'Content',
+      route: '/settings/content',
+    },
+    {
       label: 'Account',
       route: '/settings/account',
     },

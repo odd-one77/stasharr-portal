@@ -45,6 +45,12 @@ import {
 export class TpdbAdapter implements CatalogAdapter {
   private static readonly DEFAULT_PAGE_SIZE = 24;
   private static readonly MAX_RATE_LIMIT_RETRIES = 3;
+  // Amateur/creator-platform names a user can choose to hide (see
+  // AppSettings.hideAmateurNetworkResults) for scenes not already in their
+  // library. Matched case-insensitively against the scene's network name,
+  // site name, and URL, since TPDB doesn't always populate a full `network`
+  // object on every site.
+  private static readonly EXCLUDABLE_NETWORK_NAMES = ['manyvids', 'fansdb'];
   private readonly logger = new Logger(TpdbAdapter.name);
 
   constructor(private readonly runtimeHealthService: RuntimeHealthService) {}
@@ -534,7 +540,28 @@ export class TpdbAdapter implements CatalogAdapter {
       releaseDate: date,
       productionDate: null,
       duration: this.readNumber(record.duration),
+      isFromExcludedNetwork: this.isFromExcludableNetwork(record, site),
     };
+  }
+
+  private isFromExcludableNetwork(
+    record: Record<string, unknown>,
+    site: Record<string, unknown> | null,
+  ): boolean {
+    const network = this.asRecord(site?.network);
+    const haystacks = [
+      this.readString(network?.name),
+      this.readString(network?.short_name),
+      this.readString(site?.name),
+      this.readString(site?.short_name),
+      this.readString(record.url),
+    ]
+      .filter((value): value is string => value !== null)
+      .map((value) => value.toLowerCase());
+
+    return TpdbAdapter.EXCLUDABLE_NETWORK_NAMES.some((needle) =>
+      haystacks.some((haystack) => haystack.includes(needle)),
+    );
   }
 
   private mapPerformerListEntry(entry: unknown): StashdbPerformerFeedItem | null {

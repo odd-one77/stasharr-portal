@@ -116,6 +116,7 @@ describe('TpdbAdapter', () => {
         releaseDate: '2026-03-01',
         productionDate: null,
         duration: 600,
+        isFromExcludedNetwork: false,
       },
     ]);
 
@@ -154,6 +155,101 @@ describe('TpdbAdapter', () => {
     expect(result.scenes[0].studioId).toBe('42');
     expect(result.scenes[0].studioName).toBeNull();
     expect(result.scenes[0].studioImageUrl).toBeNull();
+  });
+
+  it('flags a scene from a known amateur/creator network as excludable', async () => {
+    fetchMock.mockResolvedValue(
+      jsonResponse(200, {
+        data: [
+          {
+            id: 'scene-uuid-1',
+            title: 'A Scene',
+            date: '2026-03-01',
+            duration: 174,
+            site_id: 115452,
+            url: 'https://www.manyvids.com/Video/7767007/a-scene',
+            site: {
+              id: 115452,
+              name: 'Manyvids: Rubyyinthewild',
+              short_name: 'manyvidsrubyyinthewild',
+              network: { id: 5502, name: 'ManyVids', short_name: 'manyvids' },
+            },
+          },
+        ],
+        meta: { current_page: 1, last_page: 1, total: 1 },
+      }),
+    );
+
+    const result = await adapter.getScenesBySort({
+      baseUrl: config.baseUrl,
+      apiKey: config.apiKey,
+      page: 1,
+      perPage: 20,
+      sort: 'DATE',
+    });
+
+    expect(result.scenes[0].isFromExcludedNetwork).toBe(true);
+  });
+
+  it('flags a scene by its bare URL when no network object is embedded', async () => {
+    fetchMock.mockResolvedValue(
+      jsonResponse(200, {
+        data: [
+          {
+            id: 'scene-uuid-1',
+            title: 'A Scene',
+            date: '2026-03-01',
+            duration: 174,
+            site_id: 115452,
+            url: 'https://fansdb.example.com/video/1',
+          },
+        ],
+        meta: { current_page: 1, last_page: 1, total: 1 },
+      }),
+    );
+
+    const result = await adapter.getScenesBySort({
+      baseUrl: config.baseUrl,
+      apiKey: config.apiKey,
+      page: 1,
+      perPage: 20,
+      sort: 'DATE',
+    });
+
+    expect(result.scenes[0].isFromExcludedNetwork).toBe(true);
+  });
+
+  it('does not flag a scene from an unrelated studio', async () => {
+    fetchMock.mockResolvedValue(
+      jsonResponse(200, {
+        data: [
+          {
+            id: 'scene-uuid-1',
+            title: 'A Scene',
+            date: '2026-03-01',
+            duration: 174,
+            site_id: 1,
+            url: 'https://example-studio.com/scenes/1',
+            site: {
+              id: 1,
+              name: 'Example Studio',
+              network: { id: 2, name: 'Example Network' },
+            },
+          },
+        ],
+        meta: { current_page: 1, last_page: 1, total: 1 },
+      }),
+    );
+
+    const result = await adapter.getScenesBySort({
+      baseUrl: config.baseUrl,
+      apiKey: config.apiKey,
+      page: 1,
+      perPage: 20,
+      sort: 'DATE',
+    });
+
+    expect(result.scenes[0].isFromExcludedNetwork).toBe(false);
   });
 
   it('maps a single scene, placing the TPDB id in both stashId and tpdbId slots', async () => {

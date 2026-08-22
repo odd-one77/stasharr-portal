@@ -19,6 +19,7 @@ import { ScenePageComponent } from './pages/scene/scene-page.component';
 import { IndexingSettingsPageComponent } from './pages/settings/indexing-settings-page.component';
 import { SettingsAboutPageComponent } from './pages/settings/settings-about-page.component';
 import { SettingsAccountPageComponent } from './pages/settings/settings-account-page.component';
+import { SettingsContentPageComponent } from './pages/settings/settings-content-page.component';
 import { SettingsIntegrationsPageComponent } from './pages/settings/settings-integrations-page.component';
 import { SettingsOverviewPageComponent } from './pages/settings/settings-overview-page.component';
 import { SettingsPageComponent } from './pages/settings/settings-page.component';
@@ -105,6 +106,10 @@ export const routes: Routes = [
           {
             path: 'indexing',
             component: IndexingSettingsPageComponent,
+          },
+          {
+            path: 'content',
+            component: SettingsContentPageComponent,
           },
           {
             path: 'account',

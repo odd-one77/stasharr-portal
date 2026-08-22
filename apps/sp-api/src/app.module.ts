@@ -14,6 +14,7 @@ import { PerformersModule } from './performers/performers.module';
 import { RequestsModule } from './requests/requests.module';
 import { RuntimeHealthModule } from './runtime-health/runtime-health.module';
 import { ScenesModule } from './scenes/scenes.module';
+import { SettingsModule } from './settings/settings.module';
 import { SetupModule } from './setup/setup.module';
 import { StudiosModule } from './studios/studios.module';
 import { WhisparrMetadataModule } from './whisparr-metadata/whisparr-metadata.module';
@@ -34,6 +35,7 @@ import { WhisparrMetadataModule } from './whisparr-metadata/whisparr-metadata.mo
     LibraryModule,
     IndexingModule,
     IntegrationsModule,
+    SettingsModule,
     SetupModule,
     AcquisitionModule,
     ScenesModule,

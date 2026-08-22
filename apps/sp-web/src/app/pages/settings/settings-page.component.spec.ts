@@ -27,13 +27,15 @@ describe('SettingsPageComponent', () => {
       'Overview',
       'Integrations',
       'Indexing',
+      'Content',
       'Account',
       'About',
     ]);
     expect(navLinks[0]?.getAttribute('href')).toContain('/settings');
     expect(navLinks[1]?.getAttribute('href')).toContain('/settings/integrations');
     expect(navLinks[2]?.getAttribute('href')).toContain('/settings/indexing');
-    expect(navLinks[3]?.getAttribute('href')).toContain('/settings/account');
-    expect(navLinks[4]?.getAttribute('href')).toContain('/settings/about');
+    expect(navLinks[3]?.getAttribute('href')).toContain('/settings/content');
+    expect(navLinks[4]?.getAttribute('href')).toContain('/settings/account');
+    expect(navLinks[5]?.getAttribute('href')).toContain('/settings/about');
   });
 });

@@ -147,6 +147,7 @@ describe('StashdbAdapter', () => {
           releaseDate: '2026-03-02',
           productionDate: '2026-03-03',
           duration: 640,
+          isFromExcludedNetwork: false,
         },
       ],
     });
