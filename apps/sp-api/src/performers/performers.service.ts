@@ -7,10 +7,13 @@ import {
 } from '@nestjs/common';
 import { CatalogProviderService } from '../providers/catalog/catalog-provider.service';
 import { withStashImageSize } from '../providers/stashdb/stashdb-image-url.util';
+import { StashdbPerformerDetails } from '../providers/stashdb/stashdb.adapter';
 import { SceneStatusService } from '../scene-status/scene-status.service';
 import { filterExcludedNetworkScenes } from '../scene-status/exclude-network-scenes.util';
 import { AppSettingsService } from '../settings/app-settings.service';
+import { PerformerFavoritesService } from './performer-favorites.service';
 import { PerformerDetailsDto } from './dto/performer-details.dto';
+import { PerformerFeedItemDto } from './dto/performer-feed-item.dto';
 import { PerformerFeedResponseDto } from './dto/performer-feed-response.dto';
 import {
   PerformerScenesSort,
@@ -35,6 +38,7 @@ export class PerformersService {
     private readonly catalogProviderService: CatalogProviderService,
     private readonly sceneStatusService: SceneStatusService,
     private readonly appSettingsService: AppSettingsService,
+    private readonly performerFavoritesService: PerformerFavoritesService,
   ) {}
 
   async getPerformersFeed(
@@ -48,6 +52,10 @@ export class PerformersService {
       favoritesOnly?: boolean;
     },
   ): Promise<PerformerFeedResponseDto> {
+    if (filters?.favoritesOnly) {
+      return this.getFavoritedPerformersFeed(page, perPage, filters);
+    }
+
     const catalogProvider =
       await this.catalogProviderService.getConfiguredCatalogProvider();
     const catalogAdapter =
@@ -63,8 +71,11 @@ export class PerformersService {
       sort: filters?.sort ?? 'NAME',
       direction:
         filters?.direction ?? PerformersService.DEFAULT_PERFORMERS_SORT_DIRECTION,
-      favoritesOnly: filters?.favoritesOnly === true,
+      favoritesOnly: false,
     });
+    const favoriteIds = await this.performerFavoritesService.getFavoriteIds(
+      performers.performers.map((performer) => performer.id),
+    );
 
     const hasMore = page * perPage < performers.total;
 
@@ -78,11 +89,136 @@ export class PerformersService {
         name: performer.name,
         gender: performer.gender,
         sceneCount: performer.sceneCount,
-        isFavorite: performer.isFavorite,
+        // isFavorite is locally-tracked, not the catalog provider's own
+        // flag -- see PerformerFavoritesService for why.
+        isFavorite: favoriteIds.has(performer.id),
         imageUrl: performer.imageUrl,
         cardImageUrl: withStashImageSize(performer.imageUrl, 300),
       })),
     };
+  }
+
+  // Favorites live entirely in our own DB, and a favorited list is expected
+  // to be small (a curated shortlist, not the full catalog), so rather than
+  // ask the catalog provider for a "favorites only" page it can't reliably
+  // produce (TPDB has no such filter at all), fetch every favorited
+  // performer's details directly and filter/sort/paginate locally.
+  private async getFavoritedPerformersFeed(
+    page: number,
+    perPage: number,
+    filters: {
+      name?: string;
+      gender?: PerformerGender;
+      sort?: PerformerSort;
+      direction?: PerformerSortDirection;
+    },
+  ): Promise<PerformerFeedResponseDto> {
+    const favoriteIds = await this.performerFavoritesService.listAllFavoriteIds();
+    if (favoriteIds.length === 0) {
+      return { total: 0, page, perPage, hasMore: false, items: [] };
+    }
+
+    const config = await this.getActiveCatalogConfig();
+    const catalogAdapter =
+      await this.catalogProviderService.getConfiguredCatalogAdapter();
+
+    const performers = (
+      await Promise.all(
+        favoriteIds.map(async (performerId) => {
+          try {
+            return await catalogAdapter.getPerformerById(performerId, config);
+          } catch {
+            // Deleted/merged upstream since being favorited -- drop it
+            // rather than fail the whole feed.
+            return null;
+          }
+        }),
+      )
+    ).filter((performer): performer is StashdbPerformerDetails => performer !== null);
+
+    const nameQuery = filters.name?.trim().toLowerCase();
+    const nameFiltered = nameQuery
+      ? performers.filter((performer) => performer.name.toLowerCase().includes(nameQuery))
+      : performers;
+    const genderFiltered = filters.gender
+      ? nameFiltered.filter((performer) => performer.gender === filters.gender)
+      : nameFiltered;
+
+    const sorted = this.sortFavoritedPerformers(
+      genderFiltered,
+      filters.sort ?? 'NAME',
+      filters.direction ?? PerformersService.DEFAULT_PERFORMERS_SORT_DIRECTION,
+    );
+
+    const total = sorted.length;
+    const start = (page - 1) * perPage;
+    const pageItems = sorted.slice(start, start + perPage);
+
+    return {
+      total,
+      page,
+      perPage,
+      hasMore: page * perPage < total,
+      items: pageItems.map(
+        (performer): PerformerFeedItemDto => ({
+          id: performer.id,
+          name: performer.name,
+          gender: performer.gender,
+          // Not available from a single-performer lookup without an extra
+          // per-performer scene-count query; favorites-only view doesn't
+          // show it as a sortable/reliable figure anyway.
+          sceneCount: 0,
+          isFavorite: true,
+          imageUrl: performer.imageUrl,
+          cardImageUrl: withStashImageSize(performer.imageUrl, 300),
+        }),
+      ),
+    };
+  }
+
+  private sortFavoritedPerformers(
+    performers: StashdbPerformerDetails[],
+    sort: PerformerSort,
+    direction: PerformerSortDirection,
+  ): StashdbPerformerDetails[] {
+    // SCENE_COUNT/DEBUT/LAST_SCENE need data this lookup doesn't have
+    // (see getFavoritedPerformersFeed) -- fall back to NAME rather than
+    // silently no-op or throw.
+    const sortKey: 'name' | 'birthDate' | 'deathDate' | 'careerStartYear' | 'createdAt' | 'updatedAt' =
+      sort === 'BIRTHDATE'
+        ? 'birthDate'
+        : sort === 'DEATHDATE'
+          ? 'deathDate'
+          : sort === 'CAREER_START_YEAR'
+            ? 'careerStartYear'
+            : sort === 'CREATED_AT'
+              ? 'createdAt'
+              : sort === 'UPDATED_AT'
+                ? 'updatedAt'
+                : 'name';
+
+    const directionFactor = direction === 'DESC' ? -1 : 1;
+
+    return [...performers].sort((a, b) => {
+      const aValue = a[sortKey];
+      const bValue = b[sortKey];
+
+      if (aValue === null && bValue === null) {
+        return 0;
+      }
+      if (aValue === null) {
+        return 1;
+      }
+      if (bValue === null) {
+        return -1;
+      }
+
+      if (typeof aValue === 'number' && typeof bValue === 'number') {
+        return (aValue - bValue) * directionFactor;
+      }
+
+      return String(aValue).localeCompare(String(bValue)) * directionFactor;
+    });
   }
 
   async getPerformerById(performerId: string): Promise<PerformerDetailsDto> {
@@ -94,10 +230,10 @@ export class PerformersService {
     const config = await this.getActiveCatalogConfig();
     const catalogAdapter =
       await this.catalogProviderService.getConfiguredCatalogAdapter();
-    const performer = await catalogAdapter.getPerformerById(
-      normalizedPerformerId,
-      config,
-    );
+    const [performer, isFavorite] = await Promise.all([
+      catalogAdapter.getPerformerById(normalizedPerformerId, config),
+      this.performerFavoritesService.isFavorite(normalizedPerformerId),
+    ]);
 
     return {
       id: performer.id,
@@ -123,7 +259,9 @@ export class PerformersService {
       deleted: performer.deleted,
       mergedIds: performer.mergedIds,
       mergedIntoId: performer.mergedIntoId,
-      isFavorite: performer.isFavorite,
+      // Locally-tracked, not the catalog provider's own flag -- see
+      // PerformerFavoritesService.
+      isFavorite,
       createdAt: performer.createdAt,
       updatedAt: performer.updatedAt,
       imageUrl: performer.imageUrl,
@@ -224,15 +362,28 @@ export class PerformersService {
       throw new BadRequestException('Performer id is required.');
     }
 
-    const catalogProvider =
-      await this.catalogProviderService.getConfiguredCatalogProvider();
-    const catalogAdapter =
-      await this.catalogProviderService.getConfiguredCatalogAdapter();
+    const result = await this.performerFavoritesService.setFavorite(
+      normalizedPerformerId,
+      favorite,
+    );
 
-    return catalogAdapter.favoritePerformer(normalizedPerformerId, favorite, {
-      baseUrl: catalogProvider.baseUrl,
-      apiKey: catalogProvider.apiKey,
-    });
+    // Best-effort only: our own table is the source of truth (see
+    // PerformerFavoritesService), so a provider that can't persist or
+    // report this back -- TPDB -- must never block the toggle.
+    try {
+      const catalogProvider =
+        await this.catalogProviderService.getConfiguredCatalogProvider();
+      const catalogAdapter =
+        await this.catalogProviderService.getConfiguredCatalogAdapter();
+      await catalogAdapter.favoritePerformer(normalizedPerformerId, favorite, {
+        baseUrl: catalogProvider.baseUrl,
+        apiKey: catalogProvider.apiKey,
+      });
+    } catch {
+      // ignore
+    }
+
+    return result;
   }
 
   private async getActiveCatalogConfig(): Promise<{

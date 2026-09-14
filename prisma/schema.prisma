@@ -285,3 +285,10 @@ model AppSettings {
   createdAt                 DateTime @default(now())
   updatedAt                 DateTime @updatedAt
 }
+
+model FavoritePerformer {
+  id          String   @id @default(cuid())
+  /// External performer id from the instance's currently active catalog provider (StashDB/FansDB/TPDB).
+  performerId String   @unique
+  createdAt   DateTime @default(now())
+}

@@ -2,6 +2,7 @@ import { CatalogProviderService } from '../providers/catalog/catalog-provider.se
 import type { CatalogAdapter } from '../providers/catalog/catalog-adapter.interface';
 import { SceneStatusService } from '../scene-status/scene-status.service';
 import { AppSettingsService } from '../settings/app-settings.service';
+import { PerformerFavoritesService } from './performer-favorites.service';
 import { PerformersService } from './performers.service';
 
 describe('PerformersService', () => {
@@ -26,6 +27,13 @@ describe('PerformersService', () => {
     get: jest.fn(),
   } as unknown as AppSettingsService;
 
+  const performerFavoritesService = {
+    isFavorite: jest.fn(),
+    getFavoriteIds: jest.fn(),
+    listAllFavoriteIds: jest.fn(),
+    setFavorite: jest.fn(),
+  } as unknown as PerformerFavoritesService;
+
   const stashdbIntegration = {
     integrationType: 'STASHDB',
     providerKey: 'STASHDB',
@@ -42,6 +50,7 @@ describe('PerformersService', () => {
       catalogProviderService,
       sceneStatusService,
       appSettingsService,
+      performerFavoritesService,
     );
 
     catalogProviderService.getConfiguredCatalogProvider = jest
@@ -129,6 +138,16 @@ describe('PerformersService', () => {
     appSettingsService.get = jest
       .fn()
       .mockResolvedValue({ hideAmateurNetworkResults: false });
+    performerFavoritesService.isFavorite = jest.fn().mockResolvedValue(true);
+    performerFavoritesService.getFavoriteIds = jest
+      .fn()
+      .mockResolvedValue(new Set(['p-1']));
+    performerFavoritesService.listAllFavoriteIds = jest
+      .fn()
+      .mockResolvedValue(['p-1']);
+    performerFavoritesService.setFavorite = jest
+      .fn()
+      .mockResolvedValue({ favorited: true, alreadyFavorited: false });
   });
 
   it('uses default query behavior for performers feed', async () => {
@@ -168,7 +187,7 @@ describe('PerformersService', () => {
       name: 'aj',
       gender: 'FEMALE',
       sort: 'SCENE_COUNT',
-      favoritesOnly: true,
+      favoritesOnly: false,
     });
 
     expect(catalogAdapter.getPerformersFeed).toHaveBeenCalledWith({
@@ -180,8 +199,107 @@ describe('PerformersService', () => {
       gender: 'FEMALE',
       sort: 'SCENE_COUNT',
       direction: 'ASC',
-      favoritesOnly: true,
+      favoritesOnly: false,
     });
+  });
+
+  it('overrides isFavorite with locally-tracked state, ignoring the provider value', async () => {
+    performerFavoritesService.getFavoriteIds = jest.fn().mockResolvedValue(new Set());
+
+    await expect(service.getPerformersFeed()).resolves.toMatchObject({
+      items: [expect.objectContaining({ id: 'p-1', isFavorite: false })],
+    });
+    expect(performerFavoritesService.getFavoriteIds).toHaveBeenCalledWith(['p-1']);
+  });
+
+  it('bypasses the provider feed entirely and serves favorites from local storage', async () => {
+    performerFavoritesService.listAllFavoriteIds = jest
+      .fn()
+      .mockResolvedValue(['p-1', 'p-2']);
+    catalogAdapter.getPerformerById = jest.fn().mockImplementation((id: string) =>
+      Promise.resolve({
+        id,
+        name: id === 'p-1' ? 'Aaron' : 'Zoe',
+        disambiguation: null,
+        aliases: [],
+        gender: 'FEMALE',
+        birthDate: null,
+        deathDate: null,
+        age: null,
+        ethnicity: null,
+        country: null,
+        eyeColor: null,
+        hairColor: null,
+        height: null,
+        cupSize: null,
+        bandSize: null,
+        waistSize: null,
+        hipSize: null,
+        breastType: null,
+        careerStartYear: null,
+        careerEndYear: null,
+        deleted: false,
+        mergedIds: [],
+        mergedIntoId: null,
+        isFavorite: false,
+        createdAt: null,
+        updatedAt: null,
+        imageUrl: null,
+        images: [],
+      }),
+    );
+
+    const result = await service.getPerformersFeed(1, 24, { favoritesOnly: true });
+
+    expect(catalogAdapter.getPerformersFeed).not.toHaveBeenCalled();
+    expect(result.total).toBe(2);
+    expect(result.items.map((item) => item.id)).toEqual(['p-1', 'p-2']);
+    expect(result.items.every((item) => item.isFavorite)).toBe(true);
+  });
+
+  it('drops a favorited performer that no longer resolves upstream instead of failing the feed', async () => {
+    performerFavoritesService.listAllFavoriteIds = jest
+      .fn()
+      .mockResolvedValue(['p-1', 'deleted-performer']);
+    catalogAdapter.getPerformerById = jest.fn().mockImplementation((id: string) => {
+      if (id === 'deleted-performer') {
+        return Promise.reject(new Error('not found'));
+      }
+      return Promise.resolve({
+        id,
+        name: 'Performer One',
+        disambiguation: null,
+        aliases: [],
+        gender: 'FEMALE',
+        birthDate: null,
+        deathDate: null,
+        age: null,
+        ethnicity: null,
+        country: null,
+        eyeColor: null,
+        hairColor: null,
+        height: null,
+        cupSize: null,
+        bandSize: null,
+        waistSize: null,
+        hipSize: null,
+        breastType: null,
+        careerStartYear: null,
+        careerEndYear: null,
+        deleted: false,
+        mergedIds: [],
+        mergedIntoId: null,
+        isFavorite: false,
+        createdAt: null,
+        updatedAt: null,
+        imageUrl: null,
+        images: [],
+      });
+    });
+
+    const result = await service.getPerformersFeed(1, 24, { favoritesOnly: true });
+
+    expect(result.items.map((item) => item.id)).toEqual(['p-1']);
   });
 
   it('forwards explicit performer feed sort direction', async () => {
@@ -381,6 +499,7 @@ describe('PerformersService', () => {
       alreadyFavorited: false,
     });
 
+    expect(performerFavoritesService.setFavorite).toHaveBeenCalledWith('p-1', true);
     expect(catalogAdapter.favoritePerformer).toHaveBeenCalledWith(
       'p-1',
       true,
@@ -389,6 +508,19 @@ describe('PerformersService', () => {
         apiKey: stashdbIntegration.apiKey,
       },
     );
+  });
+
+  it('keeps the local favorite even when the provider mutation is a no-op or fails (e.g. TPDB)', async () => {
+    catalogAdapter.favoritePerformer = jest
+      .fn()
+      .mockRejectedValue(new Error('TPDB does not actually persist this'));
+
+    await expect(service.favoritePerformer('p-1', true)).resolves.toEqual({
+      favorited: true,
+      alreadyFavorited: false,
+    });
+
+    expect(performerFavoritesService.setFavorite).toHaveBeenCalledWith('p-1', true);
   });
 
   it('favorites a performer through whichever catalog adapter is configured (e.g. TPDB)', async () => {
