@@ -54,6 +54,14 @@ const LIBRARY_NAV_ITEM: ShellNavItem = {
   exact: true,
 };
 
+const GALLERIES_NAV_ITEM: ShellNavItem = {
+  label: 'Galleries',
+  route: '/galleries',
+  icon: 'pi pi-images',
+  exact: false,
+  activePrefixes: ['/galleries'],
+};
+
 const PERFORMERS_NAV_ITEM: ShellNavItem = {
   label: 'Performers',
   route: '/performers',
@@ -82,6 +90,7 @@ const DESKTOP_NAV_ITEMS: readonly ShellNavItem[] = [
   SCENES_NAV_ITEM,
   ACQUISITION_NAV_ITEM,
   LIBRARY_NAV_ITEM,
+  GALLERIES_NAV_ITEM,
   PERFORMERS_NAV_ITEM,
   STUDIOS_NAV_ITEM,
   SETTINGS_NAV_ITEM,
@@ -95,6 +104,7 @@ const MOBILE_PRIMARY_NAV_ITEMS: readonly ShellNavItem[] = [
 ];
 
 const MOBILE_SECONDARY_NAV_ITEMS: readonly ShellNavItem[] = [
+  GALLERIES_NAV_ITEM,
   PERFORMERS_NAV_ITEM,
   STUDIOS_NAV_ITEM,
   SETTINGS_NAV_ITEM,

@@ -849,6 +849,211 @@ describe('StashAdapter', () => {
     expect(String(body.query)).toContain('updated_at');
   });
 
+  it('maps a page of galleries with cover, studio, performers, and tags', async () => {
+    fetchMock.mockResolvedValue({
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          data: {
+            findGalleries: {
+              count: 1,
+              galleries: [
+                {
+                  id: 'gallery-1',
+                  title: 'Beach Day',
+                  date: '2026-05-01',
+                  details: 'A gallery.',
+                  image_count: 24,
+                  created_at: '2026-05-01T00:00:00.000Z',
+                  updated_at: '2026-05-02T00:00:00.000Z',
+                  cover: { paths: { thumbnail: 'http://stash.local/gal/1/cover.jpg' } },
+                  studio: {
+                    id: 'studio-1',
+                    name: 'Archive',
+                    image_path: 'http://stash.local/studios/archive.jpg',
+                  },
+                  performers: [
+                    {
+                      id: 'performer-1',
+                      name: 'Performer One',
+                      image_path: 'http://stash.local/performers/1.jpg',
+                    },
+                  ],
+                  tags: [{ id: 'tag-1', name: 'Tag One' }],
+                },
+              ],
+            },
+          },
+        }),
+    } as Response);
+
+    await expect(
+      adapter.getLocalGalleryFeed(
+        { baseUrl: 'http://stash.local', apiKey: 'secret' },
+        { page: 1, perPage: 24 },
+      ),
+    ).resolves.toEqual({
+      total: 1,
+      page: 1,
+      perPage: 24,
+      hasMore: false,
+      items: [
+        {
+          id: 'gallery-1',
+          title: 'Beach Day',
+          description: 'A gallery.',
+          coverImageUrl: 'http://stash.local/gal/1/cover.jpg',
+          studioId: 'studio-1',
+          studio: 'Archive',
+          studioImageUrl: 'http://stash.local/studios/archive.jpg',
+          performers: [
+            {
+              id: 'performer-1',
+              name: 'Performer One',
+              imageUrl: 'http://stash.local/performers/1.jpg',
+            },
+          ],
+          tagIds: ['tag-1'],
+          tagNames: ['Tag One'],
+          imageCount: 24,
+          releaseDate: '2026-05-01',
+          viewUrl: 'http://stash.local/galleries/gallery-1',
+          createdAt: new Date('2026-05-01T00:00:00.000Z'),
+          updatedAt: new Date('2026-05-02T00:00:00.000Z'),
+        },
+      ],
+    });
+
+    const [, init] = fetchMock.mock.calls[0] ?? [];
+    const body = JSON.parse(String(init?.body));
+    expect(String(body.query)).toContain('gallery_filter: $galleryFilter');
+    expect(body.variables).toEqual({
+      filter: { page: 1, per_page: 24, sort: 'date', direction: 'DESC' },
+      galleryFilter: undefined,
+    });
+  });
+
+  it('builds a gallery_filter from tag/studio ids and drops invalid ones', async () => {
+    fetchMock.mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ data: { findGalleries: { count: 0, galleries: [] } } }),
+    } as Response);
+
+    await adapter.getLocalGalleryFeed(
+      { baseUrl: 'http://stash.local', apiKey: 'secret' },
+      {
+        page: 1,
+        perPage: 24,
+        tagIds: ['tag-1', 'not valid!'],
+        studioIds: ['studio-1'],
+      },
+    );
+
+    const [, init] = fetchMock.mock.calls[0] ?? [];
+    const body = JSON.parse(String(init?.body));
+    expect(body.variables.galleryFilter).toEqual({
+      tags: { value: ['tag-1'], modifier: 'INCLUDES' },
+      studios: { value: ['studio-1'], modifier: 'INCLUDES' },
+    });
+  });
+
+  it('fetches a single gallery by id, or null when Stash has none', async () => {
+    fetchMock.mockResolvedValue({
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          data: {
+            findGallery: {
+              id: 'gallery-1',
+              title: 'Beach Day',
+              date: '2026-05-01',
+              details: null,
+              image_count: 24,
+              created_at: '2026-05-01T00:00:00.000Z',
+              updated_at: '2026-05-02T00:00:00.000Z',
+              cover: null,
+              studio: null,
+              performers: [],
+              tags: [],
+            },
+          },
+        }),
+    } as Response);
+
+    await expect(
+      adapter.getGalleryById('gallery-1', {
+        baseUrl: 'http://stash.local',
+        apiKey: 'secret',
+      }),
+    ).resolves.toMatchObject({ id: 'gallery-1', title: 'Beach Day', imageCount: 24 });
+
+    fetchMock.mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ data: { findGallery: null } }),
+    } as Response);
+
+    await expect(
+      adapter.getGalleryById('missing', {
+        baseUrl: 'http://stash.local',
+        apiKey: 'secret',
+      }),
+    ).resolves.toBeNull();
+  });
+
+  it('fetches a page of images scoped to one gallery', async () => {
+    fetchMock.mockResolvedValue({
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          data: {
+            findImages: {
+              count: 1,
+              images: [
+                {
+                  id: 'image-1',
+                  title: 'Frame 1',
+                  paths: {
+                    thumbnail: 'http://stash.local/img/1-thumb.jpg',
+                    image: 'http://stash.local/img/1.jpg',
+                  },
+                  files: [{ width: 1920, height: 1080 }],
+                },
+              ],
+            },
+          },
+        }),
+    } as Response);
+
+    await expect(
+      adapter.getGalleryImages(
+        'gallery-1',
+        { baseUrl: 'http://stash.local', apiKey: 'secret' },
+        { page: 1, perPage: 40 },
+      ),
+    ).resolves.toEqual({
+      total: 1,
+      page: 1,
+      perPage: 40,
+      hasMore: false,
+      items: [
+        {
+          id: 'image-1',
+          title: 'Frame 1',
+          imageUrl: 'http://stash.local/img/1.jpg',
+          thumbnailUrl: 'http://stash.local/img/1-thumb.jpg',
+          width: 1920,
+          height: 1080,
+        },
+      ],
+    });
+
+    const [, init] = fetchMock.mock.calls[0] ?? [];
+    const body = JSON.parse(String(init?.body));
+    expect(body.variables.imageFilter).toEqual({
+      galleries: { value: ['gallery-1'], modifier: 'INCLUDES' },
+    });
+  });
+
   it('selects the active-provider catalog id without discarding other provider refs', async () => {
     fetchMock.mockResolvedValue({
       ok: true,

@@ -225,6 +225,7 @@ describe('AppShellLayoutComponent', () => {
       'Scenes',
       'Acquisition',
       'Library',
+      'Galleries',
       'Performers',
       'Studios',
       'Settings',
@@ -268,6 +269,7 @@ describe('AppShellLayoutComponent', () => {
     ) as HTMLElement | null;
 
     expect(moreSheet).toBeTruthy();
+    expect(moreSheet?.textContent).toContain('Galleries');
     expect(moreSheet?.textContent).toContain('Performers');
     expect(moreSheet?.textContent).toContain('Studios');
     expect(moreSheet?.textContent).toContain('Settings');

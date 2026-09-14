@@ -112,6 +112,64 @@ export interface StashLocalLibraryScenePage {
   items: StashLocalLibrarySceneItem[];
 }
 
+export interface StashLocalGalleryFeedConfig {
+  page: number;
+  perPage: number;
+  titleQuery?: string | null;
+  tagIds?: string[];
+  studioIds?: string[];
+  performerIds?: string[];
+}
+
+export interface StashLocalGalleryPerformer {
+  id: string;
+  name: string;
+  imageUrl: string | null;
+}
+
+export interface StashLocalGalleryFeedItem {
+  id: string;
+  title: string;
+  description: string | null;
+  coverImageUrl: string | null;
+  studioId: string | null;
+  studio: string | null;
+  studioImageUrl: string | null;
+  performers: StashLocalGalleryPerformer[];
+  tagIds: string[];
+  tagNames: string[];
+  imageCount: number;
+  releaseDate: string | null;
+  viewUrl: string;
+  createdAt: Date | null;
+  updatedAt: Date | null;
+}
+
+export interface StashLocalGalleryFeedPage {
+  total: number;
+  page: number;
+  perPage: number;
+  hasMore: boolean;
+  items: StashLocalGalleryFeedItem[];
+}
+
+export interface StashLocalGalleryImage {
+  id: string;
+  title: string | null;
+  imageUrl: string | null;
+  thumbnailUrl: string | null;
+  width: number | null;
+  height: number | null;
+}
+
+export interface StashLocalGalleryImagePage {
+  total: number;
+  page: number;
+  perPage: number;
+  hasMore: boolean;
+  items: StashLocalGalleryImage[];
+}
+
 export interface StashSceneMatchOverlayConfig {
   providerKey?: CatalogProviderKey | null;
   favoritePerformersOnly?: boolean;
@@ -247,6 +305,48 @@ interface StashStudioSearchRecord {
   }> | null;
 }
 
+interface StashGalleryRecord {
+  id?: unknown;
+  title?: unknown;
+  date?: unknown;
+  details?: unknown;
+  image_count?: unknown;
+  created_at?: unknown;
+  updated_at?: unknown;
+  cover?: {
+    paths?: {
+      thumbnail?: unknown;
+    } | null;
+  } | null;
+  studio?: {
+    id?: unknown;
+    name?: unknown;
+    image_path?: unknown;
+  } | null;
+  performers?: Array<{
+    id?: unknown;
+    name?: unknown;
+    image_path?: unknown;
+  }> | null;
+  tags?: Array<{
+    id?: unknown;
+    name?: unknown;
+  }> | null;
+}
+
+interface StashImageRecord {
+  id?: unknown;
+  title?: unknown;
+  paths?: {
+    thumbnail?: unknown;
+    image?: unknown;
+  } | null;
+  files?: Array<{
+    width?: unknown;
+    height?: unknown;
+  }> | null;
+}
+
 interface StashGraphqlResponse {
   data?: {
     findScenes?: {
@@ -260,6 +360,15 @@ interface StashGraphqlResponse {
     };
     findStudios?: {
       studios?: StashStudioSearchRecord[];
+    };
+    findGalleries?: {
+      count?: unknown;
+      galleries?: StashGalleryRecord[];
+    };
+    findGallery?: StashGalleryRecord | null;
+    findImages?: {
+      count?: unknown;
+      images?: StashImageRecord[];
     };
   };
   errors?: Array<{ message?: unknown }>;
@@ -648,6 +757,202 @@ export class StashAdapter {
           ),
         )
         .filter((scene): scene is StashLocalLibrarySceneItem => scene !== null),
+    };
+  }
+
+  async getLocalGalleryFeed(
+    config: StashAdapterBaseConfig,
+    feedConfig: StashLocalGalleryFeedConfig,
+  ): Promise<StashLocalGalleryFeedPage> {
+    const page = this.normalizePositiveInteger(feedConfig.page, 1);
+    const perPage = this.normalizePositiveInteger(feedConfig.perPage, 24);
+
+    const query = `
+      query FindGalleries($filter: FindFilterType, $galleryFilter: GalleryFilterType) {
+        findGalleries(filter: $filter, gallery_filter: $galleryFilter) {
+          count
+          galleries {
+            id
+            title
+            date
+            details
+            image_count
+            created_at
+            updated_at
+            cover {
+              paths {
+                thumbnail
+              }
+            }
+            studio {
+              id
+              name
+              image_path
+            }
+            performers {
+              id
+              name
+              image_path
+            }
+            tags {
+              id
+              name
+            }
+          }
+        }
+      }
+    `;
+
+    const titleQuery = this.normalizeOptionalString(feedConfig.titleQuery);
+    const tagIds = (feedConfig.tagIds ?? [])
+      .map((id) => this.normalizeEntityId(id))
+      .filter((id): id is string => id !== null);
+    const studioIds = (feedConfig.studioIds ?? [])
+      .map((id) => this.normalizeEntityId(id))
+      .filter((id): id is string => id !== null);
+    const performerIds = (feedConfig.performerIds ?? [])
+      .map((id) => this.normalizeEntityId(id))
+      .filter((id): id is string => id !== null);
+
+    const galleryFilter: Record<string, unknown> = {};
+    if (tagIds.length > 0) {
+      galleryFilter.tags = { value: tagIds, modifier: 'INCLUDES' };
+    }
+    if (studioIds.length > 0) {
+      galleryFilter.studios = { value: studioIds, modifier: 'INCLUDES' };
+    }
+    if (performerIds.length > 0) {
+      galleryFilter.performers = { value: performerIds, modifier: 'INCLUDES' };
+    }
+
+    const payload = await this.executeQuery(config, query, {
+      filter: {
+        page,
+        per_page: perPage,
+        sort: 'date',
+        direction: 'DESC',
+        ...(titleQuery ? { q: titleQuery } : {}),
+      },
+      galleryFilter: Object.keys(galleryFilter).length > 0 ? galleryFilter : undefined,
+    });
+
+    const galleries = payload.data?.findGalleries?.galleries ?? [];
+    const total =
+      typeof payload.data?.findGalleries?.count === 'number'
+        ? payload.data.findGalleries.count
+        : 0;
+
+    return {
+      total,
+      page,
+      perPage,
+      hasMore: page * perPage < total,
+      items: galleries
+        .map((gallery) => this.toLocalGalleryFeedItem(gallery, config.baseUrl))
+        .filter((gallery): gallery is StashLocalGalleryFeedItem => gallery !== null),
+    };
+  }
+
+  async getGalleryById(
+    galleryId: string,
+    config: StashAdapterBaseConfig,
+  ): Promise<StashLocalGalleryFeedItem | null> {
+    const query = `
+      query FindGallery($id: ID!) {
+        findGallery(id: $id) {
+          id
+          title
+          date
+          details
+          image_count
+          created_at
+          updated_at
+          cover {
+            paths {
+              thumbnail
+            }
+          }
+          studio {
+            id
+            name
+            image_path
+          }
+          performers {
+            id
+            name
+            image_path
+          }
+          tags {
+            id
+            name
+          }
+        }
+      }
+    `;
+
+    const payload = await this.executeQuery(config, query, { id: galleryId });
+    const gallery = payload.data?.findGallery;
+    if (!gallery) {
+      return null;
+    }
+
+    return this.toLocalGalleryFeedItem(gallery, config.baseUrl);
+  }
+
+  async getGalleryImages(
+    galleryId: string,
+    config: StashAdapterBaseConfig,
+    pageConfig: { page: number; perPage: number },
+  ): Promise<StashLocalGalleryImagePage> {
+    const page = this.normalizePositiveInteger(pageConfig.page, 1);
+    const perPage = this.normalizePositiveInteger(pageConfig.perPage, 40);
+
+    const query = `
+      query FindImages($filter: FindFilterType, $imageFilter: ImageFilterType) {
+        findImages(filter: $filter, image_filter: $imageFilter) {
+          count
+          images {
+            id
+            title
+            paths {
+              thumbnail
+              image
+            }
+            files {
+              width
+              height
+            }
+          }
+        }
+      }
+    `;
+
+    const payload = await this.executeQuery(config, query, {
+      filter: {
+        page,
+        per_page: perPage,
+        sort: 'path',
+        direction: 'ASC',
+      },
+      imageFilter: {
+        galleries: { value: [galleryId], modifier: 'INCLUDES' },
+      },
+    });
+
+    const images = payload.data?.findImages?.images ?? [];
+    const total =
+      typeof payload.data?.findImages?.count === 'number'
+        ? payload.data.findImages.count
+        : 0;
+
+    return {
+      total,
+      page,
+      perPage,
+      hasMore: page * perPage < total,
+      items: images
+        .map((image) => this.toLocalGalleryImage(image))
+        .filter((image): image is StashLocalGalleryImage => image !== null),
     };
   }
 
@@ -1152,6 +1457,71 @@ export class StashAdapter {
     };
   }
 
+  private toLocalGalleryFeedItem(
+    gallery: StashGalleryRecord,
+    baseUrl: string,
+  ): StashLocalGalleryFeedItem | null {
+    const id = this.normalizeOptionalString(gallery.id);
+    if (!id) {
+      return null;
+    }
+
+    const performers = (gallery.performers ?? [])
+      .map((performer): StashLocalGalleryPerformer | null => {
+        const performerId = this.normalizeOptionalString(performer?.id);
+        const performerName = this.normalizeOptionalString(performer?.name);
+        if (!performerId || !performerName) {
+          return null;
+        }
+
+        return {
+          id: performerId,
+          name: performerName,
+          imageUrl: this.normalizeOptionalString(performer?.image_path),
+        };
+      })
+      .filter((performer): performer is StashLocalGalleryPerformer => performer !== null);
+    const tags = this.toNamedEntities(gallery.tags ?? []);
+    const imageCount =
+      typeof gallery.image_count === 'number' ? gallery.image_count : 0;
+
+    return {
+      id,
+      title: this.normalizeOptionalString(gallery.title) ?? `Gallery #${id}`,
+      description: this.normalizeOptionalString(gallery.details),
+      coverImageUrl: this.parseAssetUrl(gallery.cover?.paths?.thumbnail),
+      studioId: this.normalizeOptionalString(gallery.studio?.id),
+      studio: this.normalizeOptionalString(gallery.studio?.name),
+      studioImageUrl: this.normalizeOptionalString(gallery.studio?.image_path),
+      performers,
+      tagIds: tags.ids,
+      tagNames: tags.names,
+      imageCount,
+      releaseDate: this.normalizeOptionalString(gallery.date),
+      viewUrl: this.resolveGalleryViewUrl(baseUrl, id),
+      createdAt: this.parseOptionalDate(gallery.created_at),
+      updatedAt: this.parseOptionalDate(gallery.updated_at),
+    };
+  }
+
+  private toLocalGalleryImage(image: StashImageRecord): StashLocalGalleryImage | null {
+    const id = this.normalizeOptionalString(image.id);
+    if (!id) {
+      return null;
+    }
+
+    const firstFile = (image.files ?? [])[0];
+
+    return {
+      id,
+      title: this.normalizeOptionalString(image.title),
+      imageUrl: this.parseAssetUrl(image.paths?.image),
+      thumbnailUrl: this.parseAssetUrl(image.paths?.thumbnail),
+      width: typeof firstFile?.width === 'number' ? firstFile.width : null,
+      height: typeof firstFile?.height === 'number' ? firstFile.height : null,
+    };
+  }
+
   private toSceneMatch(
     scene: StashLocalSceneRecord,
     baseUrl: string,
@@ -1600,6 +1970,14 @@ export class StashAdapter {
     const parsed = new URL(baseUrl);
     const cleanPath = parsed.pathname.replace(/\/+$/, '');
     parsed.pathname = `${cleanPath}/scenes/${encodeURIComponent(sceneId)}`;
+    parsed.search = '';
+    return parsed.toString();
+  }
+
+  private resolveGalleryViewUrl(baseUrl: string, galleryId: string): string {
+    const parsed = new URL(baseUrl);
+    const cleanPath = parsed.pathname.replace(/\/+$/, '');
+    parsed.pathname = `${cleanPath}/galleries/${encodeURIComponent(galleryId)}`;
     parsed.search = '';
     return parsed.toString();
   }

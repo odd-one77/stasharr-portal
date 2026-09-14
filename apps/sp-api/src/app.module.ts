@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
 import { AcquisitionModule } from './acquisition/acquisition.module';
 import { AuthModule } from './auth/auth.module';
+import { GalleriesModule } from './galleries/galleries.module';
 import { HealthModule } from './health/health.module';
 import { HomeModule } from './home/home.module';
 import { IndexingModule } from './indexing/indexing.module';
@@ -33,6 +34,7 @@ import { WhisparrMetadataModule } from './whisparr-metadata/whisparr-metadata.mo
     HomeModule,
     MediaModule,
     LibraryModule,
+    GalleriesModule,
     IndexingModule,
     IntegrationsModule,
     SettingsModule,

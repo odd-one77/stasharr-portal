@@ -16,6 +16,8 @@ describe('app routes', () => {
       'scenes',
       'acquisition',
       'library',
+      'galleries',
+      'galleries/:galleryId',
       'performers',
       'studios',
       'performer/:performerId',
