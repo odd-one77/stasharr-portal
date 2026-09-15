@@ -165,6 +165,7 @@ export class ScenePageComponent implements OnInit, OnDestroy {
       title: scene.title,
       catalogStashId: scene.id,
       copyId,
+      imageUrl: scene.imageUrl,
     });
   }
 

@@ -155,6 +155,7 @@ describe('ScenePageComponent', () => {
       title: 'Scene Title',
       catalogStashId: 'scene-1',
       copyId: 'stash-scene-1',
+      imageUrl: 'http://cdn.local/image.jpg',
     });
   });
 });

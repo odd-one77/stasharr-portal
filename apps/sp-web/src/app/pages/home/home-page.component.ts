@@ -293,11 +293,14 @@ export class HomePageComponent implements OnInit, OnDestroy {
   }
 
   protected playScene(localSceneId: string): void {
-    const title =
-      this.continueWatchingItems().find((item) => item.id === localSceneId)?.title ??
-      this.recentlyAddedItems().find((item) => item.id === localSceneId)?.title ??
-      'Scene';
-    this.playerService.openByLocalSceneId({ title, localSceneId });
+    const item =
+      this.continueWatchingItems().find((item) => item.id === localSceneId) ??
+      this.recentlyAddedItems().find((item) => item.id === localSceneId);
+    this.playerService.openByLocalSceneId({
+      title: item?.title ?? 'Scene',
+      localSceneId,
+      imageUrl: item?.cardImageUrl ?? item?.imageUrl,
+    });
   }
 
   protected markWatched(localSceneId: string): void {

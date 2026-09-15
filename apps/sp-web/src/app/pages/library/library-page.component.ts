@@ -593,8 +593,12 @@ export class LibraryPageComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   protected playScene(localSceneId: string): void {
-    const title = this.items().find((item) => item.id === localSceneId)?.title ?? 'Scene';
-    this.playerService.openByLocalSceneId({ title, localSceneId });
+    const item = this.items().find((item) => item.id === localSceneId);
+    this.playerService.openByLocalSceneId({
+      title: item?.title ?? 'Scene',
+      localSceneId,
+      imageUrl: item?.cardImageUrl ?? item?.imageUrl,
+    });
   }
 
   protected libraryFooterLink(item: LibrarySceneItem): SceneCardShellLink | null {

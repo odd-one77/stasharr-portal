@@ -276,6 +276,7 @@ describe('HomePageComponent', () => {
     expect(playerService.openByLocalSceneId).toHaveBeenCalledWith({
       title: 'Half Watched',
       localSceneId: 'in-progress-1',
+      imageUrl: '/api/media/stash/scenes/local-scene-1/screenshot',
     });
   });
 

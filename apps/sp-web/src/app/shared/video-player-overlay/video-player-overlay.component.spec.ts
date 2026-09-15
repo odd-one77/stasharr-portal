@@ -5,17 +5,45 @@ import { VideoPlayerOverlayComponent } from './video-player-overlay.component';
 
 describe('VideoPlayerOverlayComponent', () => {
   let playSpy: ReturnType<typeof vi.spyOn>;
+  let mediaSessionStub: { metadata: unknown; playbackState: string };
+  let originalMediaSession: PropertyDescriptor | undefined;
+  let originalMediaMetadata: typeof globalThis.MediaMetadata | undefined;
 
   beforeEach(() => {
     playSpy = vi
       .spyOn(HTMLMediaElement.prototype, 'play')
       .mockResolvedValue(undefined);
     vi.spyOn(HTMLMediaElement.prototype, 'pause').mockImplementation(() => undefined);
+
+    // jsdom implements neither the Media Session API nor MediaMetadata --
+    // stub both so the component's real code path (not just the feature
+    // guard) is actually exercised.
+    mediaSessionStub = { metadata: null, playbackState: 'none' };
+    originalMediaSession = Object.getOwnPropertyDescriptor(navigator, 'mediaSession');
+    Object.defineProperty(navigator, 'mediaSession', {
+      value: mediaSessionStub,
+      configurable: true,
+    });
+    originalMediaMetadata = globalThis.MediaMetadata;
+    globalThis.MediaMetadata = class {
+      title?: string;
+      artwork?: unknown;
+      constructor(init: { title?: string; artwork?: unknown }) {
+        this.title = init.title;
+        this.artwork = init.artwork;
+      }
+    } as unknown as typeof globalThis.MediaMetadata;
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
     TestBed.resetTestingModule();
+    if (originalMediaSession) {
+      Object.defineProperty(navigator, 'mediaSession', originalMediaSession);
+    } else {
+      delete (navigator as { mediaSession?: unknown }).mediaSession;
+    }
+    globalThis.MediaMetadata = originalMediaMetadata as typeof globalThis.MediaMetadata;
   });
 
   async function renderOverlay(initialState: PlayerState | null = null) {
@@ -46,7 +74,11 @@ describe('VideoPlayerOverlayComponent', () => {
   });
 
   it('shows a loading spinner with the scene title while resolving', async () => {
-    const { fixture } = await renderOverlay({ status: 'loading', title: 'A Scene' });
+    const { fixture } = await renderOverlay({
+      status: 'loading',
+      title: 'A Scene',
+      imageUrl: null,
+    });
 
     expect(fixture.nativeElement.textContent).toContain('A Scene');
     expect(fixture.nativeElement.textContent).toContain('Loading stream');
@@ -57,6 +89,7 @@ describe('VideoPlayerOverlayComponent', () => {
     const { fixture } = await renderOverlay({
       status: 'error',
       title: 'A Scene',
+      imageUrl: null,
       message: 'Failed to load stream from Stash.',
     });
 
@@ -67,6 +100,7 @@ describe('VideoPlayerOverlayComponent', () => {
     const { fixture } = await renderOverlay({
       status: 'ready',
       title: 'A Scene',
+      imageUrl: null,
       source: {
         streamUrl: 'http://stash.local/stream',
         stashSceneId: '411',
@@ -84,6 +118,7 @@ describe('VideoPlayerOverlayComponent', () => {
     const { fixture } = await renderOverlay({
       status: 'ready',
       title: 'A Scene',
+      imageUrl: null,
       source: {
         streamUrl: 'http://stash.local/stream',
         stashSceneId: '411',
@@ -101,10 +136,108 @@ describe('VideoPlayerOverlayComponent', () => {
     expect(playSpy).toHaveBeenCalled();
   });
 
+  it('sets the OS/browser now-playing info to the scene title and thumbnail once metadata loads', async () => {
+    const { fixture } = await renderOverlay({
+      status: 'ready',
+      title: 'A Scene',
+      imageUrl: 'http://cdn.local/a-scene.jpg',
+      source: {
+        streamUrl: 'http://stash.local/stream',
+        stashSceneId: '411',
+        resumeSeconds: 0,
+        duration: 600,
+      },
+    });
+
+    const video = fixture.nativeElement.querySelector('video') as HTMLVideoElement;
+    Object.defineProperty(video, 'duration', { value: 600, configurable: true });
+    video.dispatchEvent(new Event('loadedmetadata'));
+
+    expect(mediaSessionStub.metadata).toMatchObject({
+      title: 'A Scene',
+      artwork: [{ src: 'http://cdn.local/a-scene.jpg', sizes: '512x512' }],
+    });
+    expect(mediaSessionStub.playbackState).toBe('playing');
+  });
+
+  it('omits artwork when the scene has no thumbnail', async () => {
+    const { fixture } = await renderOverlay({
+      status: 'ready',
+      title: 'A Scene',
+      imageUrl: null,
+      source: {
+        streamUrl: 'http://stash.local/stream',
+        stashSceneId: '411',
+        resumeSeconds: 0,
+        duration: 600,
+      },
+    });
+
+    const video = fixture.nativeElement.querySelector('video') as HTMLVideoElement;
+    Object.defineProperty(video, 'duration', { value: 600, configurable: true });
+    video.dispatchEvent(new Event('loadedmetadata'));
+
+    expect(mediaSessionStub.metadata).toMatchObject({ title: 'A Scene', artwork: [] });
+  });
+
+  it('reflects pause/resume in the OS playback state', async () => {
+    const { fixture } = await renderOverlay({
+      status: 'ready',
+      title: 'A Scene',
+      imageUrl: 'http://cdn.local/a-scene.jpg',
+      source: {
+        streamUrl: 'http://stash.local/stream',
+        stashSceneId: '411',
+        resumeSeconds: 0,
+        duration: 600,
+      },
+    });
+
+    const video = fixture.nativeElement.querySelector('video') as HTMLVideoElement;
+    Object.defineProperty(video, 'duration', { value: 600, configurable: true });
+    Object.defineProperty(video, 'currentTime', { value: 5, configurable: true });
+    video.dispatchEvent(new Event('loadedmetadata'));
+
+    video.dispatchEvent(new Event('pause'));
+    expect(mediaSessionStub.playbackState).toBe('paused');
+
+    video.dispatchEvent(new Event('play'));
+    expect(mediaSessionStub.playbackState).toBe('playing');
+  });
+
+  it('clears the now-playing info when the player is closed', async () => {
+    const { fixture, playerService } = await renderOverlay({
+      status: 'ready',
+      title: 'A Scene',
+      imageUrl: 'http://cdn.local/a-scene.jpg',
+      source: {
+        streamUrl: 'http://stash.local/stream',
+        stashSceneId: '411',
+        resumeSeconds: 0,
+        duration: 600,
+      },
+    });
+
+    const video = fixture.nativeElement.querySelector('video') as HTMLVideoElement;
+    Object.defineProperty(video, 'duration', { value: 600, configurable: true });
+    video.dispatchEvent(new Event('loadedmetadata'));
+    expect(mediaSessionStub.metadata).not.toBeNull();
+
+    const closeButton = fixture.nativeElement.querySelector(
+      '.close-player',
+    ) as HTMLButtonElement;
+    closeButton.click();
+
+    expect(mediaSessionStub.metadata).toBeNull();
+    expect(mediaSessionStub.playbackState).toBe('none');
+    expect(playerService.close).toHaveBeenCalled();
+  });
+
   it('does not seek when there is no saved resume position', async () => {
     const { fixture } = await renderOverlay({
       status: 'ready',
       title: 'A Scene',
+      imageUrl: null,
       source: {
         streamUrl: 'http://stash.local/stream',
         stashSceneId: '411',
@@ -125,6 +258,7 @@ describe('VideoPlayerOverlayComponent', () => {
     const { fixture, playerService } = await renderOverlay({
       status: 'ready',
       title: 'A Scene',
+      imageUrl: null,
       source: {
         streamUrl: 'http://stash.local/stream',
         stashSceneId: '411',
@@ -146,6 +280,7 @@ describe('VideoPlayerOverlayComponent', () => {
     const { fixture, playerService } = await renderOverlay({
       status: 'ready',
       title: 'A Scene',
+      imageUrl: null,
       source: {
         streamUrl: 'http://stash.local/stream',
         stashSceneId: '411',
@@ -171,6 +306,7 @@ describe('VideoPlayerOverlayComponent', () => {
     const { fixture, playerService } = await renderOverlay({
       status: 'loading',
       title: 'A Scene',
+      imageUrl: null,
     });
 
     const shell = fixture.nativeElement.querySelector('.player-shell') as HTMLElement;

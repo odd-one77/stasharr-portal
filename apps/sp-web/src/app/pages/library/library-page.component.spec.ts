@@ -456,6 +456,7 @@ describe('LibraryPageComponent', () => {
     expect(playerService.openByLocalSceneId).toHaveBeenCalledWith({
       title: 'Fresh Local Scene',
       localSceneId: '411',
+      imageUrl: '/api/media/stash/scenes/411/screenshot',
     });
   });
 });

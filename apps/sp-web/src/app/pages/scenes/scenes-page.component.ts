@@ -279,10 +279,11 @@ export class ScenesPageComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   protected playScene(stashId: string): void {
-    const title = this.items().find((item) => item.id === stashId)?.title ?? 'Scene';
+    const item = this.items().find((item) => item.id === stashId);
     this.playerService.openByCatalogSceneId({
-      title,
+      title: item?.title ?? 'Scene',
       catalogStashId: stashId,
+      imageUrl: item?.cardImageUrl ?? item?.imageUrl,
     });
   }
 

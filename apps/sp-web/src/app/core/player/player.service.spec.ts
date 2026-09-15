@@ -41,9 +41,18 @@ describe('PlayerService', () => {
     };
     getSceneStreamUrlMock.mockReturnValue(of(source));
 
-    service.openByCatalogSceneId({ title: 'A Scene', catalogStashId: 'catalog-1' });
+    service.openByCatalogSceneId({
+      title: 'A Scene',
+      catalogStashId: 'catalog-1',
+      imageUrl: 'http://cdn.local/a-scene.jpg',
+    });
 
-    expect(service.state()).toEqual({ status: 'ready', title: 'A Scene', source });
+    expect(service.state()).toEqual({
+      status: 'ready',
+      title: 'A Scene',
+      imageUrl: 'http://cdn.local/a-scene.jpg',
+      source,
+    });
     expect(getSceneStreamUrlMock).toHaveBeenCalledWith('catalog-1', undefined);
   });
 
@@ -69,6 +78,7 @@ describe('PlayerService', () => {
     expect(service.state()).toEqual({
       status: 'error',
       title: 'A Scene',
+      imageUrl: null,
       message: 'Failed to load stream from Stash.',
     });
   });
@@ -76,7 +86,11 @@ describe('PlayerService', () => {
   it('builds the stream URL directly and fetches resume info by local scene id', () => {
     httpGetMock.mockReturnValue(of({ resumeSeconds: 90, duration: 1200 }));
 
-    service.openByLocalSceneId({ title: 'Library Scene', localSceneId: '411' });
+    service.openByLocalSceneId({
+      title: 'Library Scene',
+      localSceneId: '411',
+      imageUrl: 'http://stash.local/library-scene.jpg',
+    });
 
     expect(httpGetMock).toHaveBeenCalledWith(
       '/api/media/stash/scenes/411/playback-info',
@@ -84,6 +98,7 @@ describe('PlayerService', () => {
     expect(service.state()).toEqual({
       status: 'ready',
       title: 'Library Scene',
+      imageUrl: 'http://stash.local/library-scene.jpg',
       source: {
         streamUrl: '/api/media/stash/scenes/411/stream',
         stashSceneId: '411',
@@ -101,6 +116,7 @@ describe('PlayerService', () => {
     expect(service.state()).toEqual({
       status: 'ready',
       title: 'Library Scene',
+      imageUrl: null,
       source: {
         streamUrl: '/api/media/stash/scenes/411/stream',
         stashSceneId: '411',
@@ -152,6 +168,7 @@ describe('PlayerService', () => {
     expect(service.state()).toEqual({
       status: 'ready',
       title: 'Second Scene',
+      imageUrl: null,
       source: secondSource,
     });
   });

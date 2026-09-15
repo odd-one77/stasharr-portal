@@ -48,17 +48,52 @@ export class VideoPlayerOverlayComponent {
       // Autoplay can be blocked by the browser; the user can press play.
     });
 
+    this.updateMediaSessionMetadata(current.title, current.imageUrl);
     this.startProgressSaveInterval();
+  }
+
+  protected onVideoPlay(): void {
+    if ('mediaSession' in navigator) {
+      navigator.mediaSession.playbackState = 'playing';
+    }
   }
 
   protected onVideoPause(): void {
     this.saveCurrentProgress();
+    if ('mediaSession' in navigator) {
+      navigator.mediaSession.playbackState = 'paused';
+    }
   }
 
   protected closePlayer(): void {
     this.saveCurrentProgress();
     this.stopProgressSaveInterval();
     this.playerService.close();
+    this.clearMediaSessionMetadata();
+  }
+
+  // Drives the OS/browser "now playing" surface (iOS Control Center/lock
+  // screen, Android notification, desktop media keys, etc.) so it shows the
+  // actual scene title and thumbnail instead of just the page title.
+  private updateMediaSessionMetadata(title: string, imageUrl: string | null): void {
+    if (!('mediaSession' in navigator)) {
+      return;
+    }
+
+    navigator.mediaSession.metadata = new MediaMetadata({
+      title,
+      artwork: imageUrl ? [{ src: imageUrl, sizes: '512x512' }] : [],
+    });
+    navigator.mediaSession.playbackState = 'playing';
+  }
+
+  private clearMediaSessionMetadata(): void {
+    if (!('mediaSession' in navigator)) {
+      return;
+    }
+
+    navigator.mediaSession.metadata = null;
+    navigator.mediaSession.playbackState = 'none';
   }
 
   private startProgressSaveInterval(): void {

@@ -117,10 +117,11 @@ export class SearchPageComponent implements OnInit, OnDestroy {
   }
 
   protected playScene(stashId: string): void {
-    const title = this.sceneResults().find((item) => item.id === stashId)?.title ?? 'Scene';
+    const item = this.sceneResults().find((item) => item.id === stashId);
     this.playerService.openByCatalogSceneId({
-      title,
+      title: item?.title ?? 'Scene',
       catalogStashId: stashId,
+      imageUrl: item?.cardImageUrl ?? item?.imageUrl,
     });
   }
 

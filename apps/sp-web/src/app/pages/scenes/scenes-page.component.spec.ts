@@ -269,6 +269,7 @@ describe('ScenesPageComponent', () => {
     expect(playerService.openByCatalogSceneId).toHaveBeenCalledWith({
       title: 'Scene Title',
       catalogStashId: 'scene-1',
+      imageUrl: 'http://cdn.local/card.jpg',
     });
   });
 

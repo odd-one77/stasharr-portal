@@ -5,9 +5,14 @@ import { DiscoverService } from '../api/discover.service';
 import { ScenePlaybackSource } from '../api/discover.types';
 
 export type PlayerState =
-  | { status: 'loading'; title: string }
-  | { status: 'error'; title: string; message: string }
-  | { status: 'ready'; title: string; source: ScenePlaybackSource };
+  | { status: 'loading'; title: string; imageUrl: string | null }
+  | { status: 'error'; title: string; imageUrl: string | null; message: string }
+  | {
+      status: 'ready';
+      title: string;
+      imageUrl: string | null;
+      source: ScenePlaybackSource;
+    };
 
 interface ScenePlaybackInfo {
   resumeSeconds: number;
@@ -31,24 +36,32 @@ export class PlayerService {
     title: string;
     catalogStashId: string;
     copyId?: string;
+    imageUrl?: string | null;
   }): void {
-    const token = this.beginLoad(params.title);
+    const imageUrl = params.imageUrl ?? null;
+    const token = this.beginLoad(params.title, imageUrl);
 
     this.discoverService
       .getSceneStreamUrl(params.catalogStashId, params.copyId)
       .subscribe({
-        next: (source) => this.applySource(token, params.title, source),
+        next: (source) => this.applySource(token, params.title, imageUrl, source),
         error: () =>
           this.applyError(
             token,
             params.title,
+            imageUrl,
             'Failed to load stream from Stash.',
           ),
       });
   }
 
-  openByLocalSceneId(params: { title: string; localSceneId: string }): void {
-    const token = this.beginLoad(params.title);
+  openByLocalSceneId(params: {
+    title: string;
+    localSceneId: string;
+    imageUrl?: string | null;
+  }): void {
+    const imageUrl = params.imageUrl ?? null;
+    const token = this.beginLoad(params.title, imageUrl);
     const streamUrl = `/api/media/stash/scenes/${encodeURIComponent(params.localSceneId)}/stream`;
 
     this.getScenePlaybackInfo(params.localSceneId)
@@ -56,7 +69,7 @@ export class PlayerService {
         catchError(() => of<ScenePlaybackInfo>({ resumeSeconds: 0, duration: null })),
       )
       .subscribe((info) => {
-        this.applySource(token, params.title, {
+        this.applySource(token, params.title, imageUrl, {
           streamUrl,
           stashSceneId: params.localSceneId,
           resumeSeconds: info.resumeSeconds,
@@ -99,30 +112,36 @@ export class PlayerService {
     );
   }
 
-  private beginLoad(title: string): number {
+  private beginLoad(title: string, imageUrl: string | null): number {
     this.requestToken += 1;
     const token = this.requestToken;
-    this.state.set({ status: 'loading', title });
+    this.state.set({ status: 'loading', title, imageUrl });
     return token;
   }
 
   private applySource(
     token: number,
     title: string,
+    imageUrl: string | null,
     source: ScenePlaybackSource,
   ): void {
     if (token !== this.requestToken) {
       return;
     }
 
-    this.state.set({ status: 'ready', title, source });
+    this.state.set({ status: 'ready', title, imageUrl, source });
   }
 
-  private applyError(token: number, title: string, message: string): void {
+  private applyError(
+    token: number,
+    title: string,
+    imageUrl: string | null,
+    message: string,
+  ): void {
     if (token !== this.requestToken) {
       return;
     }
 
-    this.state.set({ status: 'error', title, message });
+    this.state.set({ status: 'error', title, imageUrl, message });
   }
 }
