@@ -1,3 +1,4 @@
+import { HttpErrorResponse } from '@angular/common/http';
 import { Component, HostListener, OnDestroy, OnInit, inject, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { Subscription, finalize } from 'rxjs';
@@ -145,8 +146,10 @@ export class GalleryPageComponent implements OnInit, OnDestroy {
           this.gallery.set(gallery);
           this.loadNextImagesPage();
         },
-        error: () => {
-          this.error.set('Failed to load gallery details.');
+        error: (err: unknown) => {
+          this.error.set(
+            `Failed to load gallery details.${this.describeServerError(err)}`,
+          );
         },
       });
   }
@@ -185,9 +188,34 @@ export class GalleryPageComponent implements OnInit, OnDestroy {
             isInitialPage ? response.items : [...current, ...response.items],
           );
         },
-        error: () => {
-          this.imagesError.set('Failed to load images for this gallery.');
+        error: (err: unknown) => {
+          this.imagesError.set(
+            `Failed to load images for this gallery.${this.describeServerError(err)}`,
+          );
         },
       });
+  }
+
+  // Surfaces the backend's actual error message (e.g. a Stash GraphQL
+  // failure relayed via BadGatewayException) instead of a generic string,
+  // so a real failure is distinguishable from Stash genuinely having
+  // nothing to return.
+  private describeServerError(err: unknown): string {
+    if (!(err instanceof HttpErrorResponse)) {
+      return '';
+    }
+
+    const body: unknown = err.error;
+    let message: string | undefined;
+
+    if (typeof body === 'string') {
+      message = body;
+    } else if (body && typeof body === 'object' && 'message' in body) {
+      const rawMessage = (body as { message?: unknown }).message;
+      message = Array.isArray(rawMessage) ? rawMessage.join(' ') : String(rawMessage ?? '');
+    }
+
+    const detail = message?.trim();
+    return detail ? ` (${err.status}: ${detail})` : err.status ? ` (HTTP ${err.status})` : '';
   }
 }
