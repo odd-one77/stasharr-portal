@@ -153,10 +153,18 @@ describe('VideoPlayerOverlayComponent', () => {
     Object.defineProperty(video, 'duration', { value: 600, configurable: true });
     video.dispatchEvent(new Event('loadedmetadata'));
 
-    expect(mediaSessionStub.metadata).toMatchObject({
-      title: 'A Scene',
-      artwork: [{ src: 'http://cdn.local/a-scene.jpg', sizes: '512x512' }],
-    });
+    const metadata = mediaSessionStub.metadata as {
+      title: string;
+      artwork: Array<{ src: string; sizes: string }>;
+    };
+    expect(metadata.title).toBe('A Scene');
+    expect(metadata.artwork.length).toBeGreaterThan(1);
+    expect(metadata.artwork.every((entry) => entry.src === 'http://cdn.local/a-scene.jpg')).toBe(
+      true,
+    );
+    expect(new Set(metadata.artwork.map((entry) => entry.sizes)).size).toBe(
+      metadata.artwork.length,
+    );
     expect(mediaSessionStub.playbackState).toBe('playing');
   });
 

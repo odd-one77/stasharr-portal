@@ -72,6 +72,14 @@ export class VideoPlayerOverlayComponent {
     this.clearMediaSessionMetadata();
   }
 
+  // Sizes iOS/Android/desktop commonly probe for when picking a "now
+  // playing" artwork entry. The real thumbnail is rarely any of these
+  // exact dimensions (scene screenshots are landscape, arbitrary sizes),
+  // but declaring the same URL under several common square hints is the
+  // standard workaround -- the OS still just fetches and scales the image,
+  // this only affects which array entry it decides to request.
+  private static readonly ARTWORK_SIZES = ['96x96', '192x192', '256x256', '384x384', '512x512'];
+
   // Drives the OS/browser "now playing" surface (iOS Control Center/lock
   // screen, Android notification, desktop media keys, etc.) so it shows the
   // actual scene title and thumbnail instead of just the page title.
@@ -82,7 +90,9 @@ export class VideoPlayerOverlayComponent {
 
     navigator.mediaSession.metadata = new MediaMetadata({
       title,
-      artwork: imageUrl ? [{ src: imageUrl, sizes: '512x512' }] : [],
+      artwork: imageUrl
+        ? VideoPlayerOverlayComponent.ARTWORK_SIZES.map((sizes) => ({ src: imageUrl, sizes }))
+        : [],
     });
     navigator.mediaSession.playbackState = 'playing';
   }
