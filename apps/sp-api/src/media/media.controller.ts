@@ -27,6 +27,42 @@ export class MediaController {
     this.writeAssetResponse(asset, response);
   }
 
+  @Get('stash/performers/:performerId/photo')
+  async getStashPerformerPhoto(
+    @Param('performerId') performerId: string,
+    @Res() response: Response,
+  ): Promise<void> {
+    const asset = await this.mediaService.getStashPerformerPhoto(performerId);
+    this.writeAssetResponse(asset, response);
+  }
+
+  @Get('stash/galleries/:galleryId/cover')
+  async getStashGalleryCover(
+    @Param('galleryId') galleryId: string,
+    @Res() response: Response,
+  ): Promise<void> {
+    const asset = await this.mediaService.getStashGalleryCover(galleryId);
+    this.writeAssetResponse(asset, response);
+  }
+
+  @Get('stash/images/:imageId/thumbnail')
+  async getStashImageThumbnail(
+    @Param('imageId') imageId: string,
+    @Res() response: Response,
+  ): Promise<void> {
+    const asset = await this.mediaService.getStashImageThumbnail(imageId);
+    this.writeAssetResponse(asset, response);
+  }
+
+  @Get('stash/images/:imageId/full')
+  async getStashImageFull(
+    @Param('imageId') imageId: string,
+    @Res() response: Response,
+  ): Promise<void> {
+    const asset = await this.mediaService.getStashImageFull(imageId);
+    this.writeAssetResponse(asset, response);
+  }
+
   @Get('stash/scenes/:sceneId/stream')
   async streamStashScene(
     @Param('sceneId') sceneId: string,

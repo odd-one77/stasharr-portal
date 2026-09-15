@@ -1549,6 +1549,143 @@ describe('StashAdapter', () => {
     );
   });
 
+  it('opens a protected gallery cover, falling back to paths.cover when the relation is null', async () => {
+    fetchMock
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            data: {
+              findGallery: {
+                id: 'gallery-1',
+                cover: null,
+                paths: { cover: 'http://stash.local/gallery/1/cover' },
+              },
+            },
+          }),
+      } as Response)
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        headers: new Headers({ 'content-type': 'image/jpeg' }),
+        arrayBuffer: () => Promise.resolve(new Uint8Array([1, 2, 3]).buffer),
+      } as Response);
+
+    const result = await adapter.openGalleryCover('gallery-1', {
+      baseUrl: 'http://stash.local',
+      apiKey: 'secret',
+    });
+
+    expect(result).toMatchObject({ contentType: 'image/jpeg' });
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      'http://stash.local/gallery/1/cover',
+      expect.objectContaining({ headers: { ApiKey: 'secret' } }),
+    );
+  });
+
+  it('opens a protected image thumbnail', async () => {
+    fetchMock
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            data: {
+              findImage: {
+                id: 'image-1',
+                paths: {
+                  thumbnail: 'http://stash.local/img/1-thumb.jpg',
+                  image: 'http://stash.local/img/1.jpg',
+                },
+              },
+            },
+          }),
+      } as Response)
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        headers: new Headers({ 'content-type': 'image/jpeg' }),
+        arrayBuffer: () => Promise.resolve(new Uint8Array([1, 2, 3]).buffer),
+      } as Response);
+
+    await adapter.openImageThumbnail('image-1', {
+      baseUrl: 'http://stash.local',
+      apiKey: 'secret',
+    });
+
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      'http://stash.local/img/1-thumb.jpg',
+      expect.anything(),
+    );
+  });
+
+  it('opens the full-resolution image, not the thumbnail', async () => {
+    fetchMock
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            data: {
+              findImage: {
+                id: 'image-1',
+                paths: {
+                  thumbnail: 'http://stash.local/img/1-thumb.jpg',
+                  image: 'http://stash.local/img/1.jpg',
+                },
+              },
+            },
+          }),
+      } as Response)
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        headers: new Headers({ 'content-type': 'image/jpeg' }),
+        arrayBuffer: () => Promise.resolve(new Uint8Array([1, 2, 3]).buffer),
+      } as Response);
+
+    await adapter.openImageFull('image-1', {
+      baseUrl: 'http://stash.local',
+      apiKey: 'secret',
+    });
+
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      'http://stash.local/img/1.jpg',
+      expect.anything(),
+    );
+  });
+
+  it('opens a protected performer photo', async () => {
+    fetchMock
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            data: {
+              findPerformer: { id: 'performer-1', image_path: 'http://stash.local/p/1.jpg' },
+            },
+          }),
+      } as Response)
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        headers: new Headers({ 'content-type': 'image/jpeg' }),
+        arrayBuffer: () => Promise.resolve(new Uint8Array([1, 2, 3]).buffer),
+      } as Response);
+
+    await adapter.openPerformerPhoto('performer-1', {
+      baseUrl: 'http://stash.local',
+      apiKey: 'secret',
+    });
+
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      'http://stash.local/p/1.jpg',
+      expect.anything(),
+    );
+  });
+
   it('returns a stream url with the apikey appended when configured', async () => {
     fetchMock.mockResolvedValueOnce({
       ok: true,

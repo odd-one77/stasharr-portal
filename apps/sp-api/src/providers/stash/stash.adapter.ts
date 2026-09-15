@@ -292,6 +292,11 @@ interface StashStudioAssetRecord {
   image_path?: unknown;
 }
 
+interface StashPerformerAssetRecord {
+  id?: unknown;
+  image_path?: unknown;
+}
+
 interface StashTagRecord {
   id?: unknown;
   name?: unknown;
@@ -383,6 +388,7 @@ interface StashGraphqlResponse {
     };
     findScene?: StashSceneAssetRecord | null;
     findStudio?: StashStudioAssetRecord | null;
+    findPerformer?: StashPerformerAssetRecord | null;
     findTags?: {
       tags?: StashTagRecord[];
     };
@@ -398,6 +404,7 @@ interface StashGraphqlResponse {
       count?: unknown;
       images?: StashImageRecord[];
     };
+    findImage?: StashImageRecord | null;
     findPerformers?: {
       performers?: StashPerformerMatchRecord[];
     };
@@ -1285,6 +1292,124 @@ export class StashAdapter {
     }
 
     return this.fetchProtectedAsset(config, imageUrl);
+  }
+
+  async openPerformerPhoto(
+    performerId: string,
+    config: StashAdapterBaseConfig,
+  ): Promise<StashProtectedAssetResponse | null> {
+    const normalizedPerformerId = this.normalizeEntityId(performerId);
+    if (!normalizedPerformerId) {
+      return null;
+    }
+
+    const query = `
+      query FindPerformer($id: ID!) {
+        findPerformer(id: $id) {
+          id
+          image_path
+        }
+      }
+    `;
+
+    const payload = await this.executeQuery(config, query, {
+      id: normalizedPerformerId,
+    });
+    const imageUrl = this.parseAssetUrl(payload.data?.findPerformer?.image_path);
+    if (!imageUrl) {
+      return null;
+    }
+
+    return this.fetchProtectedAsset(config, imageUrl);
+  }
+
+  async openGalleryCover(
+    galleryId: string,
+    config: StashAdapterBaseConfig,
+  ): Promise<StashProtectedAssetResponse | null> {
+    const normalizedGalleryId = this.normalizeEntityId(galleryId);
+    if (!normalizedGalleryId) {
+      return null;
+    }
+
+    const query = `
+      query FindGallery($id: ID!) {
+        findGallery(id: $id) {
+          id
+          cover {
+            paths {
+              thumbnail
+            }
+          }
+          paths {
+            cover
+          }
+        }
+      }
+    `;
+
+    const payload = await this.executeQuery(config, query, {
+      id: normalizedGalleryId,
+    });
+    const gallery = payload.data?.findGallery;
+    const coverUrl =
+      this.parseAssetUrl(gallery?.cover?.paths?.thumbnail) ??
+      this.parseAssetUrl(gallery?.paths?.cover);
+    if (!coverUrl) {
+      return null;
+    }
+
+    return this.fetchProtectedAsset(config, coverUrl);
+  }
+
+  async openImageThumbnail(
+    imageId: string,
+    config: StashAdapterBaseConfig,
+  ): Promise<StashProtectedAssetResponse | null> {
+    return this.openImageAsset(imageId, config, 'thumbnail');
+  }
+
+  async openImageFull(
+    imageId: string,
+    config: StashAdapterBaseConfig,
+  ): Promise<StashProtectedAssetResponse | null> {
+    return this.openImageAsset(imageId, config, 'image');
+  }
+
+  private async openImageAsset(
+    imageId: string,
+    config: StashAdapterBaseConfig,
+    variant: 'thumbnail' | 'image',
+  ): Promise<StashProtectedAssetResponse | null> {
+    const normalizedImageId = this.normalizeEntityId(imageId);
+    if (!normalizedImageId) {
+      return null;
+    }
+
+    const query = `
+      query FindImage($id: ID!) {
+        findImage(id: $id) {
+          id
+          paths {
+            thumbnail
+            image
+          }
+        }
+      }
+    `;
+
+    const payload = await this.executeQuery(config, query, {
+      id: normalizedImageId,
+    });
+    const paths = payload.data?.findImage?.paths;
+    const assetUrl = this.parseAssetUrl(
+      variant === 'thumbnail' ? paths?.thumbnail : paths?.image,
+    );
+    if (!assetUrl) {
+      return null;
+    }
+
+    return this.fetchProtectedAsset(config, assetUrl);
   }
 
   private pickBestResolution(

@@ -44,6 +44,46 @@ export class MediaService {
     return asset;
   }
 
+  async getStashPerformerPhoto(performerId: string): Promise<StashProtectedAssetResponse> {
+    const config = await this.getStashConfig();
+    const asset = await this.stashAdapter.openPerformerPhoto(performerId, config);
+    if (!asset) {
+      throw new NotFoundException('Stash media asset not found.');
+    }
+
+    return asset;
+  }
+
+  async getStashGalleryCover(galleryId: string): Promise<StashProtectedAssetResponse> {
+    const config = await this.getStashConfig();
+    const asset = await this.stashAdapter.openGalleryCover(galleryId, config);
+    if (!asset) {
+      throw new NotFoundException('Stash media asset not found.');
+    }
+
+    return asset;
+  }
+
+  async getStashImageThumbnail(imageId: string): Promise<StashProtectedAssetResponse> {
+    const config = await this.getStashConfig();
+    const asset = await this.stashAdapter.openImageThumbnail(imageId, config);
+    if (!asset) {
+      throw new NotFoundException('Stash media asset not found.');
+    }
+
+    return asset;
+  }
+
+  async getStashImageFull(imageId: string): Promise<StashProtectedAssetResponse> {
+    const config = await this.getStashConfig();
+    const asset = await this.stashAdapter.openImageFull(imageId, config);
+    if (!asset) {
+      throw new NotFoundException('Stash media asset not found.');
+    }
+
+    return asset;
+  }
+
   async streamStashScene(
     sceneId: string,
     rangeHeader?: string,

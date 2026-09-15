@@ -11,6 +11,10 @@ describe('MediaService', () => {
   const integrationFindUniqueMock = jest.fn();
   const openSceneScreenshotMock = jest.fn();
   const openStudioLogoMock = jest.fn();
+  const openPerformerPhotoMock = jest.fn();
+  const openGalleryCoverMock = jest.fn();
+  const openImageThumbnailMock = jest.fn();
+  const openImageFullMock = jest.fn();
   const getSceneStreamUrlMock = jest.fn();
   const getScenePlaybackInfoMock = jest.fn();
   const saveSceneProgressMock = jest.fn();
@@ -26,6 +30,10 @@ describe('MediaService', () => {
   const stashAdapter = {
     openSceneScreenshot: openSceneScreenshotMock,
     openStudioLogo: openStudioLogoMock,
+    openPerformerPhoto: openPerformerPhotoMock,
+    openGalleryCover: openGalleryCoverMock,
+    openImageThumbnail: openImageThumbnailMock,
+    openImageFull: openImageFullMock,
     getSceneStreamUrl: getSceneStreamUrlMock,
     getScenePlaybackInfo: getScenePlaybackInfoMock,
     saveSceneProgress: saveSceneProgressMock,
@@ -105,6 +113,102 @@ describe('MediaService', () => {
       apiKey: null,
     });
     expect(result.contentType).toBe('image/png');
+  });
+
+  it('returns a proxied performer photo using stash integration credentials', async () => {
+    const body = Buffer.from([7, 8, 9]);
+    integrationFindUniqueMock.mockResolvedValue({
+      type: 'STASH',
+      enabled: true,
+      status: 'CONFIGURED',
+      baseUrl: 'http://stash.local',
+      apiKey: 'secret',
+    });
+    openPerformerPhotoMock.mockResolvedValue({
+      body,
+      contentType: 'image/jpeg',
+      contentLength: null,
+      cacheControl: null,
+    });
+
+    const result = await service.getStashPerformerPhoto('performer-1');
+
+    expect(openPerformerPhotoMock).toHaveBeenCalledWith('performer-1', {
+      baseUrl: 'http://stash.local',
+      apiKey: 'secret',
+    });
+    expect(result.body).toBe(body);
+  });
+
+  it('returns a proxied gallery cover using stash integration credentials', async () => {
+    const body = Buffer.from([1, 2]);
+    integrationFindUniqueMock.mockResolvedValue({
+      type: 'STASH',
+      enabled: true,
+      status: 'CONFIGURED',
+      baseUrl: 'http://stash.local',
+      apiKey: 'secret',
+    });
+    openGalleryCoverMock.mockResolvedValue({
+      body,
+      contentType: 'image/jpeg',
+      contentLength: null,
+      cacheControl: null,
+    });
+
+    const result = await service.getStashGalleryCover('gallery-1');
+
+    expect(openGalleryCoverMock).toHaveBeenCalledWith('gallery-1', {
+      baseUrl: 'http://stash.local',
+      apiKey: 'secret',
+    });
+    expect(result.body).toBe(body);
+  });
+
+  it('returns a proxied image thumbnail using stash integration credentials', async () => {
+    integrationFindUniqueMock.mockResolvedValue({
+      type: 'STASH',
+      enabled: true,
+      status: 'CONFIGURED',
+      baseUrl: 'http://stash.local',
+      apiKey: 'secret',
+    });
+    openImageThumbnailMock.mockResolvedValue({
+      body: Buffer.from([1]),
+      contentType: 'image/jpeg',
+      contentLength: null,
+      cacheControl: null,
+    });
+
+    await service.getStashImageThumbnail('image-1');
+
+    expect(openImageThumbnailMock).toHaveBeenCalledWith('image-1', {
+      baseUrl: 'http://stash.local',
+      apiKey: 'secret',
+    });
+  });
+
+  it('returns a proxied full-resolution image using stash integration credentials', async () => {
+    integrationFindUniqueMock.mockResolvedValue({
+      type: 'STASH',
+      enabled: true,
+      status: 'CONFIGURED',
+      baseUrl: 'http://stash.local',
+      apiKey: 'secret',
+    });
+    openImageFullMock.mockResolvedValue({
+      body: Buffer.from([1]),
+      contentType: 'image/jpeg',
+      contentLength: null,
+      cacheControl: null,
+    });
+
+    await service.getStashImageFull('image-1');
+
+    expect(openImageFullMock).toHaveBeenCalledWith('image-1', {
+      baseUrl: 'http://stash.local',
+      apiKey: 'secret',
+    });
   });
 
   it('throws not found when stash returns no matching media asset', async () => {

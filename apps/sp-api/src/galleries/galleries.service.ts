@@ -79,10 +79,23 @@ export class GalleriesService {
     }
 
     const config = await this.getStashConfig();
-    return this.stashAdapter.getGalleryImages(normalizedGalleryId, config, {
-      page,
-      perPage,
-    });
+    const result = await this.stashAdapter.getGalleryImages(
+      normalizedGalleryId,
+      config,
+      { page, perPage },
+    );
+
+    return {
+      ...result,
+      // Proxied through this app's own (HTTPS) backend rather than Stash's
+      // raw URL directly -- Stash is commonly only reachable over plain
+      // HTTP, which browsers block as mixed content on an HTTPS page.
+      items: result.items.map((image) => ({
+        ...image,
+        thumbnailUrl: `/api/media/stash/images/${encodeURIComponent(image.id)}/thumbnail`,
+        imageUrl: `/api/media/stash/images/${encodeURIComponent(image.id)}/full`,
+      })),
+    };
   }
 
   async searchTags(query?: string): Promise<GalleryFilterOptionDto[]> {
@@ -114,11 +127,24 @@ export class GalleriesService {
       id: gallery.id,
       title: gallery.title,
       description: gallery.description,
-      coverImageUrl: gallery.coverImageUrl,
+      // Proxied through this app's own (HTTPS) backend rather than Stash's
+      // raw URL directly -- Stash is commonly only reachable over plain
+      // HTTP, which browsers block as mixed content on an HTTPS page.
+      coverImageUrl: gallery.coverImageUrl
+        ? `/api/media/stash/galleries/${encodeURIComponent(gallery.id)}/cover`
+        : null,
       studioId: gallery.studioId,
       studio: gallery.studio,
-      studioImageUrl: gallery.studioImageUrl,
-      performers: gallery.performers,
+      studioImageUrl:
+        gallery.studioId && gallery.studioImageUrl
+          ? `/api/media/stash/studios/${encodeURIComponent(gallery.studioId)}/logo`
+          : null,
+      performers: gallery.performers.map((performer) => ({
+        ...performer,
+        imageUrl: performer.imageUrl
+          ? `/api/media/stash/performers/${encodeURIComponent(performer.id)}/photo`
+          : null,
+      })),
       tagIds: gallery.tagIds,
       tagNames: gallery.tagNames,
       imageCount: gallery.imageCount,
