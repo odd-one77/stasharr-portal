@@ -269,7 +269,7 @@ describe('MediaService', () => {
       });
       expect(fetchMock).toHaveBeenCalledWith(
         'http://stash.local/scene/411/stream?apikey=secret',
-        expect.objectContaining({ headers: {} }),
+        expect.objectContaining({ method: 'GET', headers: {} }),
       );
       expect(result.status).toBe(200);
       expect(result.headers).toEqual({
@@ -277,6 +277,36 @@ describe('MediaService', () => {
         'Content-Type': 'video/mp4',
         'Content-Length': '1000',
       });
+    });
+
+    it('sends a HEAD request upstream and skips content-length assumptions when probing', async () => {
+      fetchMock.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        headers: new Headers({ 'content-type': 'video/mp4', 'accept-ranges': 'bytes' }),
+        body: null,
+      } as Response);
+
+      const result = await service.streamStashScene('411', undefined, true);
+
+      expect(fetchMock).toHaveBeenCalledWith(
+        'http://stash.local/scene/411/stream?apikey=secret',
+        expect.objectContaining({ method: 'HEAD' }),
+      );
+      expect(result.status).toBe(200);
+    });
+
+    it('falls back to video/mp4 when Stash does not report a content type', async () => {
+      fetchMock.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        headers: new Headers({ 'accept-ranges': 'bytes' }),
+        body: null,
+      } as Response);
+
+      const result = await service.streamStashScene('411');
+
+      expect(result.headers['Content-Type']).toBe('video/mp4');
     });
 
     it('forwards the Range header and returns a partial-content response', async () => {
@@ -295,7 +325,7 @@ describe('MediaService', () => {
 
       expect(fetchMock).toHaveBeenCalledWith(
         'http://stash.local/scene/411/stream?apikey=secret',
-        expect.objectContaining({ headers: { Range: 'bytes=0-99' } }),
+        expect.objectContaining({ method: 'GET', headers: { Range: 'bytes=0-99' } }),
       );
       expect(result.status).toBe(206);
       expect(result.headers['Content-Range']).toBe('bytes 0-99/1000');

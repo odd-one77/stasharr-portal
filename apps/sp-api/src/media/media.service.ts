@@ -87,6 +87,7 @@ export class MediaService {
   async streamStashScene(
     sceneId: string,
     rangeHeader?: string,
+    headOnly = false,
   ): Promise<StashSceneStreamResponse> {
     const config = await this.getStashConfig();
     const streamUrl = await this.stashAdapter.getSceneStreamUrl(sceneId, config);
@@ -101,7 +102,13 @@ export class MediaService {
 
     let response: Response;
     try {
-      response = await fetchWithTimeout(streamUrl, { headers: requestHeaders });
+      // Forward a HEAD as a HEAD so Stash doesn't have to transfer the
+      // actual video bytes just for a capability probe -- most static/media
+      // servers (Stash included) support this.
+      response = await fetchWithTimeout(streamUrl, {
+        method: headOnly ? 'HEAD' : 'GET',
+        headers: requestHeaders,
+      });
     } catch (error) {
       this.logger.error(
         `Failed to reach Stash for scene ${sceneId} stream: ${this.redactUrl(streamUrl)} — ${
@@ -135,13 +142,14 @@ export class MediaService {
 
     const headers: Record<string, string> = {
       'Accept-Ranges': response.headers.get('accept-ranges') ?? 'bytes',
+      // AirPlay/Cast receivers can be strict about needing an explicit,
+      // recognized content type before they'll commit to playback; Stash
+      // should always send one for a real video file, but fall back rather
+      // than silently omitting the header if it ever doesn't.
+      'Content-Type': response.headers.get('content-type') ?? 'video/mp4',
     };
-    const contentType = response.headers.get('content-type');
     const contentLength = response.headers.get('content-length');
     const contentRange = response.headers.get('content-range');
-    if (contentType) {
-      headers['Content-Type'] = contentType;
-    }
     if (contentLength) {
       headers['Content-Length'] = contentLength;
     }

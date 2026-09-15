@@ -69,9 +69,19 @@ export class MediaController {
     @Req() request: Request,
     @Res() response: Response,
   ): Promise<void> {
+    // AirPlay/Cast receivers commonly probe with a HEAD request before
+    // committing to playback, expecting just headers back quickly. Express
+    // routes HEAD through this same @Get handler, so without this check
+    // we'd still fetch and pipe the *entire* video from Stash before the
+    // (bodyless) HEAD response could complete -- for a large file that can
+    // take long enough that the receiver's probe times out and the
+    // "connected but stuck loading" spinner never resolves.
+    const isHeadRequest = request.method === 'HEAD';
+
     const result = await this.mediaService.streamStashScene(
       sceneId,
       request.headers.range,
+      isHeadRequest,
     );
 
     response.status(result.status);
@@ -79,7 +89,7 @@ export class MediaController {
       response.setHeader(header, value);
     }
 
-    if (!result.body) {
+    if (!result.body || isHeadRequest) {
       response.end();
       return;
     }
