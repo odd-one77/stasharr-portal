@@ -3,7 +3,18 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ProgressSpinner } from 'primeng/progressspinner';
 import { ToggleSwitch } from 'primeng/toggleswitch';
-import { Subject, Subscription, catchError, debounceTime, distinctUntilChanged, finalize, forkJoin, of, switchMap } from 'rxjs';
+import {
+  Observable,
+  Subject,
+  Subscription,
+  catchError,
+  debounceTime,
+  distinctUntilChanged,
+  finalize,
+  forkJoin,
+  of,
+  switchMap,
+} from 'rxjs';
 import { DiscoverService } from '../../core/api/discover.service';
 import {
   PerformerFeedItem,
@@ -159,7 +170,13 @@ export class SearchPageComponent implements OnInit, OnDestroy {
     this.searchFor(query).subscribe((result) => this.applySearchResult(result));
   }
 
-  private searchFor(query: string) {
+  private searchFor(
+    query: string,
+  ): Observable<{
+    scenes: ScenesFeedResponse;
+    performers: PerformerFeedResponse;
+    studios: StudioFeedResponse;
+  } | null> {
     this.searched.set(query.length > 0);
     if (!query) {
       return of(null);
