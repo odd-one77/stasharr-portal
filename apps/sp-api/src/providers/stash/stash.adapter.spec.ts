@@ -933,6 +933,117 @@ describe('StashAdapter', () => {
     });
   });
 
+  it('falls back to the flat paths.cover URL when the cover relation is null', async () => {
+    fetchMock.mockResolvedValue({
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          data: {
+            findGalleries: {
+              count: 1,
+              galleries: [
+                {
+                  id: 'gallery-1',
+                  title: 'Beach Day',
+                  image_count: 54,
+                  cover: null,
+                  paths: { cover: 'http://stash.local/gallery/1/cover' },
+                },
+              ],
+            },
+          },
+        }),
+    } as Response);
+
+    const result = await adapter.getLocalGalleryFeed(
+      { baseUrl: 'http://stash.local', apiKey: 'secret' },
+      { page: 1, perPage: 24 },
+    );
+
+    expect(result.items[0]?.coverImageUrl).toBe('http://stash.local/gallery/1/cover');
+  });
+
+  it('derives a fallback title from the folder name when Stash has no title set', async () => {
+    fetchMock.mockResolvedValue({
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          data: {
+            findGalleries: {
+              count: 1,
+              galleries: [
+                {
+                  id: 'gallery-1',
+                  title: '',
+                  image_count: 54,
+                  folder: { path: '/data/galleries/My Awesome Gallery' },
+                },
+              ],
+            },
+          },
+        }),
+    } as Response);
+
+    const result = await adapter.getLocalGalleryFeed(
+      { baseUrl: 'http://stash.local', apiKey: 'secret' },
+      { page: 1, perPage: 24 },
+    );
+
+    expect(result.items[0]?.title).toBe('My Awesome Gallery');
+  });
+
+  it('derives a fallback title from the zip file name when there is no folder either', async () => {
+    fetchMock.mockResolvedValue({
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          data: {
+            findGalleries: {
+              count: 1,
+              galleries: [
+                {
+                  id: 'gallery-1',
+                  title: null,
+                  image_count: 54,
+                  folder: null,
+                  files: [{ path: '/data/galleries/beach-day.zip' }],
+                },
+              ],
+            },
+          },
+        }),
+    } as Response);
+
+    const result = await adapter.getLocalGalleryFeed(
+      { baseUrl: 'http://stash.local', apiKey: 'secret' },
+      { page: 1, perPage: 24 },
+    );
+
+    expect(result.items[0]?.title).toBe('beach-day.zip');
+  });
+
+  it('falls back to a generic placeholder title only when nothing else is available', async () => {
+    fetchMock.mockResolvedValue({
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          data: {
+            findGalleries: {
+              count: 1,
+              galleries: [{ id: 'gallery-1', title: null, image_count: 0 }],
+            },
+          },
+        }),
+    } as Response);
+
+    const result = await adapter.getLocalGalleryFeed(
+      { baseUrl: 'http://stash.local', apiKey: 'secret' },
+      { page: 1, perPage: 24 },
+    );
+
+    expect(result.items[0]?.title).toBe('Gallery #gallery-1');
+  });
+
   it('builds a gallery_filter from tag/studio ids and drops invalid ones', async () => {
     fetchMock.mockResolvedValue({
       ok: true,

@@ -318,11 +318,29 @@ interface StashGalleryRecord {
   image_count?: unknown;
   created_at?: unknown;
   updated_at?: unknown;
+  // Gallery.cover is an optional Image *relation* -- only present when
+  // Stash has actually designated one, and often null even for galleries
+  // with real photos. Gallery.paths.cover is a flat, dynamically-generated
+  // URL that Stash always serves regardless of whether that relation is
+  // set, so it's queried as a fallback (mirrors how Scene exposes
+  // paths.screenshot directly rather than only through a relation).
   cover?: {
     paths?: {
       thumbnail?: unknown;
     } | null;
   } | null;
+  paths?: {
+    cover?: unknown;
+  } | null;
+  // Folder/file path used to derive a readable fallback title when Stash
+  // has no title set (common for galleries that were just scanned from a
+  // folder/zip and never manually named).
+  folder?: {
+    path?: unknown;
+  } | null;
+  files?: Array<{
+    path?: unknown;
+  }> | null;
   studio?: {
     id?: unknown;
     name?: unknown;
@@ -860,6 +878,15 @@ export class StashAdapter {
                 thumbnail
               }
             }
+            paths {
+              cover
+            }
+            folder {
+              path
+            }
+            files {
+              path
+            }
             studio {
               id
               name
@@ -947,6 +974,15 @@ export class StashAdapter {
             paths {
               thumbnail
             }
+          }
+          paths {
+            cover
+          }
+          folder {
+            path
+          }
+          files {
+            path
           }
           studio {
             id
@@ -1563,9 +1599,14 @@ export class StashAdapter {
 
     return {
       id,
-      title: this.normalizeOptionalString(gallery.title) ?? `Gallery #${id}`,
+      title: this.resolveGalleryTitle(gallery, id),
       description: this.normalizeOptionalString(gallery.details),
-      coverImageUrl: this.parseAssetUrl(gallery.cover?.paths?.thumbnail),
+      // gallery.cover is an optional relation and is often null even for
+      // galleries with real photos; gallery.paths.cover is a flat URL Stash
+      // always serves dynamically, so it's the more reliable fallback.
+      coverImageUrl:
+        this.parseAssetUrl(gallery.cover?.paths?.thumbnail) ??
+        this.parseAssetUrl(gallery.paths?.cover),
       studioId: this.normalizeOptionalString(gallery.studio?.id),
       studio: this.normalizeOptionalString(gallery.studio?.name),
       studioImageUrl: this.normalizeOptionalString(gallery.studio?.image_path),
@@ -1578,6 +1619,39 @@ export class StashAdapter {
       createdAt: this.parseOptionalDate(gallery.created_at),
       updatedAt: this.parseOptionalDate(gallery.updated_at),
     };
+  }
+
+  // Falls back to the gallery's folder/zip name when Stash has no title set
+  // (common for galleries that were just scanned and never manually
+  // named) -- much more useful than a placeholder like "Gallery #123".
+  private resolveGalleryTitle(gallery: StashGalleryRecord, id: string): string {
+    const title = this.normalizeOptionalString(gallery.title);
+    if (title) {
+      return title;
+    }
+
+    const folderPath = this.normalizeOptionalString(gallery.folder?.path);
+    const folderName = this.lastPathSegment(folderPath);
+    if (folderName) {
+      return folderName;
+    }
+
+    const firstFilePath = this.normalizeOptionalString(gallery.files?.[0]?.path);
+    const fileName = this.lastPathSegment(firstFilePath);
+    if (fileName) {
+      return fileName;
+    }
+
+    return `Gallery #${id}`;
+  }
+
+  private lastPathSegment(path: string | null): string | null {
+    if (!path) {
+      return null;
+    }
+
+    const segments = path.split(/[/\\]/).filter((segment) => segment.length > 0);
+    return segments.length > 0 ? segments[segments.length - 1] : null;
   }
 
   private toLocalGalleryImage(image: StashImageRecord): StashLocalGalleryImage | null {
