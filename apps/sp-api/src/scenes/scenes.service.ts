@@ -1,10 +1,12 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { IntegrationStatus, IntegrationType } from '@prisma/client';
 import { IntegrationsService } from '../integrations/integrations.service';
+import { PerformerFavoritesService } from '../performers/performer-favorites.service';
 import { CatalogProviderService } from '../providers/catalog/catalog-provider.service';
 import { type CatalogProviderKey } from '../providers/catalog/catalog-provider.util';
 import { StashAdapter } from '../providers/stash/stash.adapter';
 import { withStashImageSize } from '../providers/stashdb/stashdb-image-url.util';
+import { StashdbScene } from '../providers/stashdb/stashdb.adapter';
 import { WhisparrAdapter } from '../providers/whisparr/whisparr.adapter';
 import {
   SceneStatusDto,
@@ -32,6 +34,10 @@ export class ScenesService {
   private static readonly DEFAULT_PAGE = 1;
   private static readonly DEFAULT_PER_PAGE = 24;
 
+  // Bounded by favorited-performer count, not catalog size -- see
+  // getFavoritePerformerScenesFeed.
+  private static readonly FAVORITE_PERFORMER_SCENES_PER_PERFORMER_CAP = 60;
+
   constructor(
     private readonly integrationsService: IntegrationsService,
     private readonly catalogProviderService: CatalogProviderService,
@@ -39,6 +45,7 @@ export class ScenesService {
     private readonly stashAdapter: StashAdapter,
     private readonly whisparrAdapter: WhisparrAdapter,
     private readonly appSettingsService: AppSettingsService,
+    private readonly performerFavoritesService: PerformerFavoritesService,
   ) {}
 
   async getScenesFeed(
@@ -52,12 +59,30 @@ export class ScenesService {
     studioIds: string[] = [],
     titleQuery?: string,
   ): Promise<ScenesFeedResponseDto> {
+    const normalizedStudioIds = this.normalizeStudioIds(studioIds);
+
+    // TPDB has no server-side "favorite performer" filter at all (confirmed
+    // live: the field never appears on any scene/performer response), so
+    // asking it for favorites: PERFORMER silently returns the unfiltered
+    // feed. Since favorites are tracked locally and expected to be a small
+    // curated list, build this from each favorited performer's own scenes
+    // instead of relying on the provider.
+    if (favorites === 'PERFORMER') {
+      return this.getFavoritePerformerScenesFeed(
+        page,
+        perPage,
+        sort,
+        direction,
+        normalizedStudioIds,
+        titleQuery,
+      );
+    }
+
     const catalogProvider =
       await this.catalogProviderService.getConfiguredCatalogProvider();
     const catalogAdapter =
       await this.catalogProviderService.getConfiguredCatalogAdapter();
     const normalizedTagIds = this.normalizeTagIds(tagIds);
-    const normalizedStudioIds = this.normalizeStudioIds(studioIds);
     const [scenes, appSettings] = await Promise.all([
       catalogAdapter.getScenesBySort({
         baseUrl: catalogProvider.baseUrl,
@@ -109,6 +134,135 @@ export class ScenesService {
         );
       }),
     };
+  }
+
+  // Favorites live entirely in our own DB and a favorited list is expected
+  // to be small (a curated shortlist, not the full catalog), so rather than
+  // ask the provider for a "favorite performers" page it can't produce
+  // (TPDB has no such filter at all), fetch each favorited performer's own
+  // scenes directly and merge/sort/paginate locally. Bounded by favorited
+  // performer count x a per-performer cap, not total catalog size.
+  private async getFavoritePerformerScenesFeed(
+    page: number,
+    perPage: number,
+    sort: SceneFeedSort,
+    direction: SortDirection,
+    studioIds: string[],
+    titleQuery: string | undefined,
+  ): Promise<ScenesFeedResponseDto> {
+    const favoriteIds = await this.performerFavoritesService.listAllFavoriteIds();
+    if (favoriteIds.length === 0) {
+      return { total: 0, page, perPage, hasMore: false, items: [] };
+    }
+
+    const catalogProvider =
+      await this.catalogProviderService.getConfiguredCatalogProvider();
+    const catalogAdapter =
+      await this.catalogProviderService.getConfiguredCatalogAdapter();
+    const appSettings = await this.appSettingsService.get();
+
+    const perPerformerScenes = await Promise.all(
+      favoriteIds.map(async (performerId): Promise<StashdbScene[]> => {
+        try {
+          const result = await catalogAdapter.getScenesForPerformer({
+            baseUrl: catalogProvider.baseUrl,
+            apiKey: catalogProvider.apiKey,
+            performerId,
+            page: 1,
+            perPage: ScenesService.FAVORITE_PERFORMER_SCENES_PER_PERFORMER_CAP,
+            sort: 'DATE',
+            direction: 'DESC',
+          });
+          return result.scenes;
+        } catch {
+          // Deleted/merged upstream, or this performer has no scenes --
+          // drop it rather than fail the whole feed.
+          return [];
+        }
+      }),
+    );
+
+    const dedupedScenes = new Map<string, StashdbScene>();
+    for (const scene of perPerformerScenes.flat()) {
+      if (!dedupedScenes.has(scene.id)) {
+        dedupedScenes.set(scene.id, scene);
+      }
+    }
+    let scenes = Array.from(dedupedScenes.values());
+
+    if (studioIds.length > 0) {
+      const studioIdSet = new Set(studioIds);
+      scenes = scenes.filter(
+        (scene) => scene.studioId !== null && studioIdSet.has(scene.studioId),
+      );
+    }
+
+    const normalizedTitleQuery = titleQuery?.trim().toLowerCase();
+    if (normalizedTitleQuery) {
+      scenes = scenes.filter((scene) =>
+        scene.title.toLowerCase().includes(normalizedTitleQuery),
+      );
+    }
+
+    const sorted = this.sortScenesLocally(scenes, sort, direction);
+    const statuses = await this.sceneStatusService.resolveForScenes(
+      sorted.map((scene) => scene.id),
+    );
+    const visibleScenes = filterExcludedNetworkScenes(
+      sorted,
+      statuses,
+      appSettings.hideAmateurNetworkResults,
+    );
+
+    const total = visibleScenes.length;
+    const start = (page - 1) * perPage;
+    const pageItems = visibleScenes.slice(start, start + perPage);
+
+    return {
+      total,
+      page,
+      perPage,
+      hasMore: page * perPage < total,
+      items: pageItems.map((scene) => {
+        const status = statuses.get(scene.id) ?? { state: 'NOT_REQUESTED' };
+        return this.toScenesFeedItem(
+          scene,
+          catalogProvider.integrationType,
+          status,
+          isSceneStatusRequestable(status),
+        );
+      }),
+    };
+  }
+
+  private sortScenesLocally(
+    scenes: StashdbScene[],
+    sort: SceneFeedSort,
+    direction: SortDirection,
+  ): StashdbScene[] {
+    const directionFactor = direction === 'DESC' ? -1 : 1;
+
+    return [...scenes].sort((a, b) => {
+      if (sort === 'TITLE') {
+        return a.title.localeCompare(b.title) * directionFactor;
+      }
+
+      // TRENDING/CREATED_AT/UPDATED_AT all collapse to date here, matching
+      // TPDB's own live behavior (its list endpoints only ever honor
+      // sort=date server-side too -- see tpdb.adapter.ts).
+      const aDate = a.releaseDate ?? a.date;
+      const bDate = b.releaseDate ?? b.date;
+      if (!aDate && !bDate) {
+        return 0;
+      }
+      if (!aDate) {
+        return 1;
+      }
+      if (!bDate) {
+        return -1;
+      }
+      return aDate.localeCompare(bDate) * directionFactor;
+    });
   }
 
   async searchSceneTags(query?: string): Promise<SceneTagOptionDto[]> {

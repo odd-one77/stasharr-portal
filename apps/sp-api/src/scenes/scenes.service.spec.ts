@@ -1,5 +1,6 @@
 import { IntegrationStatus, IntegrationType } from '@prisma/client';
 import { IntegrationsService } from '../integrations/integrations.service';
+import { PerformerFavoritesService } from '../performers/performer-favorites.service';
 import { CatalogProviderService } from '../providers/catalog/catalog-provider.service';
 import type { CatalogAdapter } from '../providers/catalog/catalog-adapter.interface';
 import { StashAdapter } from '../providers/stash/stash.adapter';
@@ -21,6 +22,7 @@ describe('ScenesService', () => {
   const catalogAdapter = {
     getSceneById: jest.fn(),
     getScenesBySort: jest.fn(),
+    getScenesForPerformer: jest.fn(),
     searchTags: jest.fn(),
     favoriteStudio: jest.fn(),
   } as unknown as CatalogAdapter;
@@ -42,6 +44,10 @@ describe('ScenesService', () => {
   const appSettingsService = {
     get: jest.fn(),
   } as unknown as AppSettingsService;
+
+  const performerFavoritesService = {
+    listAllFavoriteIds: jest.fn(),
+  } as unknown as PerformerFavoritesService;
 
   const stashdbIntegration = {
     enabled: true,
@@ -92,6 +98,7 @@ describe('ScenesService', () => {
       stashAdapter,
       whisparrAdapter,
       appSettingsService,
+      performerFavoritesService,
     );
 
     integrationsService.findOne = jest
@@ -155,6 +162,7 @@ describe('ScenesService', () => {
     appSettingsService.get = jest
       .fn()
       .mockResolvedValue({ hideAmateurNetworkResults: false });
+    performerFavoritesService.listAllFavoriteIds = jest.fn().mockResolvedValue([]);
     stashAdapter.findScenesByStashId = jest.fn().mockResolvedValue([]);
     whisparrAdapter.findMovieByStashId = jest.fn().mockResolvedValue(null);
     whisparrAdapter.buildSceneViewUrl = jest
@@ -364,6 +372,177 @@ describe('ScenesService', () => {
     const result = await service.getScenesFeed();
 
     expect(result.items.map((item) => item.id)).toEqual(['amateur-scene-1']);
+  });
+
+  describe('favorites: PERFORMER', () => {
+    function buildScene(overrides: Partial<Record<string, unknown>> = {}) {
+      return {
+        id: 'scene-1',
+        title: 'Scene One',
+        details: null,
+        imageUrl: null,
+        studioId: 'studio-1',
+        studioName: 'Studio',
+        studioImageUrl: null,
+        date: '2026-01-01',
+        releaseDate: '2026-01-01',
+        productionDate: null,
+        duration: 300,
+        isFromExcludedNetwork: false,
+        ...overrides,
+      };
+    }
+
+    it('bypasses the provider feed entirely and aggregates favorited performers own scenes', async () => {
+      performerFavoritesService.listAllFavoriteIds = jest
+        .fn()
+        .mockResolvedValue(['performer-1', 'performer-2']);
+      catalogAdapter.getScenesForPerformer = jest
+        .fn()
+        .mockImplementation((config: { performerId: string }) =>
+          Promise.resolve({
+            total: 1,
+            scenes: [buildScene({ id: `${config.performerId}-scene` })],
+          }),
+        );
+      sceneStatusService.resolveForScenes = jest.fn().mockResolvedValue(new Map());
+
+      const result = await service.getScenesFeed(1, 24, 'TRENDING', 'DESC', [], 'OR', 'PERFORMER');
+
+      expect(catalogAdapter.getScenesBySort).not.toHaveBeenCalled();
+      expect(catalogAdapter.getScenesForPerformer).toHaveBeenCalledTimes(2);
+      expect(result.items.map((item) => item.id).sort()).toEqual([
+        'performer-1-scene',
+        'performer-2-scene',
+      ]);
+      expect(result.total).toBe(2);
+    });
+
+    it('returns an empty feed without calling the provider when nothing is favorited', async () => {
+      performerFavoritesService.listAllFavoriteIds = jest.fn().mockResolvedValue([]);
+
+      const result = await service.getScenesFeed(1, 24, 'TRENDING', 'DESC', [], 'OR', 'PERFORMER');
+
+      expect(catalogAdapter.getScenesForPerformer).not.toHaveBeenCalled();
+      expect(result).toEqual({ total: 0, page: 1, perPage: 24, hasMore: false, items: [] });
+    });
+
+    it('dedupes a scene shared by two favorited performers', async () => {
+      performerFavoritesService.listAllFavoriteIds = jest
+        .fn()
+        .mockResolvedValue(['performer-1', 'performer-2']);
+      catalogAdapter.getScenesForPerformer = jest.fn().mockResolvedValue({
+        total: 1,
+        scenes: [buildScene({ id: 'shared-scene' })],
+      });
+      sceneStatusService.resolveForScenes = jest.fn().mockResolvedValue(new Map());
+
+      const result = await service.getScenesFeed(1, 24, 'TRENDING', 'DESC', [], 'OR', 'PERFORMER');
+
+      expect(result.items.map((item) => item.id)).toEqual(['shared-scene']);
+      expect(result.total).toBe(1);
+    });
+
+    it('drops a performer whose scenes fail to load instead of failing the whole feed', async () => {
+      performerFavoritesService.listAllFavoriteIds = jest
+        .fn()
+        .mockResolvedValue(['performer-1', 'performer-2']);
+      catalogAdapter.getScenesForPerformer = jest
+        .fn()
+        .mockImplementation((config: { performerId: string }) => {
+          if (config.performerId === 'performer-2') {
+            return Promise.reject(new Error('not found'));
+          }
+          return Promise.resolve({
+            total: 1,
+            scenes: [buildScene({ id: 'performer-1-scene' })],
+          });
+        });
+      sceneStatusService.resolveForScenes = jest.fn().mockResolvedValue(new Map());
+
+      const result = await service.getScenesFeed(1, 24, 'TRENDING', 'DESC', [], 'OR', 'PERFORMER');
+
+      expect(result.items.map((item) => item.id)).toEqual(['performer-1-scene']);
+    });
+
+    it('filters the aggregated scenes by studio and title query locally', async () => {
+      performerFavoritesService.listAllFavoriteIds = jest.fn().mockResolvedValue(['performer-1']);
+      catalogAdapter.getScenesForPerformer = jest.fn().mockResolvedValue({
+        total: 2,
+        scenes: [
+          buildScene({ id: 'scene-a', title: 'Beach Day', studioId: 'studio-1' }),
+          buildScene({ id: 'scene-b', title: 'Night Out', studioId: 'studio-2' }),
+        ],
+      });
+      sceneStatusService.resolveForScenes = jest.fn().mockResolvedValue(new Map());
+
+      const result = await service.getScenesFeed(
+        1,
+        24,
+        'TRENDING',
+        'DESC',
+        [],
+        'OR',
+        'PERFORMER',
+        ['studio-1'],
+        'beach',
+      );
+
+      expect(result.items.map((item) => item.id)).toEqual(['scene-a']);
+    });
+
+    it('sorts the aggregated scenes by title when requested', async () => {
+      performerFavoritesService.listAllFavoriteIds = jest.fn().mockResolvedValue(['performer-1']);
+      catalogAdapter.getScenesForPerformer = jest.fn().mockResolvedValue({
+        total: 2,
+        scenes: [
+          buildScene({ id: 'scene-z', title: 'Zebra' }),
+          buildScene({ id: 'scene-a', title: 'Antelope' }),
+        ],
+      });
+      sceneStatusService.resolveForScenes = jest.fn().mockResolvedValue(new Map());
+
+      const result = await service.getScenesFeed(1, 24, 'TITLE', 'ASC', [], 'OR', 'PERFORMER');
+
+      expect(result.items.map((item) => item.id)).toEqual(['scene-a', 'scene-z']);
+    });
+
+    it('paginates the locally-aggregated feed', async () => {
+      performerFavoritesService.listAllFavoriteIds = jest.fn().mockResolvedValue(['performer-1']);
+      catalogAdapter.getScenesForPerformer = jest.fn().mockResolvedValue({
+        total: 3,
+        scenes: [
+          buildScene({ id: 'scene-1', releaseDate: '2026-01-01' }),
+          buildScene({ id: 'scene-2', releaseDate: '2026-01-02' }),
+          buildScene({ id: 'scene-3', releaseDate: '2026-01-03' }),
+        ],
+      });
+      sceneStatusService.resolveForScenes = jest.fn().mockResolvedValue(new Map());
+
+      const result = await service.getScenesFeed(1, 2, 'DATE', 'DESC', [], 'OR', 'PERFORMER');
+
+      expect(result.items.map((item) => item.id)).toEqual(['scene-3', 'scene-2']);
+      expect(result.total).toBe(3);
+      expect(result.hasMore).toBe(true);
+    });
+
+    it('still hides excluded-network favorite-performer scenes not already in the library', async () => {
+      appSettingsService.get = jest
+        .fn()
+        .mockResolvedValue({ hideAmateurNetworkResults: true });
+      performerFavoritesService.listAllFavoriteIds = jest.fn().mockResolvedValue(['performer-1']);
+      catalogAdapter.getScenesForPerformer = jest.fn().mockResolvedValue({
+        total: 1,
+        scenes: [buildScene({ id: 'amateur-scene', isFromExcludedNetwork: true })],
+      });
+      sceneStatusService.resolveForScenes = jest
+        .fn()
+        .mockResolvedValue(new Map([['amateur-scene', { state: 'NOT_REQUESTED' }]]));
+
+      const result = await service.getScenesFeed(1, 24, 'TRENDING', 'DESC', [], 'OR', 'PERFORMER');
+
+      expect(result.items).toEqual([]);
+    });
   });
 
   it('uses the active FANSDB provider for discovery feed and scene detail source', async () => {
