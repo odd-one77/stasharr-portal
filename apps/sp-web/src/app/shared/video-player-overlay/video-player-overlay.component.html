@@ -33,6 +33,8 @@
               [src]="s.source.streamUrl"
               controls
               autoplay
+              playsinline
+              x-webkit-airplay="allow"
               (loadedmetadata)="onVideoLoadedMetadata()"
               (play)="onVideoPlay()"
               (pause)="onVideoPause()"

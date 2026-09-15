@@ -73,6 +73,11 @@
         />
         <p>Loading images...</p>
       </div>
+    } @else if (imagesError() && images().length === 0) {
+      <div class="load-more-error">
+        <p-message severity="error" styleClass="app-inline-message">{{ imagesError() }}</p-message>
+        <button pButton type="button" (click)="retryLoadMoreImages()">Retry</button>
+      </div>
     } @else if (images().length === 0) {
       <p class="state">This gallery has no images.</p>
     } @else {
