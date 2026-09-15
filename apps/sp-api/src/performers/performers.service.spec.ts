@@ -1,5 +1,8 @@
+import { IntegrationStatus } from '@prisma/client';
+import { IntegrationsService } from '../integrations/integrations.service';
 import { CatalogProviderService } from '../providers/catalog/catalog-provider.service';
 import type { CatalogAdapter } from '../providers/catalog/catalog-adapter.interface';
+import { StashAdapter } from '../providers/stash/stash.adapter';
 import { SceneStatusService } from '../scene-status/scene-status.service';
 import { AppSettingsService } from '../settings/app-settings.service';
 import { PerformerFavoritesService } from './performer-favorites.service';
@@ -34,12 +37,28 @@ describe('PerformersService', () => {
     setFavorite: jest.fn(),
   } as unknown as PerformerFavoritesService;
 
+  const integrationsService = {
+    findOne: jest.fn(),
+  } as unknown as IntegrationsService;
+
+  const stashAdapter = {
+    findPerformerByStashId: jest.fn(),
+    setPerformerFavorite: jest.fn(),
+  } as unknown as StashAdapter;
+
   const stashdbIntegration = {
     integrationType: 'STASHDB',
     providerKey: 'STASHDB',
     label: 'StashDB',
     baseUrl: 'http://stashdb.local/graphql',
     apiKey: 'stashdb-key',
+  };
+
+  const stashIntegration = {
+    enabled: true,
+    status: IntegrationStatus.CONFIGURED,
+    baseUrl: 'http://stash.local',
+    apiKey: 'stash-key',
   };
 
   let service: PerformersService;
@@ -51,6 +70,8 @@ describe('PerformersService', () => {
       sceneStatusService,
       appSettingsService,
       performerFavoritesService,
+      integrationsService,
+      stashAdapter,
     );
 
     catalogProviderService.getConfiguredCatalogProvider = jest
@@ -148,6 +169,9 @@ describe('PerformersService', () => {
     performerFavoritesService.setFavorite = jest
       .fn()
       .mockResolvedValue({ favorited: true, alreadyFavorited: false });
+    integrationsService.findOne = jest.fn().mockResolvedValue(stashIntegration);
+    stashAdapter.findPerformerByStashId = jest.fn().mockResolvedValue(null);
+    stashAdapter.setPerformerFavorite = jest.fn().mockResolvedValue(undefined);
   });
 
   it('uses default query behavior for performers feed', async () => {
@@ -521,6 +545,57 @@ describe('PerformersService', () => {
     });
 
     expect(performerFavoritesService.setFavorite).toHaveBeenCalledWith('p-1', true);
+  });
+
+  it('mirrors the favorite into a matching local Stash performer', async () => {
+    stashAdapter.findPerformerByStashId = jest
+      .fn()
+      .mockResolvedValue({ id: 'local-performer-1', favorite: false });
+
+    await service.favoritePerformer('p-1', true);
+
+    expect(stashAdapter.findPerformerByStashId).toHaveBeenCalledWith('p-1', {
+      baseUrl: stashIntegration.baseUrl,
+      apiKey: stashIntegration.apiKey,
+    });
+    expect(stashAdapter.setPerformerFavorite).toHaveBeenCalledWith(
+      'local-performer-1',
+      true,
+      { baseUrl: stashIntegration.baseUrl, apiKey: stashIntegration.apiKey },
+    );
+  });
+
+  it('does not touch Stash when no local performer is matched yet', async () => {
+    await service.favoritePerformer('p-1', true);
+
+    expect(stashAdapter.findPerformerByStashId).toHaveBeenCalled();
+    expect(stashAdapter.setPerformerFavorite).not.toHaveBeenCalled();
+  });
+
+  it('skips the Stash sync when Stash is not configured, without failing the toggle', async () => {
+    integrationsService.findOne = jest.fn().mockResolvedValue({
+      enabled: false,
+      status: IntegrationStatus.NOT_CONFIGURED,
+      baseUrl: null,
+      apiKey: null,
+    });
+
+    await expect(service.favoritePerformer('p-1', true)).resolves.toEqual({
+      favorited: true,
+      alreadyFavorited: false,
+    });
+    expect(stashAdapter.findPerformerByStashId).not.toHaveBeenCalled();
+  });
+
+  it('keeps the local favorite even when the Stash sync throws', async () => {
+    stashAdapter.findPerformerByStashId = jest
+      .fn()
+      .mockRejectedValue(new Error('Stash unreachable'));
+
+    await expect(service.favoritePerformer('p-1', true)).resolves.toEqual({
+      favorited: true,
+      alreadyFavorited: false,
+    });
   });
 
   it('favorites a performer through whichever catalog adapter is configured (e.g. TPDB)', async () => {

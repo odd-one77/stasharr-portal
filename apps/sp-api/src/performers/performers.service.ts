@@ -5,7 +5,10 @@ import {
   BadRequestException,
   Injectable,
 } from '@nestjs/common';
+import { IntegrationStatus, IntegrationType } from '@prisma/client';
+import { IntegrationsService } from '../integrations/integrations.service';
 import { CatalogProviderService } from '../providers/catalog/catalog-provider.service';
+import { StashAdapter } from '../providers/stash/stash.adapter';
 import { withStashImageSize } from '../providers/stashdb/stashdb-image-url.util';
 import { StashdbPerformerDetails } from '../providers/stashdb/stashdb.adapter';
 import { SceneStatusService } from '../scene-status/scene-status.service';
@@ -39,6 +42,8 @@ export class PerformersService {
     private readonly sceneStatusService: SceneStatusService,
     private readonly appSettingsService: AppSettingsService,
     private readonly performerFavoritesService: PerformerFavoritesService,
+    private readonly integrationsService: IntegrationsService,
+    private readonly stashAdapter: StashAdapter,
   ) {}
 
   async getPerformersFeed(
@@ -383,7 +388,56 @@ export class PerformersService {
       // ignore
     }
 
+    // Also best-effort: if this catalog-provider performer is already
+    // matched to a performer in the local Stash library, mirror the
+    // favorite there too. Library's own "Favorite Performers Only" filter
+    // is driven entirely by Stash's native favorite flag (synced into
+    // LibrarySceneIndex on the next indexing pass), so this is what makes
+    // favoriting here actually show up in Library -- without it the two
+    // "favorite" concepts would silently drift apart.
+    await this.syncFavoriteToStash(normalizedPerformerId, favorite);
+
     return result;
+  }
+
+  private async syncFavoriteToStash(
+    catalogPerformerId: string,
+    favorite: boolean,
+  ): Promise<void> {
+    try {
+      const integration = await this.integrationsService.findOne(
+        IntegrationType.STASH,
+      );
+      if (
+        !integration.enabled ||
+        integration.status !== IntegrationStatus.CONFIGURED
+      ) {
+        return;
+      }
+
+      const baseUrl = integration.baseUrl?.trim();
+      if (!baseUrl) {
+        return;
+      }
+
+      const stashConfig = { baseUrl, apiKey: integration.apiKey };
+      const match = await this.stashAdapter.findPerformerByStashId(
+        catalogPerformerId,
+        stashConfig,
+      );
+      if (!match) {
+        return;
+      }
+
+      await this.stashAdapter.setPerformerFavorite(
+        match.id,
+        favorite,
+        stashConfig,
+      );
+    } catch {
+      // Best-effort: Stash may not be configured, or this performer may
+      // not be matched into the local library yet.
+    }
   }
 
   private async getActiveCatalogConfig(): Promise<{

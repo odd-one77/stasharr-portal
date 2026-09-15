@@ -2,6 +2,7 @@ import { Component, OnDestroy, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ProgressSpinner } from 'primeng/progressspinner';
+import { ToggleSwitch } from 'primeng/toggleswitch';
 import { Subject, Subscription, catchError, debounceTime, distinctUntilChanged, finalize, forkJoin, of, switchMap } from 'rxjs';
 import { DiscoverService } from '../../core/api/discover.service';
 import {
@@ -24,6 +25,7 @@ import { SceneRequestModalComponent } from '../../shared/scene-request-modal/sce
     FormsModule,
     RouterLink,
     ProgressSpinner,
+    ToggleSwitch,
     SceneCardComponent,
     SceneRequestModalComponent,
   ],
@@ -50,6 +52,7 @@ export class SearchPageComponent implements OnInit, OnDestroy {
   protected readonly studioResults = signal<StudioFeedItem[]>([]);
   protected readonly requestModalOpen = signal(false);
   protected readonly requestContext = signal<SceneRequestContext | null>(null);
+  protected readonly favoritePerformersOnly = signal(false);
 
   ngOnInit(): void {
     this.setupSearch();
@@ -76,6 +79,18 @@ export class SearchPageComponent implements OnInit, OnDestroy {
 
   protected onQuerySubmit(): void {
     this.syncUrl(this.queryInput().trim());
+  }
+
+  protected onFavoritePerformersOnlyChanged(nextValue: boolean): void {
+    if (this.favoritePerformersOnly() === nextValue) {
+      return;
+    }
+
+    this.favoritePerformersOnly.set(nextValue);
+    // Bypass the debounced/distinct searchTerms pipeline: the query text
+    // hasn't changed, only the filter, so distinctUntilChanged would
+    // otherwise swallow this.
+    this.runSearch(this.queryInput().trim());
   }
 
   protected hasResults(): boolean {
@@ -135,70 +150,86 @@ export class SearchPageComponent implements OnInit, OnDestroy {
       .pipe(
         debounceTime(300),
         distinctUntilChanged(),
-        switchMap((term) => {
-          const query = term.trim();
-          this.searched.set(query.length > 0);
-          if (!query) {
-            return of(null);
-          }
-
-          const emptyScenes: ScenesFeedResponse = {
-            total: 0,
-            page: 1,
-            perPage: SearchPageComponent.RESULTS_PER_SOURCE,
-            hasMore: false,
-            items: [] as SceneExplorerItem[],
-          };
-          const emptyPerformers: PerformerFeedResponse = {
-            total: 0,
-            page: 1,
-            perPage: SearchPageComponent.RESULTS_PER_SOURCE,
-            hasMore: false,
-            items: [] as PerformerFeedItem[],
-          };
-          const emptyStudios: StudioFeedResponse = {
-            total: 0,
-            page: 1,
-            perPage: SearchPageComponent.RESULTS_PER_SOURCE,
-            hasMore: false,
-            items: [] as StudioFeedItem[],
-          };
-
-          this.loading.set(true);
-          return forkJoin({
-            scenes: this.discoverService
-              .getScenesFeed(
-                1,
-                SearchPageComponent.RESULTS_PER_SOURCE,
-                'TITLE',
-                'ASC',
-                [],
-                undefined,
-                undefined,
-                [],
-                query,
-              )
-              .pipe(catchError(() => of(emptyScenes))),
-            performers: this.discoverService
-              .getPerformersFeed(1, SearchPageComponent.RESULTS_PER_SOURCE, { name: query })
-              .pipe(catchError(() => of(emptyPerformers))),
-            studios: this.discoverService
-              .getStudiosFeed(1, SearchPageComponent.RESULTS_PER_SOURCE, { name: query })
-              .pipe(catchError(() => of(emptyStudios))),
-          }).pipe(finalize(() => this.loading.set(false)));
-        }),
+        switchMap((term) => this.searchFor(term.trim())),
       )
-      .subscribe((result) => {
-        if (!result) {
-          this.sceneResults.set([]);
-          this.performerResults.set([]);
-          this.studioResults.set([]);
-          return;
-        }
+      .subscribe((result) => this.applySearchResult(result));
+  }
 
-        this.sceneResults.set(result.scenes.items);
-        this.performerResults.set(result.performers.items);
-        this.studioResults.set(result.studios.items);
-      });
+  private runSearch(query: string): void {
+    this.searchFor(query).subscribe((result) => this.applySearchResult(result));
+  }
+
+  private searchFor(query: string) {
+    this.searched.set(query.length > 0);
+    if (!query) {
+      return of(null);
+    }
+
+    const emptyScenes: ScenesFeedResponse = {
+      total: 0,
+      page: 1,
+      perPage: SearchPageComponent.RESULTS_PER_SOURCE,
+      hasMore: false,
+      items: [] as SceneExplorerItem[],
+    };
+    const emptyPerformers: PerformerFeedResponse = {
+      total: 0,
+      page: 1,
+      perPage: SearchPageComponent.RESULTS_PER_SOURCE,
+      hasMore: false,
+      items: [] as PerformerFeedItem[],
+    };
+    const emptyStudios: StudioFeedResponse = {
+      total: 0,
+      page: 1,
+      perPage: SearchPageComponent.RESULTS_PER_SOURCE,
+      hasMore: false,
+      items: [] as StudioFeedItem[],
+    };
+
+    this.loading.set(true);
+    return forkJoin({
+      scenes: this.discoverService
+        .getScenesFeed(
+          1,
+          SearchPageComponent.RESULTS_PER_SOURCE,
+          'TITLE',
+          'ASC',
+          [],
+          undefined,
+          undefined,
+          [],
+          query,
+        )
+        .pipe(catchError(() => of(emptyScenes))),
+      performers: this.discoverService
+        .getPerformersFeed(1, SearchPageComponent.RESULTS_PER_SOURCE, {
+          name: query,
+          favoritesOnly: this.favoritePerformersOnly(),
+        })
+        .pipe(catchError(() => of(emptyPerformers))),
+      studios: this.discoverService
+        .getStudiosFeed(1, SearchPageComponent.RESULTS_PER_SOURCE, { name: query })
+        .pipe(catchError(() => of(emptyStudios))),
+    }).pipe(finalize(() => this.loading.set(false)));
+  }
+
+  private applySearchResult(
+    result: {
+      scenes: ScenesFeedResponse;
+      performers: PerformerFeedResponse;
+      studios: StudioFeedResponse;
+    } | null,
+  ): void {
+    if (!result) {
+      this.sceneResults.set([]);
+      this.performerResults.set([]);
+      this.studioResults.set([]);
+      return;
+    }
+
+    this.sceneResults.set(result.scenes.items);
+    this.performerResults.set(result.performers.items);
+    this.studioResults.set(result.studios.items);
   }
 }

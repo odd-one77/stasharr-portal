@@ -167,7 +167,10 @@ describe('SearchPageComponent', () => {
       [],
       'one',
     );
-    expect(discoverService.getPerformersFeed).toHaveBeenCalledWith(1, 24, { name: 'one' });
+    expect(discoverService.getPerformersFeed).toHaveBeenCalledWith(1, 24, {
+      name: 'one',
+      favoritesOnly: false,
+    });
     expect(discoverService.getStudiosFeed).toHaveBeenCalledWith(1, 24, { name: 'one' });
 
     const text = fixture.nativeElement.textContent as string;
@@ -191,6 +194,28 @@ describe('SearchPageComponent', () => {
     fixture.detectChanges();
 
     expect(discoverService.getScenesFeed).toHaveBeenCalled();
+  });
+
+  it('re-runs the search immediately (no debounce) when favorite performers only is toggled', async () => {
+    const { fixture, discoverService } = await renderPage({ q: 'one' });
+    fixture.detectChanges();
+    await fixture.whenStable();
+    await new Promise((resolve) => setTimeout(resolve, 350));
+    fixture.detectChanges();
+    discoverService.getPerformersFeed.mockClear();
+
+    const component = fixture.componentInstance as unknown as {
+      onFavoritePerformersOnlyChanged(value: boolean): void;
+    };
+    component.onFavoritePerformersOnlyChanged(true);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(discoverService.getPerformersFeed).toHaveBeenCalledWith(1, 24, {
+      name: 'one',
+      favoritesOnly: true,
+    });
   });
 
   it('shows a no-matches state when nothing comes back for a query', async () => {

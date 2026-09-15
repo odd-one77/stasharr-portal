@@ -1054,6 +1054,66 @@ describe('StashAdapter', () => {
     });
   });
 
+  it('finds a local performer matching an external stash_id', async () => {
+    fetchMock.mockResolvedValue({
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          data: {
+            findPerformers: {
+              performers: [{ id: 'local-performer-1', favorite: true }],
+            },
+          },
+        }),
+    } as Response);
+
+    await expect(
+      adapter.findPerformerByStashId('tpdb-performer-1', {
+        baseUrl: 'http://stash.local',
+        apiKey: 'secret',
+      }),
+    ).resolves.toEqual({ id: 'local-performer-1', favorite: true });
+
+    const [, init] = fetchMock.mock.calls[0] ?? [];
+    const body = JSON.parse(String(init?.body));
+    expect(body.variables.performerFilter).toEqual({
+      stash_id_endpoint: { modifier: 'EQUALS', stash_id: 'tpdb-performer-1' },
+    });
+  });
+
+  it('returns null when no local performer matches the external stash_id', async () => {
+    fetchMock.mockResolvedValue({
+      ok: true,
+      json: () =>
+        Promise.resolve({ data: { findPerformers: { performers: [] } } }),
+    } as Response);
+
+    await expect(
+      adapter.findPerformerByStashId('missing', {
+        baseUrl: 'http://stash.local',
+        apiKey: 'secret',
+      }),
+    ).resolves.toBeNull();
+  });
+
+  it('sends a performerUpdate mutation to set a local performer favorite flag', async () => {
+    fetchMock.mockResolvedValue({
+      ok: true,
+      json: () =>
+        Promise.resolve({ data: { performerUpdate: { id: 'local-performer-1' } } }),
+    } as Response);
+
+    await adapter.setPerformerFavorite('local-performer-1', true, {
+      baseUrl: 'http://stash.local',
+      apiKey: 'secret',
+    });
+
+    const [, init] = fetchMock.mock.calls[0] ?? [];
+    const body = JSON.parse(String(init?.body));
+    expect(String(body.query)).toContain('performerUpdate');
+    expect(body.variables).toEqual({ id: 'local-performer-1', favorite: true });
+  });
+
   it('selects the active-provider catalog id without discarding other provider refs', async () => {
     fetchMock.mockResolvedValue({
       ok: true,

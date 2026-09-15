@@ -170,6 +170,11 @@ export interface StashLocalGalleryImagePage {
   items: StashLocalGalleryImage[];
 }
 
+export interface StashLocalPerformerMatch {
+  id: string;
+  favorite: boolean;
+}
+
 export interface StashSceneMatchOverlayConfig {
   providerKey?: CatalogProviderKey | null;
   favoritePerformersOnly?: boolean;
@@ -347,6 +352,11 @@ interface StashImageRecord {
   }> | null;
 }
 
+interface StashPerformerMatchRecord {
+  id?: unknown;
+  favorite?: unknown;
+}
+
 interface StashGraphqlResponse {
   data?: {
     findScenes?: {
@@ -369,6 +379,9 @@ interface StashGraphqlResponse {
     findImages?: {
       count?: unknown;
       images?: StashImageRecord[];
+    };
+    findPerformers?: {
+      performers?: StashPerformerMatchRecord[];
     };
   };
   errors?: Array<{ message?: unknown }>;
@@ -627,6 +640,69 @@ export class StashAdapter {
 
     await this.executeQuery(config, mutation, {
       id: normalizedSceneId,
+    });
+  }
+
+  async findPerformerByStashId(
+    stashId: string,
+    config: StashAdapterBaseConfig,
+  ): Promise<StashLocalPerformerMatch | null> {
+    const normalizedStashId = stashId.trim();
+    if (!normalizedStashId) {
+      return null;
+    }
+
+    const query = `
+      query FindPerformers($performerFilter: PerformerFilterType) {
+        findPerformers(performer_filter: $performerFilter) {
+          performers {
+            id
+            favorite
+          }
+        }
+      }
+    `;
+
+    const payload = await this.executeQuery(config, query, {
+      performerFilter: {
+        stash_id_endpoint: {
+          modifier: 'EQUALS',
+          stash_id: normalizedStashId,
+        },
+      },
+    });
+
+    const performers = payload.data?.findPerformers?.performers ?? [];
+    const first = performers[0];
+    const id = this.normalizeOptionalString(first?.id);
+    if (!id) {
+      return null;
+    }
+
+    return { id, favorite: first?.favorite === true };
+  }
+
+  async setPerformerFavorite(
+    performerId: string,
+    favorite: boolean,
+    config: StashAdapterBaseConfig,
+  ): Promise<void> {
+    const normalizedPerformerId = this.normalizeEntityId(performerId);
+    if (!normalizedPerformerId) {
+      return;
+    }
+
+    const mutation = `
+      mutation PerformerUpdate($id: ID!, $favorite: Boolean!) {
+        performerUpdate(input: { id: $id, favorite: $favorite }) {
+          id
+        }
+      }
+    `;
+
+    await this.executeQuery(config, mutation, {
+      id: normalizedPerformerId,
+      favorite,
     });
   }
 
