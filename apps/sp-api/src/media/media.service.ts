@@ -100,6 +100,16 @@ export class MediaService {
       requestHeaders.Range = rangeHeader;
     }
 
+    // Temporary diagnostic logging for the AirPlay investigation -- the
+    // error-only logging below stays silent on a normal 200/206, so without
+    // this we can't tell "request never arrived" from "request succeeded
+    // but playback still failed on the receiver". Remove once resolved.
+    this.logger.log(
+      `[airplay-debug] Incoming stream request for scene ${sceneId}, method=${
+        headOnly ? 'HEAD' : 'GET'
+      }, range=${rangeHeader ?? '<none>'}`,
+    );
+
     let response: Response;
     try {
       // Always GET, never HEAD, to Stash -- confirmed AirPlaying the same
@@ -160,6 +170,12 @@ export class MediaService {
     if (contentRange) {
       headers['Content-Range'] = contentRange;
     }
+
+    this.logger.log(
+      `[airplay-debug] Responding for scene ${sceneId}: status=${response.status} headers=${JSON.stringify(
+        headers,
+      )}`,
+    );
 
     if (headOnly) {
       // Release the upstream connection rather than let it sit there

@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, Req, Res } from '@nestjs/common';
+import { Body, Controller, Get, Logger, Param, Post, Req, Res } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { Readable } from 'node:stream';
 import type { ReadableStream as NodeWebReadableStream } from 'node:stream/web';
@@ -7,6 +7,8 @@ import { SaveScenePlaybackProgressDto } from './dto/save-scene-playback-progress
 
 @Controller('api/media')
 export class MediaController {
+  private readonly logger = new Logger(MediaController.name);
+
   constructor(private readonly mediaService: MediaService) {}
 
   @Get('stash/scenes/:sceneId/screenshot')
@@ -90,6 +92,9 @@ export class MediaController {
     }
 
     if (!result.body || isHeadRequest) {
+      this.logger.log(
+        `[airplay-debug] Ending response for scene ${sceneId} with no body (headOnly=${isHeadRequest})`,
+      );
       response.end();
       return;
     }
@@ -97,10 +102,22 @@ export class MediaController {
     const upstream = Readable.fromWeb(
       result.body as unknown as NodeWebReadableStream<Uint8Array>,
     );
+    let bytesSent = 0;
+    upstream.on('data', (chunk: Buffer) => {
+      bytesSent += chunk.length;
+    });
     response.on('close', () => {
+      this.logger.log(
+        `[airplay-debug] Response closed for scene ${sceneId}, bytesSent=${bytesSent}, finished=${response.writableFinished}`,
+      );
       upstream.destroy();
     });
-    upstream.on('error', () => {
+    upstream.on('error', (error) => {
+      this.logger.error(
+        `[airplay-debug] Upstream stream error for scene ${sceneId} after ${bytesSent} bytes: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
       response.destroy();
     });
     upstream.pipe(response);
