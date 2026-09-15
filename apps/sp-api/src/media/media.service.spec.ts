@@ -279,21 +279,27 @@ describe('MediaService', () => {
       });
     });
 
-    it('sends a HEAD request upstream and skips content-length assumptions when probing', async () => {
+    it('still sends a real GET to Stash for a HEAD probe, but returns no body', async () => {
+      const cancel = jest.fn().mockResolvedValue(undefined);
       fetchMock.mockResolvedValueOnce({
         ok: true,
         status: 200,
         headers: new Headers({ 'content-type': 'video/mp4', 'accept-ranges': 'bytes' }),
-        body: null,
-      } as Response);
+        body: { cancel },
+      } as unknown as Response);
 
       const result = await service.streamStashScene('411', undefined, true);
 
+      // Never HEAD to Stash -- its HEAD support on this endpoint is
+      // unverified, and playing the same file directly from Stash's own
+      // player only ever exercises GET.
       expect(fetchMock).toHaveBeenCalledWith(
         'http://stash.local/scene/411/stream?apikey=secret',
-        expect.objectContaining({ method: 'HEAD' }),
+        expect.objectContaining({ method: 'GET' }),
       );
       expect(result.status).toBe(200);
+      expect(result.body).toBeNull();
+      expect(cancel).toHaveBeenCalled();
     });
 
     it('falls back to video/mp4 when Stash does not report a content type', async () => {

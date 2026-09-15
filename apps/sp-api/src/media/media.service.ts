@@ -102,11 +102,15 @@ export class MediaService {
 
     let response: Response;
     try {
-      // Forward a HEAD as a HEAD so Stash doesn't have to transfer the
-      // actual video bytes just for a capability probe -- most static/media
-      // servers (Stash included) support this.
+      // Always GET, never HEAD, to Stash -- confirmed AirPlaying the same
+      // scene works when played directly from Stash's own player (a real
+      // GET), but Stash's HEAD support on this endpoint is unverified, and
+      // a HEAD probe that Stash mishandles (error/missing headers) would
+      // fail the whole request rather than just being slow. For an
+      // incoming HEAD, the body below is cancelled immediately instead of
+      // piped, so we still avoid transferring the full video for a probe.
       response = await fetchWithTimeout(streamUrl, {
-        method: headOnly ? 'HEAD' : 'GET',
+        method: 'GET',
         headers: requestHeaders,
       });
     } catch (error) {
@@ -155,6 +159,13 @@ export class MediaService {
     }
     if (contentRange) {
       headers['Content-Range'] = contentRange;
+    }
+
+    if (headOnly) {
+      // Release the upstream connection rather than let it sit there
+      // downloading a body nobody will read.
+      response.body?.cancel().catch(() => undefined);
+      return { status: response.status, headers, body: null };
     }
 
     return {
