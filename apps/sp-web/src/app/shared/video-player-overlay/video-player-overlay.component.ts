@@ -81,8 +81,9 @@ export class VideoPlayerOverlayComponent {
   private static readonly ARTWORK_SIZES = ['96x96', '192x192', '256x256', '384x384', '512x512'];
 
   // Drives the OS/browser "now playing" surface (iOS Control Center/lock
-  // screen, Android notification, desktop media keys, etc.) so it shows the
-  // actual scene title and thumbnail instead of just the page title.
+  // screen, AirPlay's now-playing overlay, Android notification, desktop
+  // media keys, etc.) so it shows the actual scene title and thumbnail
+  // instead of just the page title.
   private updateMediaSessionMetadata(title: string, imageUrl: string | null): void {
     if (!('mediaSession' in navigator)) {
       return;
@@ -95,6 +96,44 @@ export class VideoPlayerOverlayComponent {
         : [],
     });
     navigator.mediaSession.playbackState = 'playing';
+    this.registerMediaSessionActionHandlers();
+  }
+
+  // WebKit/iOS only treats a page as a fully integrated media session --
+  // showing our custom title/artwork on the lock screen, Control Center,
+  // and AirPlay's now-playing overlay -- once play/pause/seek handlers are
+  // registered. Without these it can fall back to a generic identity (the
+  // browser engine's own name) instead of the metadata set above.
+  private registerMediaSessionActionHandlers(): void {
+    const session = navigator.mediaSession;
+
+    session.setActionHandler('play', () => {
+      this.videoElRef?.nativeElement.play().catch(() => undefined);
+    });
+    session.setActionHandler('pause', () => {
+      this.videoElRef?.nativeElement.pause();
+    });
+    session.setActionHandler('seekto', (details) => {
+      const video = this.videoElRef?.nativeElement;
+      if (video && typeof details.seekTime === 'number') {
+        video.currentTime = details.seekTime;
+      }
+    });
+    session.setActionHandler('seekbackward', (details) => {
+      const video = this.videoElRef?.nativeElement;
+      if (video) {
+        video.currentTime = Math.max(0, video.currentTime - (details.seekOffset ?? 10));
+      }
+    });
+    session.setActionHandler('seekforward', (details) => {
+      const video = this.videoElRef?.nativeElement;
+      if (video) {
+        video.currentTime = Math.min(
+          video.duration || Infinity,
+          video.currentTime + (details.seekOffset ?? 10),
+        );
+      }
+    });
   }
 
   private clearMediaSessionMetadata(): void {
@@ -102,8 +141,14 @@ export class VideoPlayerOverlayComponent {
       return;
     }
 
-    navigator.mediaSession.metadata = null;
-    navigator.mediaSession.playbackState = 'none';
+    const session = navigator.mediaSession;
+    session.metadata = null;
+    session.playbackState = 'none';
+    session.setActionHandler('play', null);
+    session.setActionHandler('pause', null);
+    session.setActionHandler('seekto', null);
+    session.setActionHandler('seekbackward', null);
+    session.setActionHandler('seekforward', null);
   }
 
   private startProgressSaveInterval(): void {

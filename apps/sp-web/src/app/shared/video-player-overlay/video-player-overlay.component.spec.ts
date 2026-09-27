@@ -5,7 +5,11 @@ import { VideoPlayerOverlayComponent } from './video-player-overlay.component';
 
 describe('VideoPlayerOverlayComponent', () => {
   let playSpy: ReturnType<typeof vi.spyOn>;
-  let mediaSessionStub: { metadata: unknown; playbackState: string };
+  let mediaSessionStub: {
+    metadata: unknown;
+    playbackState: string;
+    setActionHandler: ReturnType<typeof vi.fn>;
+  };
   let originalMediaSession: PropertyDescriptor | undefined;
   let originalMediaMetadata: typeof globalThis.MediaMetadata | undefined;
 
@@ -18,7 +22,7 @@ describe('VideoPlayerOverlayComponent', () => {
     // jsdom implements neither the Media Session API nor MediaMetadata --
     // stub both so the component's real code path (not just the feature
     // guard) is actually exercised.
-    mediaSessionStub = { metadata: null, playbackState: 'none' };
+    mediaSessionStub = { metadata: null, playbackState: 'none', setActionHandler: vi.fn() };
     originalMediaSession = Object.getOwnPropertyDescriptor(navigator, 'mediaSession');
     Object.defineProperty(navigator, 'mediaSession', {
       value: mediaSessionStub,
@@ -168,6 +172,31 @@ describe('VideoPlayerOverlayComponent', () => {
     expect(mediaSessionStub.playbackState).toBe('playing');
   });
 
+  it('registers play/pause/seek action handlers once metadata loads', async () => {
+    const { fixture } = await renderOverlay({
+      status: 'ready',
+      title: 'A Scene',
+      imageUrl: 'http://cdn.local/a-scene.jpg',
+      source: {
+        streamUrl: 'http://stash.local/stream',
+        stashSceneId: '411',
+        resumeSeconds: 0,
+        duration: 600,
+      },
+    });
+
+    const video = fixture.nativeElement.querySelector('video') as HTMLVideoElement;
+    Object.defineProperty(video, 'duration', { value: 600, configurable: true });
+    video.dispatchEvent(new Event('loadedmetadata'));
+
+    const registeredActions = mediaSessionStub.setActionHandler.mock.calls
+      .filter(([, handler]) => handler !== null)
+      .map(([action]) => action);
+    expect(registeredActions).toEqual(
+      expect.arrayContaining(['play', 'pause', 'seekto', 'seekbackward', 'seekforward']),
+    );
+  });
+
   it('omits artwork when the scene has no thumbnail', async () => {
     const { fixture } = await renderOverlay({
       status: 'ready',
@@ -238,6 +267,13 @@ describe('VideoPlayerOverlayComponent', () => {
 
     expect(mediaSessionStub.metadata).toBeNull();
     expect(mediaSessionStub.playbackState).toBe('none');
+
+    const clearedActions = mediaSessionStub.setActionHandler.mock.calls
+      .filter(([, handler]) => handler === null)
+      .map(([action]) => action);
+    expect(clearedActions).toEqual(
+      expect.arrayContaining(['play', 'pause', 'seekto', 'seekbackward', 'seekforward']),
+    );
     expect(playerService.close).toHaveBeenCalled();
   });
 
