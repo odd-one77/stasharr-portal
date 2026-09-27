@@ -24,6 +24,7 @@ import {
   switchMap,
 } from 'rxjs';
 import { DiscoverService } from '../../core/api/discover.service';
+import { SceneQuickRequestService } from '../../core/requests/scene-quick-request.service';
 import {
   PerformerFeedItem,
   SceneExplorerItem,
@@ -58,6 +59,7 @@ import {
 })
 export class HomePageComponent implements OnInit, OnDestroy {
   private readonly discoverService = inject(DiscoverService);
+  private readonly sceneQuickRequestService = inject(SceneQuickRequestService);
   private readonly homeService = inject(HomeService);
   private readonly playerService = inject(PlayerService);
   private readonly runtimeHealthService = inject(RuntimeHealthService);
@@ -314,8 +316,15 @@ export class HomePageComponent implements OnInit, OnDestroy {
   }
 
   protected openRequestModal(item: SceneRequestContext): void {
-    this.requestContext.set(item);
-    this.requestModalOpen.set(true);
+    this.sceneQuickRequestService.tryQuickRequest(item.id).subscribe(({ submitted }) => {
+      if (submitted) {
+        this.onRequestSubmitted(item.id);
+        return;
+      }
+
+      this.requestContext.set(item);
+      this.requestModalOpen.set(true);
+    });
   }
 
   protected onRequestModalClosed(): void {

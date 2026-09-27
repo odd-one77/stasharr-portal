@@ -9,6 +9,7 @@ import { Select } from 'primeng/select';
 import { DiscoverService } from '../../core/api/discover.service';
 import { integrationLabel } from '../../core/api/integrations.types';
 import { AppNotificationsService } from '../../core/notifications/app-notifications.service';
+import { SceneQuickRequestService } from '../../core/requests/scene-quick-request.service';
 import {
   SceneDetails,
   ScenePerformer,
@@ -46,6 +47,7 @@ export class ScenePageComponent implements OnInit, OnDestroy {
   private readonly router = inject(Router);
   private readonly discoverService = inject(DiscoverService);
   private readonly notifications = inject(AppNotificationsService);
+  private readonly sceneQuickRequestService = inject(SceneQuickRequestService);
   private readonly playerService = inject(PlayerService);
   private previousFocusedElement: HTMLElement | null = null;
   private routeSubscription: Subscription | null = null;
@@ -395,13 +397,20 @@ export class ScenePageComponent implements OnInit, OnDestroy {
       return;
     }
 
-    this.previousFocusedElement = document.activeElement as HTMLElement | null;
-    this.requestContext.set({
-      id: scene.id,
-      title: scene.title,
-      imageUrl: scene.imageUrl,
+    this.sceneQuickRequestService.tryQuickRequest(scene.id).subscribe(({ submitted }) => {
+      if (submitted) {
+        this.onRequestSubmitted(scene.id);
+        return;
+      }
+
+      this.previousFocusedElement = document.activeElement as HTMLElement | null;
+      this.requestContext.set({
+        id: scene.id,
+        title: scene.title,
+        imageUrl: scene.imageUrl,
+      });
+      this.requestModalOpen.set(true);
     });
-    this.requestModalOpen.set(true);
   }
 
   protected onRequestModalClosed(): void {

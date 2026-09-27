@@ -122,6 +122,26 @@ describe('RequestsService', () => {
     requestImmediateRefreshMock.mockResolvedValue(undefined);
   });
 
+  it('returns root folders/quality profiles/tags with no scene lookup', async () => {
+    getRootFoldersMock.mockResolvedValue([
+      { id: 1, path: '/media/a', accessible: false },
+      { id: 2, path: '/media/b', accessible: true },
+    ]);
+    getQualityProfilesMock.mockResolvedValue([{ id: 10, name: 'Default' }]);
+    getTagsMock.mockResolvedValue([{ id: 50, label: 'VR' }]);
+
+    const result = await service.getDownloadProfileOptions();
+
+    expect(result).toEqual({
+      rootFolders: [
+        { id: 1, path: '/media/a', accessible: false },
+        { id: 2, path: '/media/b', accessible: true },
+      ],
+      qualityProfiles: [{ id: 10, name: 'Default' }],
+      tags: [{ id: 50, label: 'VR' }],
+    });
+  });
+
   it('returns normalized request options with defaults', async () => {
     getRootFoldersMock.mockResolvedValue([
       { id: 1, path: '/media/a', accessible: false },

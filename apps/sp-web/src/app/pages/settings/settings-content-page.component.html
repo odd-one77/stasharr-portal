@@ -46,6 +46,103 @@
           <span>{{ hideAmateurNetworkResults() ? 'Enabled' : 'Disabled' }}</span>
         </label>
       </article>
+
+      <article class="summary-card">
+        <p class="eyebrow">Requests</p>
+        <h2>Default download profile</h2>
+        <p class="summary-copy">
+          Set a default root folder and quality profile so clicking Request submits straight
+          to Whisparr instead of opening the options dialog. Leave either as "None" to keep
+          asking every time.
+        </p>
+
+        @if (downloadProfileOptionsError()) {
+          <p-message severity="warn" styleClass="app-inline-message">
+            {{ downloadProfileOptionsError() }}
+          </p-message>
+        }
+
+        <form
+          class="download-profile-form"
+          [formGroup]="downloadProfileForm"
+          (ngSubmit)="saveDownloadProfile()"
+        >
+          <label class="field" for="default-root-folder">
+            <span>Root Folder</span>
+            <p-select
+              inputId="default-root-folder"
+              formControlName="rootFolderPath"
+              [options]="rootFolderOptions()"
+              optionLabel="label"
+              optionValue="value"
+              optionDisabled="disabled"
+              [appendTo]="'body'"
+              panelStyleClass="app-overlay-panel app-overlay-panel--comfortable"
+              scrollHeight="16rem"
+            />
+          </label>
+
+          <label class="field" for="default-quality-profile">
+            <span>Quality Profile</span>
+            <p-select
+              inputId="default-quality-profile"
+              formControlName="qualityProfileId"
+              [options]="qualityProfileOptions()"
+              optionLabel="label"
+              optionValue="value"
+              [appendTo]="'body'"
+              panelStyleClass="app-overlay-panel app-overlay-panel--comfortable"
+              scrollHeight="16rem"
+            />
+          </label>
+
+          <div class="checks">
+            <label class="toggle-field" for="default-monitored">
+              <p-toggleswitch inputId="default-monitored" formControlName="monitored" />
+              <span>Monitored</span>
+            </label>
+            <label class="toggle-field" for="default-search-now">
+              <p-toggleswitch inputId="default-search-now" formControlName="searchForMovie" />
+              <span>Search Immediately</span>
+            </label>
+          </div>
+
+          @if (tagOptions().length > 0) {
+            <label class="field" for="default-tags">
+              <span>Tags</span>
+              <p-multiselect
+                inputId="default-tags"
+                formControlName="tagIds"
+                [options]="tagOptions()"
+                optionLabel="label"
+                optionValue="value"
+                [appendTo]="'body'"
+                panelStyleClass="app-overlay-panel app-overlay-panel--comfortable"
+                scrollHeight="16rem"
+                [showToggleAll]="false"
+                [showHeader]="false"
+                [maxSelectedLabels]="3"
+                display="chip"
+                placeholder="Select tags"
+              />
+            </label>
+          }
+
+          @if (downloadProfileSaveError()) {
+            <p-message severity="error" styleClass="app-inline-message">
+              {{ downloadProfileSaveError() }}
+            </p-message>
+          } @else if (downloadProfileSaved()) {
+            <p-message severity="success" styleClass="app-inline-message">Saved.</p-message>
+          }
+
+          <div class="request-actions">
+            <button type="submit" [disabled]="downloadProfileSaving()" pButton>
+              {{ downloadProfileSaving() ? 'Saving...' : 'Save Defaults' }}
+            </button>
+          </div>
+        </form>
+      </article>
     </section>
   }
 </section>

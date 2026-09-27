@@ -164,6 +164,12 @@ export interface SceneRequestOptions {
   tags: SceneRequestOptionsTag[];
 }
 
+export interface DownloadProfileOptions {
+  rootFolders: SceneRequestOptionsRootFolder[];
+  qualityProfiles: SceneRequestOptionsQualityProfile[];
+  tags: SceneRequestOptionsTag[];
+}
+
 export interface SubmitSceneRequestPayload {
   monitored: boolean;
   rootFolderPath: string;

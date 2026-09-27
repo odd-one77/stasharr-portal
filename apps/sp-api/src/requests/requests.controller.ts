@@ -7,6 +7,7 @@ import {
   Post,
   Query,
 } from '@nestjs/common';
+import { DownloadProfileOptionsDto } from './dto/download-profile-options.dto';
 import { RequestOptionsDto } from './dto/request-options.dto';
 import { SubmitSceneRequestDto } from './dto/submit-scene-request.dto';
 import { SubmitSceneRequestResponseDto } from './dto/submit-scene-request-response.dto';
@@ -15,6 +16,13 @@ import { RequestsService } from './requests.service';
 @Controller('api/requests')
 export class RequestsController {
   constructor(private readonly requestsService: RequestsService) {}
+
+  // Static route declared before the :stashId/... routes below so it isn't
+  // shadowed (matters if a real stashId could ever collide with "options").
+  @Get('options')
+  getDownloadProfileOptions(): Promise<DownloadProfileOptionsDto> {
+    return this.requestsService.getDownloadProfileOptions();
+  }
 
   @Get(':stashId/options')
   getRequestOptions(

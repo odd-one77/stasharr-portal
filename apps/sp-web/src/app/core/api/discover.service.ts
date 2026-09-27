@@ -17,6 +17,7 @@ import {
   SceneTagMatchMode,
   SceneTagOption,
   ScenePlaybackSource,
+  DownloadProfileOptions,
   SceneDetails,
   SceneRequestOptions,
   ScenesFeedResponse,
@@ -94,6 +95,10 @@ export class DiscoverService {
     return this.http.get<SceneRequestOptions>(
       `/api/requests/${encodeURIComponent(stashId)}/options`,
     );
+  }
+
+  getDownloadProfileOptions(): Observable<DownloadProfileOptions> {
+    return this.http.get<DownloadProfileOptions>('/api/requests/options');
   }
 
   submitSceneRequest(

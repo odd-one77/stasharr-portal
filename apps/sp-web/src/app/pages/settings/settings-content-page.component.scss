@@ -88,3 +88,44 @@ p {
 :host ::ng-deep .state-message {
   margin: 0;
 }
+
+.download-profile-form {
+  display: grid;
+  gap: 0.72rem;
+}
+
+.field {
+  display: grid;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+  color: var(--text-primary);
+}
+
+.checks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.8rem;
+}
+
+.toggle-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
+.request-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+:host ::ng-deep .download-profile-form .p-select,
+:host ::ng-deep .download-profile-form .p-multiselect {
+  width: 100%;
+  border-radius: 7px;
+  border-color: var(--surface-panel-border);
+  background: var(--surface-panel-background);
+  color: var(--text-primary);
+}

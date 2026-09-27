@@ -28,6 +28,7 @@ import { MultiSelect } from 'primeng/multiselect';
 import { ProgressSpinner } from 'primeng/progressspinner';
 import { Select } from 'primeng/select';
 import { DiscoverService } from '../../core/api/discover.service';
+import { SceneQuickRequestService } from '../../core/requests/scene-quick-request.service';
 import {
   PerformerStudioOption,
   SceneFavoritesFilter,
@@ -116,6 +117,7 @@ export class ScenesPageComponent implements OnInit, AfterViewInit, OnDestroy {
   ];
 
   private readonly discoverService = inject(DiscoverService);
+  private readonly sceneQuickRequestService = inject(SceneQuickRequestService);
   private readonly runtimeHealthService = inject(RuntimeHealthService);
   private readonly setupStatusStore = inject(SetupStatusStore);
   private readonly playerService = inject(PlayerService);
@@ -288,8 +290,15 @@ export class ScenesPageComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   protected openRequestModal(item: SceneRequestContext): void {
-    this.requestContext.set(item);
-    this.requestModalOpen.set(true);
+    this.sceneQuickRequestService.tryQuickRequest(item.id).subscribe(({ submitted }) => {
+      if (submitted) {
+        this.onRequestSubmitted(item.id);
+        return;
+      }
+
+      this.requestContext.set(item);
+      this.requestModalOpen.set(true);
+    });
   }
 
   protected onSortChanged(nextValue: string): void {

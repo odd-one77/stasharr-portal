@@ -282,6 +282,14 @@ model AppSettings {
   id                        String   @id @default(cuid())
   singletonKey              Int      @unique @default(1)
   hideAmateurNetworkResults Boolean  @default(false)
+  /// Saved Whisparr defaults used to submit a request immediately on click,
+  /// skipping the manual options modal. defaultRootFolderPath and
+  /// defaultQualityProfileId must both be set for quick-submit to engage.
+  defaultRootFolderPath     String?
+  defaultQualityProfileId   Int?
+  defaultMonitored          Boolean  @default(true)
+  defaultSearchForMovie     Boolean  @default(true)
+  defaultTagIds             Int[]    @default([])
   createdAt                 DateTime @default(now())
   updatedAt                 DateTime @updatedAt
 }

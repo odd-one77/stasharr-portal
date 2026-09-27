@@ -28,6 +28,7 @@ import { ProgressSpinner } from 'primeng/progressspinner';
 import { Select } from 'primeng/select';
 import { ToggleSwitch } from 'primeng/toggleswitch';
 import { DiscoverService } from '../../core/api/discover.service';
+import { SceneQuickRequestService } from '../../core/requests/scene-quick-request.service';
 import { fetchAllPages } from '../../core/api/fetch-all-pages.util';
 import { SetupStatusStore } from '../../core/api/setup-status.store';
 import { AppNotificationsService } from '../../core/notifications/app-notifications.service';
@@ -94,6 +95,7 @@ export class PerformerPageComponent implements OnInit, AfterViewInit, OnDestroy 
   ];
 
   private readonly discoverService = inject(DiscoverService);
+  private readonly sceneQuickRequestService = inject(SceneQuickRequestService);
   private readonly setupStatusStore = inject(SetupStatusStore);
   private readonly notifications = inject(AppNotificationsService);
   private readonly route = inject(ActivatedRoute);
@@ -318,8 +320,15 @@ export class PerformerPageComponent implements OnInit, AfterViewInit, OnDestroy 
   }
 
   protected openRequestModal(item: SceneRequestContext): void {
-    this.requestContext.set(item);
-    this.requestModalOpen.set(true);
+    this.sceneQuickRequestService.tryQuickRequest(item.id).subscribe(({ submitted }) => {
+      if (submitted) {
+        this.onRequestSubmitted(item.id);
+        return;
+      }
+
+      this.requestContext.set(item);
+      this.requestModalOpen.set(true);
+    });
   }
 
   protected onRequestModalClosed(): void {

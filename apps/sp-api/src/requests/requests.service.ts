@@ -15,6 +15,7 @@ import { IntegrationsService } from '../integrations/integrations.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { CatalogProviderService } from '../providers/catalog/catalog-provider.service';
 import { WhisparrAdapter } from '../providers/whisparr/whisparr.adapter';
+import { DownloadProfileOptionsDto } from './dto/download-profile-options.dto';
 import { RequestOptionsDto } from './dto/request-options.dto';
 import { SubmitSceneRequestDto } from './dto/submit-scene-request.dto';
 import { SubmitSceneRequestResponseDto } from './dto/submit-scene-request-response.dto';
@@ -28,6 +29,22 @@ export class RequestsService {
     private readonly whisparrAdapter: WhisparrAdapter,
     private readonly prisma: PrismaService,
   ) {}
+
+  /**
+   * Root folders/quality profiles/tags with no scene lookup, for the
+   * Settings page to populate its saved-default pickers.
+   */
+  async getDownloadProfileOptions(): Promise<DownloadProfileOptionsDto> {
+    const whisparrConfig = await this.getWhisparrConfig();
+
+    const [rootFolders, qualityProfiles, tags] = await Promise.all([
+      this.whisparrAdapter.getRootFolders(whisparrConfig),
+      this.whisparrAdapter.getQualityProfiles(whisparrConfig),
+      this.whisparrAdapter.getTags(whisparrConfig),
+    ]);
+
+    return { rootFolders, qualityProfiles, tags };
+  }
 
   async getRequestOptions(stashId: string): Promise<RequestOptionsDto> {
     const normalizedStashId = stashId.trim();
