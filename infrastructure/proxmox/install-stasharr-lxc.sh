@@ -8,14 +8,17 @@
 # (postgres + app, image "stasharr-portal:custom").
 #
 # All configuration can be overridden via environment variables, e.g.:
-#   CTID=150 HOSTNAME=stasharr APP_PORT=3000 ./install-stasharr-lxc.sh
+#   CTID=150 CT_HOSTNAME=stasharr APP_PORT=3000 ./install-stasharr-lxc.sh
 set -euo pipefail
 
 # ---- Configuration (override via env vars) ----
 CTID="${CTID:-}"                                   # LXC ID; auto-picked if empty
-HOSTNAME_="${HOSTNAME:-stasharr}"
+# NOTE: intentionally not named HOSTNAME -- bash exports that itself as the
+# *current* host's hostname, so a plain ${HOSTNAME:-stasharr} default never
+# fires and silently names the container after the Proxmox host instead.
+CT_HOSTNAME="${CT_HOSTNAME:-stasharr}"
 TEMPLATE_STORAGE="${TEMPLATE_STORAGE:-local}"       # storage holding the CT template
-TEMPLATE="${TEMPLATE:-debian-12-standard_12.7-1_amd64.tar.zst}"
+TEMPLATE="${TEMPLATE:-}"                            # auto-resolved to the latest debian-12-standard if empty
 ROOTFS_STORAGE="${ROOTFS_STORAGE:-local-lvm}"       # storage for the container's disk
 DISK_GB="${DISK_GB:-12}"
 CORES="${CORES:-2}"
@@ -51,19 +54,33 @@ if pct status "$CTID" >/dev/null 2>&1; then
   exit 1
 fi
 
-echo "==> Using CTID $CTID, hostname '$HOSTNAME_'"
+echo "==> Using CTID $CTID, hostname '$CT_HOSTNAME'"
 
 # ---- Ensure the LXC template is available ----
+echo "==> Refreshing template index"
+pveam update >/dev/null
+
+if [[ -z "$TEMPLATE" ]]; then
+  TEMPLATE="$(pveam available --section system 2>/dev/null \
+    | awk '{print $2}' \
+    | grep '^debian-12-standard' \
+    | sort -V | tail -1)"
+  if [[ -z "$TEMPLATE" ]]; then
+    echo "error: couldn't find a debian-12-standard template via 'pveam available'. Pass TEMPLATE=... explicitly." >&2
+    exit 1
+  fi
+  echo "==> Resolved latest template: $TEMPLATE"
+fi
+
 if ! pveam list "$TEMPLATE_STORAGE" 2>/dev/null | grep -q "$TEMPLATE"; then
   echo "==> Downloading template $TEMPLATE onto $TEMPLATE_STORAGE"
-  pveam update
   pveam download "$TEMPLATE_STORAGE" "$TEMPLATE"
 fi
 
 # ---- Create and start the container ----
 echo "==> Creating LXC $CTID"
 pct create "$CTID" "${TEMPLATE_STORAGE}:vztmpl/${TEMPLATE}" \
-  --hostname "$HOSTNAME_" \
+  --hostname "$CT_HOSTNAME" \
   --cores "$CORES" \
   --memory "$MEMORY_MB" \
   --swap "$SWAP_MB" \
@@ -186,7 +203,7 @@ CT_IP="$(pct exec "$CTID" -- hostname -I | awk '{print $1}')"
 cat <<SUMMARY
 
 ==> Done.
-    Container:        CTID $CTID ("$HOSTNAME_")
+    Container:        CTID $CTID ("$CT_HOSTNAME")
     Repo:              ${REPO_URL} @ ${REPO_BRANCH}
     Postgres password: ${POSTGRES_PASSWORD}
     Compose file:      /opt/stasharr/compose.yaml (inside the container)
