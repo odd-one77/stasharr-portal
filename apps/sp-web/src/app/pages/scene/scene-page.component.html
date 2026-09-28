@@ -20,15 +20,17 @@
     <p-message severity="error" styleClass="app-page-message">{{ error() }}</p-message>
     <button pButton type="button" (click)="retry()">Retry</button>
   } @else if (scene(); as scene) {
-    <section class="hero-shell">
-      @if (scene.imageUrl) {
-        <div
-          class="hero-backdrop"
-          [style.background-image]="'url(' + scene.imageUrl + ')'"
-          aria-hidden="true"
-        ></div>
-      }
-      <div class="hero-shade" aria-hidden="true"></div>
+    <div class="hero-banner-wrap">
+      <div class="hero-banner">
+        @if (scene.imageUrl) {
+          <div
+            class="hero-backdrop"
+            [style.background-image]="'url(' + scene.imageUrl + ')'"
+            aria-hidden="true"
+          ></div>
+        }
+        <div class="hero-banner-fade" aria-hidden="true"></div>
+      </div>
 
       @if (scene.studioImageUrl || scene.studioId) {
         <div class="studio-affordance-cluster">
@@ -78,17 +80,18 @@
           }
         </div>
       }
+    </div>
 
-      <div class="hero-layout">
-        <div class="poster-card">
-          @if (posterImageUrl(scene); as posterUrl) {
-            <img class="poster-image" [src]="posterUrl" [alt]="scene.title" />
-          } @else {
-            <div class="poster-image placeholder" aria-hidden="true"></div>
-          }
-        </div>
+    <section class="hero-layout">
+      <div class="poster-card">
+        @if (posterImageUrl(scene); as posterUrl) {
+          <img class="poster-image" [src]="posterUrl" [alt]="scene.title" />
+        } @else {
+          <div class="poster-image placeholder" aria-hidden="true"></div>
+        }
+      </div>
 
-        <div class="hero-info">
+      <div class="hero-info">
           <div class="title-row">
             <h1>{{ scene.title }}</h1>
             <app-scene-status-badge [status]="scene.status" />
@@ -234,7 +237,6 @@
             <p class="hero-action-helper">Resolve or retry this download in Whisparr.</p>
           }
         </div>
-      </div>
     </section>
 
     <div class="content-shell app-section-stack">

@@ -31,13 +31,23 @@ p {
   margin-bottom: 0.95rem;
 }
 
-.hero-shell {
+// The scene backdrop: a wide, mostly-uncropped landscape banner (like a
+// media server's "cinematic" hero) rather than a tall boxed panel forcing
+// the image to crop via background-size:cover. The studio logo cluster
+// hangs off the wrapper (not the banner itself, which clips to its own
+// aspect ratio) so it can overlap the banner's bottom edge and settle
+// half on the image, half over the fade below.
+.hero-banner-wrap {
   position: relative;
-  border-radius: 16px;
+}
+
+.hero-banner {
+  position: relative;
   overflow: hidden;
-  min-height: 500px;
-  border: 1px solid var(--media-detail-hero-border);
-  box-shadow: var(--media-detail-hero-shadow);
+  border-radius: 16px 16px 0 0;
+  aspect-ratio: 21 / 7;
+  max-height: 340px;
+  min-height: 170px;
   background: var(--media-detail-hero-background);
 }
 
@@ -45,21 +55,28 @@ p {
   position: absolute;
   inset: 0;
   background-size: cover;
-  background-position: center 20%;
-  transform: scale(1.06);
-  opacity: 0.74;
+  background-position: center 30%;
 }
 
-.hero-shade {
+// Fades the bottom of the banner into the page background instead of a
+// hard box edge, so the content below reads as a continuation of the
+// image rather than a separate boxed panel.
+.hero-banner-fade {
   position: absolute;
   inset: 0;
-  background: var(--media-detail-hero-shade);
+  background: linear-gradient(
+    180deg,
+    transparent 40%,
+    color-mix(in srgb, var(--app-bg) 65%, transparent) 78%,
+    var(--app-bg) 100%
+  );
 }
 
 .studio-affordance-cluster {
   position: absolute;
-  top: 0.85rem;
-  right: 0.95rem;
+  left: 50%;
+  bottom: -1.3rem;
+  transform: translateX(-50%);
   z-index: 2;
   display: inline-flex;
   align-items: center;
@@ -134,12 +151,10 @@ a.studio-logo-overlay:focus-visible {
 
 .hero-layout {
   position: relative;
-  z-index: 1;
-  min-height: 500px;
-  padding: 2rem 1.3rem 1.2rem;
+  padding: 1.8rem 0.2rem 0;
   display: grid;
   grid-template-columns: minmax(210px, 280px) 1fr;
-  align-items: end;
+  align-items: start;
   gap: 1.2rem;
   color: var(--media-detail-text);
 }
@@ -439,20 +454,21 @@ button {
 }
 
 @media (max-width: 880px) {
-  .hero-shell {
-    min-height: 620px;
+  .hero-banner {
+    aspect-ratio: 16 / 9;
+    max-height: 260px;
+    min-height: 140px;
   }
 
   .hero-layout {
     grid-template-columns: 1fr;
     align-items: start;
-    padding: 1.2rem 0.9rem 1rem;
+    padding: 1.5rem 0.1rem 0;
     gap: 0.9rem;
   }
 
   .studio-affordance-cluster {
-    top: 0.68rem;
-    right: 0.68rem;
+    bottom: -1rem;
     gap: 0.35rem;
   }
 
@@ -468,10 +484,14 @@ button {
 }
 
 // A phone in landscape is wide enough to miss the max-width breakpoint
-// above but still has very little vertical room -- shrink the logo there
-// too, keyed off height rather than width.
+// above but still has very little vertical room -- shrink the logo and
+// banner there too, keyed off height rather than width.
 @media (orientation: landscape) and (max-height: 500px) {
   .studio-logo-overlay {
     height: 2.6rem;
+  }
+
+  .hero-banner {
+    max-height: 160px;
   }
 }
