@@ -12,6 +12,46 @@ ul {
   margin: 0;
 }
 
+// A second, small rendering of the studio logo that lives outside the hero
+// and stays pinned to the top of the viewport as the page scrolls. It's
+// invisible until --hero-collapse (driven by scroll position, set in the
+// component) rises above 0, then smoothly scales/fades in -- giving the
+// effect of the big hero logo shrinking and tucking into the corner, without
+// actually having to animate one element between two different layout
+// contexts (grid-positioned vs viewport-pinned).
+.compact-studio-badge {
+  position: sticky;
+  top: 0.75rem;
+  z-index: 20;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 2.6rem;
+  max-width: 9rem;
+  padding: 0.3rem 0.65rem;
+  border-radius: 0.75rem;
+  margin-bottom: -2.6rem; // don't push the hero down while collapsed to 0 height's worth of space
+  background: rgb(0 0 0 / 55%);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  opacity: var(--hero-collapse, 0);
+  transform: scale(calc(0.7 + 0.3 * var(--hero-collapse, 0)));
+  transform-origin: left center;
+  transition:
+    opacity 0.15s ease,
+    transform 0.15s ease;
+  pointer-events: none;
+}
+
+.compact-studio-badge img {
+  height: 100%;
+  width: auto;
+  max-width: 100%;
+  object-fit: contain;
+  display: block;
+  filter: drop-shadow(0 1px 1px rgb(0 0 0 / 25%));
+}
+
 .hero-shell {
   position: relative;
   border-radius: 14px;
@@ -362,19 +402,6 @@ ul {
   font-size: 0.84rem;
 }
 
-.filter-grid {
-  margin-top: 0.55rem;
-}
-
-.tag-input-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 0.35rem;
-}
-
-.tag-mode-select {
-  min-width: 7.5rem;
-}
 
 .grid {
   margin-top: 0.9rem;
@@ -402,14 +429,6 @@ ul {
 }
 
 @media (max-width: 700px) {
-  .tag-input-row {
-    grid-template-columns: 1fr;
-  }
-
-  .tag-mode-select {
-    min-width: 0;
-  }
-
   .grid {
     grid-template-columns: 1fr;
     gap: 0.65rem;

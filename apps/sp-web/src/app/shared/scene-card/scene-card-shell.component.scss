@@ -16,8 +16,8 @@
   --scene-card-text-badge-radius: 0.55rem;
   --scene-card-text-badge-font-size: 0.56rem;
   --scene-card-text-badge-font-weight: 600;
-  --scene-card-logo-max-width: 7rem;
-  --scene-card-logo-height: 2.3rem;
+  --scene-card-logo-max-width: 9rem;
+  --scene-card-logo-height: 3rem;
   --scene-card-logo-padding: 0.2rem 0.4rem;
   --scene-card-logo-radius: 0.65rem;
   --scene-card-placeholder-background:
@@ -213,6 +213,6 @@
 
   .logo-plaque,
   .text-badge {
-    height: 1.05rem;
+    height: 1.6rem;
   }
 }

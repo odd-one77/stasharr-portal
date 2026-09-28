@@ -121,32 +121,6 @@ main > button {
   cursor: default;
 }
 
-.carousel-thumbs {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 0.35rem;
-}
-
-.thumb {
-  border: 1px solid var(--media-detail-subtle-surface-border);
-  border-radius: 8px;
-  overflow: hidden;
-  padding: 0;
-  background: var(--media-detail-subtle-surface-background);
-}
-
-.thumb.active {
-  border-color: var(--focus-ring);
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--focus-ring) 45%, transparent);
-}
-
-.thumb img {
-  width: 100%;
-  aspect-ratio: 1 / 1;
-  object-fit: cover;
-  display: block;
-}
-
 :host ::ng-deep .image-picker-dialog .p-dialog-content {
   padding: 0;
 }
@@ -171,9 +145,9 @@ main > button {
 
 .image-picker-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
-  gap: 0.6rem;
-  max-height: 60vh;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 0.75rem;
+  max-height: 72vh;
   overflow-y: auto;
 }
 
@@ -183,6 +157,9 @@ main > button {
   border-radius: 8px;
   overflow: hidden;
   padding: 0;
+  // Portrait tile so photos (almost always portrait) show in full via
+  // object-fit: contain below, instead of being cropped to fit a square.
+  aspect-ratio: 2 / 3;
   background: var(--media-detail-subtle-surface-background);
   cursor: pointer;
 }
@@ -198,8 +175,8 @@ main > button {
 
 .image-picker-option img {
   width: 100%;
-  aspect-ratio: 1 / 1;
-  object-fit: cover;
+  height: 100%;
+  object-fit: contain;
   display: block;
 }
 
@@ -328,8 +305,10 @@ main > button {
 
 .controls-row {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 0.55rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid var(--border-subtle);
 }
 
 .toggle-label {
@@ -337,21 +316,6 @@ main > button {
   align-items: center;
   gap: 0.45rem;
   font-size: 0.84rem;
-}
-
-.filter-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.6rem;
-}
-
-.filter-panel {
-  border-radius: 9px;
-  border: 1px solid var(--surface-panel-muted-border);
-  background: var(--surface-panel-muted-background);
-  padding: 0.65rem;
-  display: grid;
-  gap: 0.55rem;
 }
 
 .hint {
@@ -375,10 +339,6 @@ main > button {
 
 @media (max-width: 1080px) {
   .hero-layout {
-    grid-template-columns: 1fr;
-  }
-
-  .filter-grid {
     grid-template-columns: 1fr;
   }
 }

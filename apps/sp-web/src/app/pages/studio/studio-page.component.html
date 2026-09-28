@@ -20,6 +20,16 @@
     <p-message severity="error" styleClass="app-page-message">{{ studioError() }}</p-message>
     <button pButton type="button" (click)="retryStudioLoad()">Retry</button>
   } @else if (studio(); as studio) {
+    @if (activeStudioImageUrl(); as compactImage) {
+      <div
+        class="compact-studio-badge"
+        [style.--hero-collapse]="heroCollapseProgress()"
+        aria-hidden="true"
+      >
+        <img [src]="compactImage" [alt]="studio.name" />
+      </div>
+    }
+
     <section class="hero-shell">
       @if (activeStudioImageUrl(); as backdropImage) {
         <div
@@ -195,103 +205,70 @@
     </div>
 
     <section class="section controls-shell app-section-panel app-control-shell" aria-label="Studio scene filters">
-      <h2>Scenes</h2>
-      <div class="controls-row app-control-grid">
-        <div class="control-field app-control-field">
-          <span class="app-control-label">Sort</span>
-          <div class="sort-with-direction app-control-inline">
+      <div class="app-control-shell__header">
+        <h2>Scenes</h2>
+
+        <div class="app-sort-toggle-group" role="group" aria-label="Sort by release date">
+          <button
+            type="button"
+            class="app-sort-toggle-option"
+            [class.active]="sceneSortDirection() === 'DESC'"
+            (click)="onSceneSortDirectionChanged('DESC')"
+          >
+            Latest
+          </button>
+          <button
+            type="button"
+            class="app-sort-toggle-option"
+            [class.active]="sceneSortDirection() === 'ASC'"
+            (click)="onSceneSortDirectionChanged('ASC')"
+          >
+            Oldest
+          </button>
+        </div>
+
+        <button
+          type="button"
+          class="app-filters-toggle-button"
+          [class.active]="filtersExpanded()"
+          [attr.aria-expanded]="filtersExpanded()"
+          aria-controls="studio-expanded-filters"
+          (click)="toggleFiltersExpanded()"
+        >
+          Filters
+          <i [class]="filtersExpanded() ? 'pi pi-chevron-up' : 'pi pi-chevron-down'" aria-hidden="true"></i>
+        </button>
+      </div>
+
+      @if (filtersExpanded()) {
+        <div class="controls-row app-control-grid" id="studio-expanded-filters">
+          <label class="control-field app-control-field">
+            <span class="app-control-label">Favorites</span>
             <p-select
-              inputId="studio-scenes-sort"
-              [ngModel]="sceneSort()"
-              (ngModelChange)="onSceneSortChanged($event)"
-              [options]="sceneSortOptions"
+              inputId="studio-scenes-favorites"
+              [ngModel]="selectedFavorites()"
+              (ngModelChange)="onFavoritesChanged($event)"
+              [options]="favoritesOptions"
               optionLabel="label"
               optionValue="value"
               [appendTo]="'body'"
               panelStyleClass="app-overlay-panel"
             />
-            <button
-              type="button"
-              class="sort-direction-toggle app-sort-direction-toggle"
-              [attr.aria-label]="sceneSortDirectionToggleLabel()"
-              [attr.title]="sceneSortDirectionToggleLabel()"
-              (click)="toggleSceneSortDirection()"
-            >
-              <i [class]="sceneSortDirectionIconClass()" aria-hidden="true"></i>
-            </button>
-          </div>
-        </div>
-
-        <label class="control-field app-control-field">
-          <span class="app-control-label">Favorites</span>
-          <p-select
-            inputId="studio-scenes-favorites"
-            [ngModel]="selectedFavorites()"
-            (ngModelChange)="onFavoritesChanged($event)"
-            [options]="favoritesOptions"
-            optionLabel="label"
-            optionValue="value"
-            [appendTo]="'body'"
-            panelStyleClass="app-overlay-panel"
-          />
-        </label>
-
-        <label class="control-field checkbox-field app-control-field">
-          <span class="app-control-label">Library Only</span>
-          <label class="toggle-label">
-            <p-toggleswitch
-              inputId="studio-library-only"
-              [ngModel]="libraryOnly()"
-              (ngModelChange)="onLibraryOnlyChanged($event)"
-            />
-            <span>Enabled</span>
           </label>
-        </label>
-      </div>
 
-      <div class="filter-grid">
-        <div class="filter-panel">
-          <label class="control-field app-control-field">
-            <span class="app-control-label">Tags</span>
-            <div class="tag-input-row app-control-inline">
-              <p-multiselect
-                inputId="studio-scenes-tags"
-                [ngModel]="tagSelectedIdsModel()"
-                (ngModelChange)="onTagSelectionChanged($event)"
-                (onFilter)="onTagFilterChanged($event.filter)"
-                (onPanelHide)="onTagFilterPanelHide()"
-                [filter]="true"
-                [filterValue]="tagSearchTerm()"
-                filterPlaceHolder="Search scene tags"
-                [loading]="tagSearchLoading()"
-                [options]="tagSelectOptions()"
-                optionLabel="label"
-                optionValue="value"
-                [showToggleAll]="false"
-                display="chip"
-                [emptyMessage]="tagSelectEmptyMessage()"
-                [emptyFilterMessage]="tagSelectEmptyMessage()"
-                [resetFilterOnHide]="true"
-                [appendTo]="'body'"
-                panelStyleClass="app-overlay-panel"
-                placeholder="Select tags"
-                scrollHeight="16rem"
+          <label class="control-field checkbox-field app-control-field">
+            <span class="app-control-label">Library Only</span>
+            <label class="toggle-label">
+              <p-toggleswitch
+                inputId="studio-library-only"
+                [ngModel]="libraryOnly()"
+                (ngModelChange)="onLibraryOnlyChanged($event)"
               />
-              <p-select
-                class="tag-mode-select"
-                inputId="studio-scenes-tag-mode"
-                [ngModel]="selectedTagMode()"
-                (ngModelChange)="onTagMatchModeChanged($event)"
-                [options]="tagMatchOptions"
-                optionLabel="label"
-                optionValue="value"
-                [appendTo]="'body'"
-                panelStyleClass="app-overlay-panel"
-              />
-            </div>
+              <span>Enabled</span>
+            </label>
           </label>
         </div>
-      </div>
+      }
     </section>
 
     @if (loadingScenes()) {

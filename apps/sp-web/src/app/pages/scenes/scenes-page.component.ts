@@ -85,7 +85,7 @@ interface SelectedStudioChip {
 export class ScenesPageComponent implements OnInit, AfterViewInit, OnDestroy {
   private static readonly PAGE_SIZE = 24;
   private static readonly SEARCH_DEBOUNCE_MS = 250;
-  private static readonly DEFAULT_SORT: SceneFeedSort = 'TRENDING';
+  private static readonly DEFAULT_SORT: SceneFeedSort = 'DATE';
   private static readonly DEFAULT_DIRECTION: SortDirection = 'DESC';
   private static readonly DEFAULT_FAVORITES: FavoritesFilterOption = 'NONE';
   private static readonly DEFAULT_TAG_MODE: SceneTagMatchMode = 'OR';
@@ -166,6 +166,7 @@ export class ScenesPageComponent implements OnInit, AfterViewInit, OnDestroy {
   protected readonly items = signal<SceneExplorerItem[]>([]);
   protected readonly requestModalOpen = signal(false);
   protected readonly requestContext = signal<SceneRequestContext | null>(null);
+  protected readonly filtersExpanded = signal(false);
   protected readonly titleQuery = signal('');
   protected readonly selectedSort = signal<SceneFeedSort>(ScenesPageComponent.DEFAULT_SORT);
   protected readonly selectedDirection = signal<SortDirection>(
@@ -335,6 +336,10 @@ export class ScenesPageComponent implements OnInit, AfterViewInit, OnDestroy {
 
   protected toggleSortDirection(): void {
     this.onDirectionChanged(this.selectedDirection() === 'ASC' ? 'DESC' : 'ASC');
+  }
+
+  protected toggleFiltersExpanded(): void {
+    this.filtersExpanded.update((value) => !value);
   }
 
   protected sortDirectionIconClass(): string {

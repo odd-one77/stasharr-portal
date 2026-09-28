@@ -2,6 +2,7 @@ import {
   AfterViewInit,
   Component,
   ElementRef,
+  HostListener,
   OnDestroy,
   OnInit,
   ViewChild,
@@ -74,6 +75,9 @@ interface MultiSelectOption {
 export class StudioPageComponent implements OnInit, AfterViewInit, OnDestroy {
   private static readonly SCENES_PAGE_SIZE = 24;
   private static readonly SEARCH_DEBOUNCE_MS = 250;
+  // How far (px) the user scrolls before the compact corner logo is fully
+  // "tucked in" -- roughly the height of the large hero logo above it.
+  private static readonly HERO_COLLAPSE_DISTANCE = 220;
   private static readonly DEFAULT_SCENE_SORT: SceneFeedSort = 'DATE';
   private static readonly DEFAULT_SCENE_DIRECTION: SortDirection = 'DESC';
   private static readonly DEFAULT_FAVORITES: FavoritesFilterOption = 'NONE';
@@ -180,6 +184,17 @@ export class StudioPageComponent implements OnInit, AfterViewInit, OnDestroy {
 
   protected readonly requestModalOpen = signal(false);
   protected readonly requestContext = signal<SceneRequestContext | null>(null);
+  protected readonly filtersExpanded = signal(false);
+  protected readonly heroCollapseProgress = signal(0);
+
+  @HostListener('window:scroll')
+  protected onWindowScroll(): void {
+    const progress = Math.min(
+      1,
+      Math.max(0, window.scrollY / StudioPageComponent.HERO_COLLAPSE_DISTANCE),
+    );
+    this.heroCollapseProgress.set(progress);
+  }
 
   protected readonly backLinkPath = signal('/studios');
   protected readonly backLinkQueryParams = signal<Params>({});
@@ -190,6 +205,7 @@ export class StudioPageComponent implements OnInit, AfterViewInit, OnDestroy {
   protected readonly tagMatchOptions = StudioPageComponent.TAG_MATCH_OPTIONS;
 
   ngOnInit(): void {
+    this.onWindowScroll();
     this.setupTagSearch();
     this.routeSubscription = combineLatest([
       this.route.paramMap,
@@ -415,6 +431,10 @@ export class StudioPageComponent implements OnInit, AfterViewInit, OnDestroy {
     this.sceneSortDirection.set(nextValue);
     this.syncUrlWithCurrentFilters(false);
     this.resetScenesAndReload();
+  }
+
+  protected toggleFiltersExpanded(): void {
+    this.filtersExpanded.update((value) => !value);
   }
 
   protected toggleSceneSortDirection(): void {

@@ -152,6 +152,7 @@ export class LibraryPageComponent implements OnInit, AfterViewInit, OnDestroy {
   protected readonly inFlight = signal(false);
   protected readonly latestSyncAt = signal<string | null>(null);
   protected readonly items = signal<LibrarySceneItem[]>([]);
+  protected readonly filtersExpanded = signal(false);
   protected readonly queryTerm = signal('');
   protected readonly selectedSort = signal<LibrarySceneSort>(LibraryPageComponent.DEFAULT_SORT);
   protected readonly selectedDirection = signal<LibrarySortDirection>(
@@ -294,6 +295,10 @@ export class LibraryPageComponent implements OnInit, AfterViewInit, OnDestroy {
 
   protected toggleSortDirection(): void {
     this.onDirectionChanged(this.selectedDirection() === 'ASC' ? 'DESC' : 'ASC');
+  }
+
+  protected toggleFiltersExpanded(): void {
+    this.filtersExpanded.update((value) => !value);
   }
 
   protected sortDirectionIconClass(): string {

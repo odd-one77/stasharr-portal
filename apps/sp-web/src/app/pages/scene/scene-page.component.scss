@@ -70,10 +70,10 @@ p {
   // Intrinsic width: the plaque shrink-wraps to whatever width the logo
   // actually renders at for this height, instead of showing a bar wider
   // than the logo it holds.
-  height: 3.8rem;
-  max-width: 10rem;
-  border-radius: 0.9rem;
-  padding: 0.32rem 0.65rem;
+  height: 4.8rem;
+  max-width: 13rem;
+  border-radius: 1rem;
+  padding: 0.38rem 0.75rem;
   background: rgb(0 0 0 / 22%);
   display: inline-flex;
   align-items: center;
@@ -457,7 +457,7 @@ button {
   }
 
   .studio-logo-overlay {
-    height: 1.95rem;
+    height: 2.6rem;
   }
 
   .studio-favorite-indicator {

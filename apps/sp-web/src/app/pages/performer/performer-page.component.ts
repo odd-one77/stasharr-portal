@@ -37,7 +37,6 @@ import { AppNotificationsService } from '../../core/notifications/app-notificati
 import {
   DiscoverItem,
   PerformerDetails,
-  PerformerDetailsImage,
   PerformerGender,
   PerformerStudioOption,
   SceneFeedSort,
@@ -143,6 +142,7 @@ export class PerformerPageComponent implements OnInit, AfterViewInit, OnDestroy 
   protected readonly performerError = signal<string | null>(null);
   protected readonly favoritingPerformer = signal(false);
   protected readonly settingMainImage = signal(false);
+  protected readonly filtersExpanded = signal(false);
   protected readonly mainImagePickerOpen = signal(false);
 
   protected readonly sceneSort = signal<SceneFeedSort>(PerformerPageComponent.DEFAULT_SORT);
@@ -386,6 +386,10 @@ export class PerformerPageComponent implements OnInit, AfterViewInit, OnDestroy 
     this.onSceneSortDirectionChanged(this.sceneSortDirection() === 'ASC' ? 'DESC' : 'ASC');
   }
 
+  protected toggleFiltersExpanded(): void {
+    this.filtersExpanded.update((value) => !value);
+  }
+
   protected sceneSortDirectionIconClass(): string {
     return this.sceneSortDirection() === 'ASC'
       ? 'pi pi-sort-amount-up-alt'
@@ -512,10 +516,6 @@ export class PerformerPageComponent implements OnInit, AfterViewInit, OnDestroy 
 
   protected hasCarouselImages(): boolean {
     return (this.performer()?.images.length ?? 0) > 0;
-  }
-
-  protected previewImages(): PerformerDetailsImage[] {
-    return (this.performer()?.images ?? []).slice(0, PerformerPageComponent.IMAGE_PREVIEW_LIMIT);
   }
 
   protected hasMoreImages(): boolean {

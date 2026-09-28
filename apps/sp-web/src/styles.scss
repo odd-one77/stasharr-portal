@@ -753,6 +753,65 @@ body {
   outline-offset: 2px;
 }
 
+.app-sort-toggle-group {
+  display: inline-flex;
+  border-radius: 999px;
+  border: 1px solid var(--app-control-border, var(--border-strong));
+  background: var(--app-control-bg, var(--surface-elevated));
+  padding: 0.15rem;
+  gap: 0.15rem;
+}
+
+.app-sort-toggle-option {
+  padding: 0.3rem 0.8rem;
+  border-radius: 999px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.app-sort-toggle-option.active {
+  background: var(--button-bg);
+  color: var(--button-text);
+}
+
+.app-sort-toggle-option:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.app-sort-toggle-option:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.app-filters-toggle-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.38rem 0.68rem;
+  border-radius: 999px;
+  border: 1px solid var(--button-border);
+  background: var(--button-bg);
+  color: var(--button-text);
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+}
+
+.app-filters-toggle-button.active {
+  border-color: var(--focus-ring);
+}
+
+.app-filters-toggle-button:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
 .app-overlay-panel {
   --app-overlay-option-size: 0.82rem;
   border: 1px solid var(--surface-overlay-border);

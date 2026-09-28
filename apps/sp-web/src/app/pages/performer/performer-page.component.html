@@ -43,14 +43,6 @@
           </div>
 
           @if (hasCarouselImages()) {
-            <div class="carousel-thumbs">
-              @for (image of previewImages(); track image.id) {
-                <div class="thumb" [class.active]="isMainImage(image.url)">
-                  <img [src]="image.url" [alt]="performer.name + ' photo'" />
-                </div>
-              }
-            </div>
-
             <div class="carousel-controls">
               <button type="button" class="set-main-image" (click)="openMainImagePicker()">
                 {{ imagePickerButtonLabel() }}
@@ -125,7 +117,7 @@
       [closable]="false"
       [blockScroll]="true"
       [appendTo]="'self'"
-      [style]="{ width: 'min(720px, 96vw)', maxHeight: 'min(86dvh, 720px)' }"
+      [style]="{ width: 'min(920px, 96vw)', maxHeight: 'min(88dvh, 840px)' }"
       styleClass="image-picker-dialog"
     >
       <div class="image-picker-shell">
@@ -165,60 +157,67 @@
       class="section controls-shell app-section-panel app-control-shell"
       aria-label="Performer scene filters"
     >
-      <h2>Scenes</h2>
-      <div class="controls-row">
-        <div class="control-field app-control-field">
-          <span class="app-control-label">Sort</span>
-          <div class="sort-with-direction app-control-inline">
-            <p-select
-              inputId="performer-sort"
-              [ngModel]="sceneSort()"
-              (ngModelChange)="onSceneSortChanged($event)"
-              [options]="sceneSortOptions"
-              optionLabel="label"
-              optionValue="value"
-              [appendTo]="'body'"
-              panelStyleClass="app-overlay-panel"
-            />
-            <button
-              type="button"
-              class="sort-direction-toggle app-sort-direction-toggle"
-              [attr.aria-label]="sceneSortDirectionToggleLabel()"
-              [attr.title]="sceneSortDirectionToggleLabel()"
-              (click)="toggleSceneSortDirection()"
-            >
-              <i [class]="sceneSortDirectionIconClass()" aria-hidden="true"></i>
-            </button>
-          </div>
+      <div class="app-control-shell__header">
+        <h2>Scenes</h2>
+
+        <div class="app-sort-toggle-group" role="group" aria-label="Sort by release date">
+          <button
+            type="button"
+            class="app-sort-toggle-option"
+            [class.active]="sceneSortDirection() === 'DESC'"
+            (click)="onSceneSortDirectionChanged('DESC')"
+          >
+            Latest
+          </button>
+          <button
+            type="button"
+            class="app-sort-toggle-option"
+            [class.active]="sceneSortDirection() === 'ASC'"
+            (click)="onSceneSortDirectionChanged('ASC')"
+          >
+            Oldest
+          </button>
         </div>
 
-        <label class="control-field checkbox-field app-control-field">
-          <span class="app-control-label">Only Favorite Studios</span>
-          <label class="toggle-label">
-            <p-toggleswitch
-              inputId="performer-favorite-studios"
-              [ngModel]="onlyFavoriteStudios()"
-              (ngModelChange)="onOnlyFavoriteStudiosChanged($event)"
-            />
-            <span>Enabled</span>
-          </label>
-        </label>
-
-        <label class="control-field checkbox-field app-control-field">
-          <span class="app-control-label">Library Only</span>
-          <label class="toggle-label">
-            <p-toggleswitch
-              inputId="performer-library-only"
-              [ngModel]="libraryOnly()"
-              (ngModelChange)="onLibraryOnlyChanged($event)"
-            />
-            <span>Enabled</span>
-          </label>
-        </label>
+        <button
+          type="button"
+          class="app-filters-toggle-button"
+          [class.active]="filtersExpanded()"
+          [attr.aria-expanded]="filtersExpanded()"
+          aria-controls="performer-expanded-filters"
+          (click)="toggleFiltersExpanded()"
+        >
+          Filters
+          <i [class]="filtersExpanded() ? 'pi pi-chevron-up' : 'pi pi-chevron-down'" aria-hidden="true"></i>
+        </button>
       </div>
 
-      <div class="filter-grid">
-        <div class="filter-panel">
+      @if (filtersExpanded()) {
+        <div class="controls-row" id="performer-expanded-filters">
+          <label class="control-field checkbox-field app-control-field">
+            <span class="app-control-label">Only Favorite Studios</span>
+            <label class="toggle-label">
+              <p-toggleswitch
+                inputId="performer-favorite-studios"
+                [ngModel]="onlyFavoriteStudios()"
+                (ngModelChange)="onOnlyFavoriteStudiosChanged($event)"
+              />
+              <span>Enabled</span>
+            </label>
+          </label>
+
+          <label class="control-field checkbox-field app-control-field">
+            <span class="app-control-label">Library Only</span>
+            <label class="toggle-label">
+              <p-toggleswitch
+                inputId="performer-library-only"
+                [ngModel]="libraryOnly()"
+                (ngModelChange)="onLibraryOnlyChanged($event)"
+              />
+              <span>Enabled</span>
+            </label>
+          </label>
+
           <label class="control-field app-control-field">
             <span class="app-control-label">Studios</span>
             <p-multiselect
@@ -249,36 +248,7 @@
             />
           </label>
         </div>
-
-        <div class="filter-panel">
-          <label class="control-field app-control-field">
-            <span class="app-control-label">Tags</span>
-            <p-multiselect
-              inputId="performer-tags"
-              [ngModel]="tagSelectedIds()"
-              (ngModelChange)="onTagSelectionChanged($event)"
-              (onFilter)="onTagFilterChanged($event.filter)"
-              (onPanelHide)="onTagFilterPanelHide()"
-              [filter]="true"
-              [filterValue]="tagSearchTerm()"
-              filterPlaceHolder="Search scene tags"
-              [loading]="tagSearchLoading()"
-              [options]="tagSelectOptions()"
-              optionLabel="label"
-              optionValue="value"
-              [showToggleAll]="false"
-              display="chip"
-              [emptyMessage]="tagSelectEmptyMessage()"
-              [emptyFilterMessage]="tagSelectEmptyMessage()"
-              [resetFilterOnHide]="true"
-              [appendTo]="'body'"
-              panelStyleClass="app-overlay-panel"
-              placeholder="Select tags"
-              scrollHeight="16rem"
-            />
-          </label>
-        </div>
-      </div>
+      }
     </section>
 
     @if (loadingScenes()) {
