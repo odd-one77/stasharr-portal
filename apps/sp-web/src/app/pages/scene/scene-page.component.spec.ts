@@ -3,6 +3,7 @@ import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/route
 import { of } from 'rxjs';
 import { DiscoverService } from '../../core/api/discover.service';
 import { AppNotificationsService } from '../../core/notifications/app-notifications.service';
+import { SceneQuickRequestService } from '../../core/requests/scene-quick-request.service';
 import { PlayerService } from '../../core/player/player.service';
 import { SceneDetails } from '../../core/api/discover.types';
 import { ScenePageComponent } from './scene-page.component';
@@ -81,6 +82,10 @@ describe('ScenePageComponent', () => {
           provide: ActivatedRoute,
           useValue: activatedRoute,
         },
+        {
+          provide: SceneQuickRequestService,
+          useValue: { tryQuickRequest: vi.fn().mockReturnValue(of({ submitted: false })) },
+        },
       ],
     }).compileComponents();
 
@@ -94,6 +99,32 @@ describe('ScenePageComponent', () => {
 
   afterEach(() => {
     TestBed.resetTestingModule();
+  });
+
+  it('links the studio logo to the internal studio page, not an external URL', async () => {
+    const scene = buildScene();
+
+    const { fixture } = await renderScene(scene);
+
+    const studioLink = fixture.nativeElement.querySelector(
+      '.studio-logo-overlay',
+    ) as HTMLAnchorElement | null;
+
+    expect(studioLink?.getAttribute('href')).toContain('/studio/studio-1');
+    expect(studioLink?.getAttribute('target')).toBeNull();
+  });
+
+  it('falls back to an external studio link when there is no internal studioId', async () => {
+    const scene = buildScene({ studioId: null });
+
+    const { fixture } = await renderScene(scene);
+
+    const studioLink = fixture.nativeElement.querySelector(
+      '.studio-logo-overlay',
+    ) as HTMLAnchorElement | null;
+
+    expect(studioLink?.getAttribute('href')).toBe('http://studio.local');
+    expect(studioLink?.getAttribute('target')).toBe('_blank');
   });
 
   it('shows failed guidance, keeps the Whisparr link, and hides the request button for failed scenes', async () => {

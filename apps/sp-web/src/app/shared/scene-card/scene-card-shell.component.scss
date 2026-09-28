@@ -16,10 +16,10 @@
   --scene-card-text-badge-radius: 0.55rem;
   --scene-card-text-badge-font-size: 0.56rem;
   --scene-card-text-badge-font-weight: 600;
-  --scene-card-logo-min-width: 1.75rem;
-  --scene-card-logo-height: 1.15rem;
-  --scene-card-logo-padding: 0.12rem 0.28rem;
-  --scene-card-logo-radius: 0.55rem;
+  --scene-card-logo-min-width: 2.5rem;
+  --scene-card-logo-height: 1.7rem;
+  --scene-card-logo-padding: 0.18rem 0.36rem;
+  --scene-card-logo-radius: 0.6rem;
   --scene-card-placeholder-background:
     linear-gradient(
       130deg,
@@ -110,11 +110,8 @@
 }
 
 .studio-badge {
-  border: 1px solid var(--scene-card-glass-border, var(--media-surface-glass-border));
-  box-shadow:
-    var(--scene-card-glass-shadow, var(--media-surface-glass-shadow)),
-    inset 0 1px 0 color-mix(in srgb, var(--surface-1) 25%, transparent);
-  backdrop-filter: blur(7px);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
 }
 
 .studio-badge-link {
@@ -134,17 +131,7 @@
   height: var(--scene-card-logo-height);
   border-radius: var(--scene-card-logo-radius);
   padding: var(--scene-card-logo-padding);
-  background:
-    linear-gradient(
-      180deg,
-      color-mix(in srgb, var(--surface-elevated) 92%, var(--surface-1)),
-      color-mix(in srgb, var(--surface-2) 88%, transparent)
-    ),
-    color-mix(
-      in srgb,
-      var(--scene-card-glass-background, var(--media-surface-glass-background)) 34%,
-      transparent
-    );
+  background: rgb(0 0 0 / 22%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -165,18 +152,8 @@
   height: var(--scene-card-text-badge-height);
   padding: var(--scene-card-text-badge-padding);
   border-radius: var(--scene-card-text-badge-radius);
-  background:
-    linear-gradient(
-      180deg,
-      color-mix(in srgb, var(--surface-elevated) 92%, var(--surface-1)),
-      color-mix(in srgb, var(--surface-2) 85%, transparent)
-    ),
-    color-mix(
-      in srgb,
-      var(--scene-card-glass-background, var(--media-surface-glass-background)) 58%,
-      transparent
-    );
-  color: var(--text-primary);
+  background: rgb(0 0 0 / 22%);
+  color: #fff;
   font-size: var(--scene-card-text-badge-font-size);
   font-weight: var(--scene-card-text-badge-font-weight);
   display: inline-flex;
@@ -185,7 +162,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   letter-spacing: 0.01em;
-  text-shadow: 0 1px 0 color-mix(in srgb, var(--surface-1) 35%, transparent);
+  text-shadow: 0 1px 2px rgb(0 0 0 / 45%);
 }
 
 .media-bottom {

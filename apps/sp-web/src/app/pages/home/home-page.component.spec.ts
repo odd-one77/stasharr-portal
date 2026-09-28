@@ -3,6 +3,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { AppNotificationsService } from '../../core/notifications/app-notifications.service';
+import { SceneQuickRequestService } from '../../core/requests/scene-quick-request.service';
 import { DiscoverService } from '../../core/api/discover.service';
 import { SceneExplorerItem, ScenesFeedResponse } from '../../core/api/discover.types';
 import { HomeService } from '../../core/api/home.service';
@@ -186,6 +187,10 @@ describe('HomePageComponent', () => {
         {
           provide: AppNotificationsService,
           useValue: { success: vi.fn(), error: vi.fn(), info: vi.fn() },
+        },
+        {
+          provide: SceneQuickRequestService,
+          useValue: { tryQuickRequest: vi.fn().mockReturnValue(of({ submitted: false })) },
         },
       ],
     }).compileComponents();

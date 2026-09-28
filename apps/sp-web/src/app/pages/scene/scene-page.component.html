@@ -33,7 +33,16 @@
       @if (scene.studioImageUrl || scene.studioId) {
         <div class="studio-affordance-cluster">
           @if (scene.studioImageUrl) {
-            @if (scene.studioUrl) {
+            @if (scene.studioId) {
+              <a
+                class="studio-logo-overlay"
+                [routerLink]="['/studio', scene.studioId]"
+                [queryParams]="{ returnTo: currentRouteUrl() }"
+                [attr.aria-label]="studioLogoAriaLabel(scene)"
+              >
+                <img [src]="scene.studioImageUrl" alt="" />
+              </a>
+            } @else if (scene.studioUrl) {
               <a
                 class="studio-logo-overlay"
                 [href]="scene.studioUrl"

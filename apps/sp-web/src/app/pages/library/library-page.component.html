@@ -279,7 +279,6 @@
           [sceneRouteId]="item.activeCatalogSceneId"
           [sceneQueryParams]="item.activeCatalogSceneId ? { returnTo: currentRouteUrl() } : null"
           [externalHref]="item.activeCatalogSceneId ? null : item.viewUrl"
-          studioBadgeRoute="library"
           [topBadges]="localCardBadges"
           [footerLink]="libraryFooterLink(item)"
           [footerLinkLabel]="item.activeCatalogSceneId ? 'View in Stash' : null"

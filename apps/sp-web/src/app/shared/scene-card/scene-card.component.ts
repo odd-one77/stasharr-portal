@@ -1,5 +1,5 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
-import { Params, RouterLink } from '@angular/router';
+import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
+import { Params, Router, RouterLink } from '@angular/router';
 import { SceneRequestContext, SceneStatus } from '../../core/api/discover.types';
 import {
   SceneCardCenterActionDirective,
@@ -20,7 +20,6 @@ export interface SceneCardItem extends SceneCardShellItem {
 export type SceneCardVariant = 'default' | 'rail';
 export type SceneCardTone = 'media' | 'surface';
 export type SceneCardPrimaryLinkMode = 'scene' | 'external';
-export type SceneCardStudioBadgeRoute = 'none' | 'scenes' | 'library';
 export type SceneCardPlaySize = 'compact' | 'large';
 
 export interface SceneCardBadge {
@@ -47,6 +46,8 @@ export interface SceneCardBadge {
   },
 })
 export class SceneCardComponent {
+  private readonly router = inject(Router);
+
   @Input({ required: true }) item!: SceneCardItem;
   @Input() requestable = false;
   @Input() variant: SceneCardVariant = 'default';
@@ -55,7 +56,6 @@ export class SceneCardComponent {
   @Input() sceneRouteId: string | null = null;
   @Input() sceneQueryParams: Params | null = null;
   @Input() externalHref: string | null = null;
-  @Input() studioBadgeRoute: SceneCardStudioBadgeRoute = 'none';
   @Input() topBadges: readonly SceneCardBadge[] = [];
   @Input() footerLink: SceneCardShellLink | null = null;
   @Input() footerLinkLabel: string | null = null;
@@ -96,22 +96,15 @@ export class SceneCardComponent {
   }
 
   protected studioBadgeLink(): SceneCardShellLink | null {
-    if (
-      this.studioBadgeRoute === 'none' ||
-      !this.item.studioId ||
-      !this.item.studio
-    ) {
+    if (!this.item.studioId) {
       return null;
     }
 
     return {
       kind: 'router',
-      commands: [this.studioBadgeRoute === 'library' ? '/library' : '/scenes'],
-      queryParams: {
-        studios: this.item.studioId,
-        studioNames: this.item.studio,
-      },
-      ariaLabel: `Filter ${this.studioBadgeRoute} by studio ${this.item.studio}`,
+      commands: ['/studio', this.item.studioId],
+      queryParams: { returnTo: this.router.url },
+      ariaLabel: this.item.studio ? `Open studio ${this.item.studio}` : 'Open studio',
     };
   }
 

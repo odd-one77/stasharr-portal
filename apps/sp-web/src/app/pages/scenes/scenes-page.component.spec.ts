@@ -9,6 +9,7 @@ import { RuntimeHealthResponse } from '../../core/api/runtime-health.types';
 import { SetupStatusStore } from '../../core/api/setup-status.store';
 import { SetupStatusResponse } from '../../core/api/setup.types';
 import { AppNotificationsService } from '../../core/notifications/app-notifications.service';
+import { SceneQuickRequestService } from '../../core/requests/scene-quick-request.service';
 import { PlayerService } from '../../core/player/player.service';
 import { ScenesPageComponent } from './scenes-page.component';
 
@@ -189,6 +190,10 @@ describe('ScenesPageComponent', () => {
         {
           provide: SetupStatusStore,
           useValue: setupStatusStore,
+        },
+        {
+          provide: SceneQuickRequestService,
+          useValue: { tryQuickRequest: vi.fn().mockReturnValue(of({ submitted: false })) },
         },
       ],
     }).compileComponents();

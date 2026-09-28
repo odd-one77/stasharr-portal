@@ -67,18 +67,15 @@ p {
 }
 
 .studio-logo-overlay {
-  height: 2.2rem;
-  border-radius: 0.72rem;
-  padding: 0.22rem 0.5rem;
-  border: 1px solid var(--media-detail-glass-border);
-  box-shadow:
-    var(--media-detail-glass-shadow),
-    inset 0 1px 0 rgb(255 255 255 / 24%);
-  background: var(--media-detail-glass-background);
+  height: 3rem;
+  border-radius: 0.85rem;
+  padding: 0.28rem 0.6rem;
+  background: rgb(0 0 0 / 22%);
   display: flex;
   align-items: center;
   justify-content: center;
-  backdrop-filter: blur(8px);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
   text-decoration: none;
 }
 

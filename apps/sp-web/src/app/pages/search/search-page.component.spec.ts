@@ -2,6 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
 import { BehaviorSubject, of } from 'rxjs';
 import { AppNotificationsService } from '../../core/notifications/app-notifications.service';
+import { SceneQuickRequestService } from '../../core/requests/scene-quick-request.service';
 import { DiscoverService } from '../../core/api/discover.service';
 import { PlayerService } from '../../core/player/player.service';
 import {
@@ -131,6 +132,10 @@ describe('SearchPageComponent', () => {
         },
         { provide: PlayerService, useValue: playerService },
         { provide: ActivatedRoute, useValue: activatedRoute },
+        {
+          provide: SceneQuickRequestService,
+          useValue: { tryQuickRequest: vi.fn().mockReturnValue(of({ submitted: false })) },
+        },
       ],
     }).compileComponents();
 

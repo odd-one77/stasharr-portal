@@ -4,6 +4,7 @@ import { BehaviorSubject, of } from 'rxjs';
 import { DiscoverService } from '../../core/api/discover.service';
 import { DiscoverItem, StudioDetails } from '../../core/api/discover.types';
 import { AppNotificationsService } from '../../core/notifications/app-notifications.service';
+import { SceneQuickRequestService } from '../../core/requests/scene-quick-request.service';
 import { StudioPageComponent } from './studio-page.component';
 
 function buildStudio(overrides: Partial<StudioDetails> = {}): StudioDetails {
@@ -100,6 +101,10 @@ describe('StudioPageComponent', () => {
             error: vi.fn(),
             info: vi.fn(),
           },
+        },
+        {
+          provide: SceneQuickRequestService,
+          useValue: { tryQuickRequest: vi.fn().mockReturnValue(of({ submitted: false })) },
         },
       ],
     }).compileComponents();

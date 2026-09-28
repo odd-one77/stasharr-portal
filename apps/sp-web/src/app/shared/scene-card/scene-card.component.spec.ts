@@ -34,13 +34,12 @@ describe('SceneCardComponent', () => {
     return { fixture, component: fixture.componentInstance };
   }
 
-  it('renders the canonical discovery card with an internal scene link, studio filter badge, and request event', async () => {
+  it('renders the canonical discovery card with an internal scene link, studio page badge, and request event', async () => {
     const { fixture, component } = await renderCard();
     const emitted: SceneRequestContext[] = [];
     component.item = buildSceneCardItem();
     component.requestable = true;
     component.sceneQueryParams = { returnTo: '/scenes' };
-    component.studioBadgeRoute = 'scenes';
     component.request.subscribe((item) => emitted.push(item));
 
     fixture.detectChanges();
@@ -59,9 +58,7 @@ describe('SceneCardComponent', () => {
 
     expect(sceneLink?.getAttribute('href')).toContain('/scene/scene-1');
     expect(sceneLink?.getAttribute('href')).toContain('returnTo=%2Fscenes');
-    expect(studioBadgeLink?.getAttribute('href')).toContain('/scenes');
-    expect(studioBadgeLink?.getAttribute('href')).toContain('studios=studio-1');
-    expect(studioBadgeLink?.getAttribute('href')).toContain('studioNames=Studio%20One');
+    expect(studioBadgeLink?.getAttribute('href')).toContain('/studio/studio-1');
     expect(requestButton?.textContent?.trim()).toBe('Request');
 
     requestButton?.click();
@@ -73,6 +70,18 @@ describe('SceneCardComponent', () => {
         imageUrl: 'http://cdn.local/image.jpg',
       },
     ]);
+  });
+
+  it('renders no studio badge link when the item has no studioId', async () => {
+    const { fixture, component } = await renderCard();
+    component.item = buildSceneCardItem({ studioId: null });
+
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const studioBadgeLink = fixture.nativeElement.querySelector('.studio-badge-link');
+    expect(studioBadgeLink).toBeNull();
   });
 
   it('renders status-driven external cards without the request CTA', async () => {
@@ -178,7 +187,6 @@ describe('SceneCardComponent', () => {
     component.primaryLinkMode = 'scene';
     component.sceneRouteId = 'catalog-scene-411';
     component.sceneQueryParams = { returnTo: '/library' };
-    component.studioBadgeRoute = 'library';
     component.topBadges = [{ label: 'Local' }];
     component.footerLinkLabel = 'View in Stash';
     component.footerLink = {
@@ -204,7 +212,7 @@ describe('SceneCardComponent', () => {
 
     expect(sceneLink?.getAttribute('href')).toContain('/scene/catalog-scene-411');
     expect(sceneLink?.getAttribute('href')).toContain('returnTo=%2Flibrary');
-    expect(studioBadgeLink?.getAttribute('href')).toContain('/library');
+    expect(studioBadgeLink?.getAttribute('href')).toContain('/studio/studio-1');
     expect(topBadge?.textContent?.trim()).toBe('Local');
     expect(footerLink?.getAttribute('href')).toBe('http://stash.local/scenes/411');
   });
