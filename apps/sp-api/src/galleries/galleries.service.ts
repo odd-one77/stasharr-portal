@@ -133,7 +133,11 @@ export class GalleriesService {
       coverImageUrl: gallery.coverImageUrl
         ? `/api/media/stash/galleries/${encodeURIComponent(gallery.id)}/cover`
         : null,
-      studioId: gallery.studioId,
+      // NOT gallery.studioId: that's Stash's own local numeric primary key
+      // (this whole feed is sourced directly from Stash), not the active
+      // catalog provider's studio id space that /studio/:studioId expects --
+      // see the identical note in library-scene-query.service.ts.
+      studioId: null,
       studio: gallery.studio,
       studioImageUrl:
         gallery.studioId && gallery.studioImageUrl

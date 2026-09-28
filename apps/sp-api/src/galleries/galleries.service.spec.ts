@@ -98,7 +98,7 @@ describe('GalleriesService', () => {
           title: 'Gallery One',
           description: 'Details',
           coverImageUrl: '/api/media/stash/galleries/gallery-1/cover',
-          studioId: 'studio-1',
+          studioId: null,
           studio: 'Studio',
           studioImageUrl: '/api/media/stash/studios/studio-1/logo',
           performers: [{ id: 'p-1', name: 'Performer One', imageUrl: null }],

@@ -245,7 +245,15 @@ export class LibrarySceneQueryService {
       description: row.description,
       imageUrl: screenshotUrl,
       cardImageUrl: screenshotUrl,
-      studioId: row.studioId,
+      // NOT row.studioId: that's Stash's own local numeric primary key, a
+      // different id space than the active catalog provider's studio ids.
+      // SceneCardComponent links a non-null studioId straight to
+      // /studio/:studioId, which resolves via the catalog adapter -- a
+      // Stash-local id there either 404s (StashDB's UUID space) or, worse,
+      // silently matches an unrelated real studio (TPDB's small-integer
+      // space). Only studioLogoUrl above needs the Stash id, for the
+      // Stash-asset proxy route.
+      studioId: null,
       studio: row.studioName,
       studioImageUrl: studioLogoUrl,
       performerNames: row.performerNames,

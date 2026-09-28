@@ -19,7 +19,11 @@ function buildScene(overrides: Partial<LibrarySceneItem> = {}): LibrarySceneItem
     description: 'Already in the library.',
     imageUrl: '/api/media/stash/scenes/411/screenshot',
     cardImageUrl: '/api/media/stash/scenes/411/screenshot',
-    studioId: 'studio-1',
+    // Stash's local numeric id isn't safe to pass to the catalog-backed
+    // /studio/:studioId route, so the backend never sends one for library
+    // items -- matches real API responses (see the note in
+    // library-scene-query.service.ts).
+    studioId: null,
     studio: 'Archive',
     studioImageUrl: '/api/media/stash/studios/studio-1/logo',
     performerNames: ['Performer One', 'Performer Two'],
@@ -421,9 +425,9 @@ describe('LibraryPageComponent', () => {
     expect(articles[0]?.querySelector('a.media-link-stretch')?.getAttribute('href')).toContain(
       'returnTo=%2Flibrary',
     );
-    expect(articles[0]?.querySelector('.studio-badge-link')?.getAttribute('href')).toContain(
-      '/library',
-    );
+    // No studioId means no safe internal studio page to link to -- the logo
+    // still renders (via studioImageUrl), just not as a link.
+    expect(articles[0]?.querySelector('.studio-badge-link')).toBeNull();
     expect(articles[0]?.querySelector('.top-badge')?.textContent).toContain('Local');
     expect(articles[0]?.querySelector('.footer-link')?.getAttribute('href')).toBe(
       'http://stash.local/scenes/411',
