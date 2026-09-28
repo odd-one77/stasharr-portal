@@ -216,3 +216,13 @@
     height: 1.6rem;
   }
 }
+
+// A phone in landscape is wide enough to miss the max-width breakpoint
+// above but still has very little vertical room -- shrink the logo there
+// too, keyed off height rather than width.
+@media (orientation: landscape) and (max-height: 500px) {
+  .logo-plaque,
+  .text-badge {
+    height: 1.6rem;
+  }
+}
