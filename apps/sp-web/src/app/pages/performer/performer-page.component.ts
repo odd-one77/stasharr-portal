@@ -22,6 +22,8 @@ import {
   of,
   switchMap,
 } from 'rxjs';
+import { ButtonDirective } from 'primeng/button';
+import { Dialog } from 'primeng/dialog';
 import { Message } from 'primeng/message';
 import { MultiSelect } from 'primeng/multiselect';
 import { ProgressSpinner } from 'primeng/progressspinner';
@@ -35,6 +37,7 @@ import { AppNotificationsService } from '../../core/notifications/app-notificati
 import {
   DiscoverItem,
   PerformerDetails,
+  PerformerDetailsImage,
   PerformerGender,
   PerformerStudioOption,
   SceneFeedSort,
@@ -71,6 +74,8 @@ interface MultiSelectGroup {
     Message,
     ProgressSpinner,
     MultiSelect,
+    ButtonDirective,
+    Dialog,
     SceneCardComponent,
     SceneRequestModalComponent,
   ],
@@ -82,6 +87,7 @@ export class PerformerPageComponent implements OnInit, AfterViewInit, OnDestroy 
   private static readonly SEARCH_DEBOUNCE_MS = 250;
   private static readonly DEFAULT_SORT: SceneFeedSort = 'DATE';
   private static readonly DEFAULT_DIRECTION: SortDirection = 'DESC';
+  private static readonly IMAGE_PREVIEW_LIMIT = 4;
 
   protected static readonly SCENE_SORT_OPTIONS: Array<{
     value: SceneFeedSort;
@@ -135,9 +141,9 @@ export class PerformerPageComponent implements OnInit, AfterViewInit, OnDestroy 
   protected readonly performer = signal<PerformerDetails | null>(null);
   protected readonly loadingPerformer = signal(false);
   protected readonly performerError = signal<string | null>(null);
-  protected readonly activeImageIndex = signal(0);
   protected readonly favoritingPerformer = signal(false);
   protected readonly settingMainImage = signal(false);
+  protected readonly mainImagePickerOpen = signal(false);
 
   protected readonly sceneSort = signal<SceneFeedSort>(PerformerPageComponent.DEFAULT_SORT);
   protected readonly sceneSortDirection = signal<SortDirection>(
@@ -508,69 +514,61 @@ export class PerformerPageComponent implements OnInit, AfterViewInit, OnDestroy 
     return (this.performer()?.images.length ?? 0) > 0;
   }
 
-  protected activeCarouselImageUrl(): string | null {
-    const images = this.performer()?.images ?? [];
-    if (images.length === 0) {
-      return this.performer()?.imageUrl ?? null;
-    }
-
-    const index = this.activeImageIndex();
-    if (index < 0 || index >= images.length) {
-      return images[0]?.url ?? null;
-    }
-
-    return images[index]?.url ?? null;
+  protected previewImages(): PerformerDetailsImage[] {
+    return (this.performer()?.images ?? []).slice(0, PerformerPageComponent.IMAGE_PREVIEW_LIMIT);
   }
 
-  protected setActiveImage(index: number): void {
-    const imageCount = this.performer()?.images.length ?? 0;
-    if (imageCount === 0) {
+  protected hasMoreImages(): boolean {
+    return (this.performer()?.images.length ?? 0) > PerformerPageComponent.IMAGE_PREVIEW_LIMIT;
+  }
+
+  protected imagePickerButtonLabel(): string {
+    return this.hasMoreImages() ? 'View more' : 'Select main photo';
+  }
+
+  protected openMainImagePicker(): void {
+    if (!this.hasCarouselImages()) {
       return;
     }
 
-    const nextIndex = Math.min(Math.max(index, 0), imageCount - 1);
-    this.activeImageIndex.set(nextIndex);
+    this.mainImagePickerOpen.set(true);
   }
 
-  protected nextImage(): void {
-    const imageCount = this.performer()?.images.length ?? 0;
-    if (imageCount === 0) {
+  protected closeMainImagePicker(): void {
+    if (this.settingMainImage()) {
       return;
     }
 
-    this.activeImageIndex.set((this.activeImageIndex() + 1) % imageCount);
+    this.mainImagePickerOpen.set(false);
   }
 
-  protected previousImage(): void {
-    const imageCount = this.performer()?.images.length ?? 0;
-    if (imageCount === 0) {
+  protected onImagePickerVisibleChange(visible: boolean): void {
+    if (visible || !this.mainImagePickerOpen()) {
       return;
     }
 
-    this.activeImageIndex.set((this.activeImageIndex() - 1 + imageCount) % imageCount);
+    this.closeMainImagePicker();
   }
 
-  protected isActiveImageMainImage(): boolean {
+  protected isMainImage(imageUrl: string): boolean {
+    return this.performer()?.imageUrl === imageUrl;
+  }
+
+  protected selectMainImage(imageUrl: string): void {
     const performer = this.performer();
-    const activeUrl = this.activeCarouselImageUrl();
-    return !!performer && !!activeUrl && performer.imageUrl === activeUrl;
-  }
-
-  protected setActiveImageAsMain(): void {
-    const performer = this.performer();
-    const activeUrl = this.activeCarouselImageUrl();
-    if (!performer || !activeUrl || this.settingMainImage() || this.isActiveImageMainImage()) {
+    if (!performer || this.settingMainImage() || this.isMainImage(imageUrl)) {
       return;
     }
 
     this.settingMainImage.set(true);
     this.discoverService
-      .setPerformerMainImage(performer.id, activeUrl)
+      .setPerformerMainImage(performer.id, imageUrl)
       .pipe(finalize(() => this.settingMainImage.set(false)))
       .subscribe({
         next: (updated) => {
           this.performer.set(updated);
           this.notifications.success('Main image updated');
+          this.mainImagePickerOpen.set(false);
         },
         error: () => {
           this.notifications.error('Failed to set main image');
@@ -646,7 +644,6 @@ export class PerformerPageComponent implements OnInit, AfterViewInit, OnDestroy 
       .subscribe({
         next: (details) => {
           this.performer.set(details);
-          this.activeImageIndex.set(0);
         },
         error: () => {
           this.performerError.set('Failed to load performer details.');

@@ -67,11 +67,15 @@ p {
 }
 
 .studio-logo-overlay {
-  height: 3rem;
-  border-radius: 0.85rem;
-  padding: 0.28rem 0.6rem;
+  // Intrinsic width: the plaque shrink-wraps to whatever width the logo
+  // actually renders at for this height, instead of showing a bar wider
+  // than the logo it holds.
+  height: 3.8rem;
+  max-width: 10rem;
+  border-radius: 0.9rem;
+  padding: 0.32rem 0.65rem;
   background: rgb(0 0 0 / 22%);
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   backdrop-filter: blur(6px);
@@ -85,10 +89,10 @@ a.studio-logo-overlay:focus-visible {
 }
 
 .studio-logo-overlay img {
-  width: 100%;
   height: 100%;
+  width: auto;
+  max-width: 100%;
   object-fit: contain;
-  object-position: right center;
   filter: drop-shadow(0 1px 1px rgb(0 0 0 / 25%));
 }
 

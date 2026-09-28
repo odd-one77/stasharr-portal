@@ -159,7 +159,52 @@ describe('PerformerPageComponent', () => {
     });
   });
 
-  it('sets the active carousel image as the main image', async () => {
+  it('labels the picker button "Select main photo" when there are 4 or fewer images', async () => {
+    const performer = buildPerformer({
+      images: [
+        { id: 'image', url: 'http://cdn.local/performer.jpg', width: null, height: null },
+        { id: 'poster-1', url: 'http://cdn.local/poster-1.jpg', width: null, height: null },
+      ],
+    });
+    const { fixture } = await renderPage({ performer });
+
+    const button = fixture.nativeElement.querySelector('.set-main-image') as HTMLButtonElement;
+    expect(button.textContent?.trim()).toBe('Select main photo');
+  });
+
+  it('caps the preview strip at 4 images and labels the button "View more" beyond that', async () => {
+    const performer = buildPerformer({
+      images: Array.from({ length: 6 }, (_, i) => ({
+        id: `image-${i}`,
+        url: `http://cdn.local/image-${i}.jpg`,
+        width: null,
+        height: null,
+      })),
+    });
+    const { fixture } = await renderPage({ performer });
+
+    const thumbs = fixture.nativeElement.querySelectorAll('.carousel-thumbs .thumb');
+    const button = fixture.nativeElement.querySelector('.set-main-image') as HTMLButtonElement;
+    expect(thumbs).toHaveLength(4);
+    expect(button.textContent?.trim()).toBe('View more');
+  });
+
+  it('opens the picker popup when the button is clicked', async () => {
+    const performer = buildPerformer({
+      images: [
+        { id: 'image', url: 'http://cdn.local/performer.jpg', width: null, height: null },
+      ],
+    });
+    const { fixture } = await renderPage({ performer });
+    const component = fixture.componentInstance as any;
+
+    expect(component.mainImagePickerOpen()).toBe(false);
+    (fixture.nativeElement.querySelector('.set-main-image') as HTMLButtonElement).click();
+
+    expect(component.mainImagePickerOpen()).toBe(true);
+  });
+
+  it('sets the selected image as main and closes the popup', async () => {
     const performer = buildPerformer({
       images: [
         { id: 'image', url: 'http://cdn.local/performer.jpg', width: null, height: null },
@@ -170,17 +215,10 @@ describe('PerformerPageComponent', () => {
     (discoverService.setPerformerMainImage as ReturnType<typeof vi.fn>).mockReturnValue(
       of({ ...performer, imageUrl: 'http://cdn.local/poster-1.jpg' }),
     );
-
     const component = fixture.componentInstance as any;
-    component.setActiveImage(1);
-    fixture.detectChanges();
+    component.openMainImagePicker();
 
-    const setMainButton = fixture.nativeElement.querySelector(
-      '.set-main-image',
-    ) as HTMLButtonElement;
-    expect(setMainButton.disabled).toBe(false);
-
-    setMainButton.click();
+    component.selectMainImage('http://cdn.local/poster-1.jpg');
     await fixture.whenStable();
     fixture.detectChanges();
 
@@ -189,8 +227,22 @@ describe('PerformerPageComponent', () => {
       'http://cdn.local/poster-1.jpg',
     );
     expect(notifications.success).toHaveBeenCalled();
-    expect(setMainButton.disabled).toBe(true);
-    expect(setMainButton.textContent?.trim()).toBe('Main image');
+    expect(component.mainImagePickerOpen()).toBe(false);
+  });
+
+  it('does not resubmit when selecting the image that is already the main image', async () => {
+    const performer = buildPerformer({
+      imageUrl: 'http://cdn.local/performer.jpg',
+      images: [
+        { id: 'image', url: 'http://cdn.local/performer.jpg', width: null, height: null },
+      ],
+    });
+    const { fixture, discoverService } = await renderPage({ performer });
+    const component = fixture.componentInstance as any;
+
+    component.selectMainImage('http://cdn.local/performer.jpg');
+
+    expect(discoverService.setPerformerMainImage).not.toHaveBeenCalled();
   });
 
   it('filters to library-only scenes when the toggle is enabled', async () => {

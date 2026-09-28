@@ -21,7 +21,7 @@
     <button type="button" (click)="retryPerformerLoad()">Retry</button>
   } @else if (performer(); as performer) {
     <section class="hero-shell">
-      @if (activeCarouselImageUrl(); as backdropImage) {
+      @if (performer.imageUrl; as backdropImage) {
         <div
           class="hero-backdrop"
           [style.background-image]="'url(' + backdropImage + ')'"
@@ -33,8 +33,8 @@
       <div class="hero-layout">
         <div class="media-column">
           <div class="carousel-main">
-            @if (activeCarouselImageUrl(); as activeImage) {
-              <img [src]="activeImage" [alt]="performer.name" />
+            @if (performer.imageUrl; as mainImage) {
+              <img [src]="mainImage" [alt]="performer.name" />
             } @else {
               <div class="carousel-placeholder" aria-hidden="true">
                 {{ performerInitial(performer.name) }}
@@ -43,36 +43,18 @@
           </div>
 
           @if (hasCarouselImages()) {
-            <div class="carousel-controls">
-              <button type="button" (click)="previousImage()">Previous</button>
-              <button type="button" (click)="nextImage()">Next</button>
-              <button
-                type="button"
-                class="set-main-image"
-                [disabled]="settingMainImage() || isActiveImageMainImage()"
-                (click)="setActiveImageAsMain()"
-              >
-                {{
-                  isActiveImageMainImage()
-                    ? 'Main image'
-                    : settingMainImage()
-                      ? 'Saving...'
-                      : 'Set as main image'
-                }}
-              </button>
+            <div class="carousel-thumbs">
+              @for (image of previewImages(); track image.id) {
+                <div class="thumb" [class.active]="isMainImage(image.url)">
+                  <img [src]="image.url" [alt]="performer.name + ' photo'" />
+                </div>
+              }
             </div>
 
-            <div class="carousel-thumbs">
-              @for (image of performer.images; track image.id; let i = $index) {
-                <button
-                  type="button"
-                  class="thumb"
-                  [class.active]="activeImageIndex() === i"
-                  (click)="setActiveImage(i)"
-                >
-                  <img [src]="image.url" [alt]="performer.name + ' image ' + (i + 1)" />
-                </button>
-              }
+            <div class="carousel-controls">
+              <button type="button" class="set-main-image" (click)="openMainImagePicker()">
+                {{ imagePickerButtonLabel() }}
+              </button>
             </div>
           }
         </div>
@@ -131,6 +113,53 @@
         </div>
       </div>
     </section>
+
+    <p-dialog
+      [visible]="mainImagePickerOpen()"
+      (visibleChange)="onImagePickerVisibleChange($event)"
+      [modal]="true"
+      [dismissableMask]="!settingMainImage()"
+      [closeOnEscape]="!settingMainImage()"
+      [draggable]="false"
+      [resizable]="false"
+      [closable]="false"
+      [blockScroll]="true"
+      [appendTo]="'self'"
+      [style]="{ width: 'min(720px, 96vw)', maxHeight: 'min(86dvh, 720px)' }"
+      styleClass="image-picker-dialog"
+    >
+      <div class="image-picker-shell">
+        <header class="image-picker-header">
+          <h2>Select Main Photo</h2>
+          <button
+            type="button"
+            class="close-modal"
+            [disabled]="settingMainImage()"
+            pButton
+            (click)="closeMainImagePicker()"
+          >
+            Close
+          </button>
+        </header>
+
+        <div class="image-picker-grid">
+          @for (image of performer.images; track image.id) {
+            <button
+              type="button"
+              class="image-picker-option"
+              [class.active]="isMainImage(image.url)"
+              [disabled]="settingMainImage()"
+              (click)="selectMainImage(image.url)"
+            >
+              <img [src]="image.url" [alt]="performer.name + ' photo'" />
+              @if (isMainImage(image.url)) {
+                <span class="current-badge">Current</span>
+              }
+            </button>
+          }
+        </div>
+      </div>
+    </p-dialog>
 
     <section
       class="section controls-shell app-section-panel app-control-shell"

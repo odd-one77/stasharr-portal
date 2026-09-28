@@ -16,10 +16,10 @@
   --scene-card-text-badge-radius: 0.55rem;
   --scene-card-text-badge-font-size: 0.56rem;
   --scene-card-text-badge-font-weight: 600;
-  --scene-card-logo-min-width: 2.5rem;
-  --scene-card-logo-height: 1.7rem;
-  --scene-card-logo-padding: 0.18rem 0.36rem;
-  --scene-card-logo-radius: 0.6rem;
+  --scene-card-logo-max-width: 7rem;
+  --scene-card-logo-height: 2.3rem;
+  --scene-card-logo-padding: 0.2rem 0.4rem;
+  --scene-card-logo-radius: 0.65rem;
   --scene-card-placeholder-background:
     linear-gradient(
       130deg,
@@ -127,21 +127,24 @@
 }
 
 .logo-plaque {
-  min-width: var(--scene-card-logo-min-width);
+  // Intrinsic width (no min-width forcing a fixed-size box): the plaque
+  // shrink-wraps to whatever width the logo actually renders at for this
+  // height, instead of showing a bar wider than the logo it holds.
   height: var(--scene-card-logo-height);
+  max-width: var(--scene-card-logo-max-width);
   border-radius: var(--scene-card-logo-radius);
   padding: var(--scene-card-logo-padding);
   background: rgb(0 0 0 / 22%);
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
 }
 
 .logo-plaque img {
-  width: 100%;
   height: 100%;
+  width: auto;
+  max-width: 100%;
   object-fit: contain;
-  object-position: left center;
   filter: drop-shadow(0 1px 1px rgb(0 0 0 / 25%));
   display: block;
 }
