@@ -20,6 +20,23 @@ export class PerformerImagePreferenceService {
     return row?.mainImageUrl ?? null;
   }
 
+  /**
+   * Batched lookup for feeds/cast lists that carry many performers at once,
+   * to avoid one round-trip per performer.
+   */
+  async getMainImageUrls(performerIds: string[]): Promise<Map<string, string>> {
+    const uniqueIds = [...new Set(performerIds)];
+    if (uniqueIds.length === 0) {
+      return new Map();
+    }
+
+    const rows = await this.prisma.performerImagePreference.findMany({
+      where: { performerId: { in: uniqueIds } },
+    });
+
+    return new Map(rows.map((row) => [row.performerId, row.mainImageUrl]));
+  }
+
   async setMainImage(performerId: string, imageUrl: string): Promise<void> {
     await this.prisma.performerImagePreference.upsert({
       where: { performerId },

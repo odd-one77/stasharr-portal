@@ -41,6 +41,7 @@ describe('PerformersService', () => {
 
   const performerImagePreferenceService = {
     getMainImageUrl: jest.fn(),
+    getMainImageUrls: jest.fn(),
     setMainImage: jest.fn(),
   } as unknown as PerformerImagePreferenceService;
 
@@ -83,6 +84,7 @@ describe('PerformersService', () => {
     );
 
     performerImagePreferenceService.getMainImageUrl = jest.fn().mockResolvedValue(null);
+    performerImagePreferenceService.getMainImageUrls = jest.fn().mockResolvedValue(new Map());
 
     catalogProviderService.getConfiguredCatalogProvider = jest
       .fn()
@@ -216,6 +218,21 @@ describe('PerformersService', () => {
     });
   });
 
+  it('applies a saved main-image override to feed items', async () => {
+    performerImagePreferenceService.getMainImageUrls = jest
+      .fn()
+      .mockResolvedValue(new Map([['p-1', 'http://cdn.local/chosen.jpg']]));
+
+    const result = await service.getPerformersFeed();
+
+    expect(result.items[0]).toMatchObject({
+      id: 'p-1',
+      imageUrl: 'http://cdn.local/chosen.jpg',
+      cardImageUrl: 'http://cdn.local/chosen.jpg?size=300',
+    });
+    expect(performerImagePreferenceService.getMainImageUrls).toHaveBeenCalledWith(['p-1']);
+  });
+
   it('forwards all filters to stashdb adapter', async () => {
     await service.getPerformersFeed(2, 25, {
       name: 'aj',
@@ -289,6 +306,53 @@ describe('PerformersService', () => {
     expect(result.total).toBe(2);
     expect(result.items.map((item) => item.id)).toEqual(['p-1', 'p-2']);
     expect(result.items.every((item) => item.isFavorite)).toBe(true);
+  });
+
+  it('applies a saved main-image override to the favorites feed when still valid', async () => {
+    performerFavoritesService.listAllFavoriteIds = jest.fn().mockResolvedValue(['p-1']);
+    catalogAdapter.getPerformerById = jest.fn().mockResolvedValue({
+      id: 'p-1',
+      name: 'Aaron',
+      disambiguation: null,
+      aliases: [],
+      gender: 'FEMALE',
+      birthDate: null,
+      deathDate: null,
+      age: null,
+      ethnicity: null,
+      country: null,
+      eyeColor: null,
+      hairColor: null,
+      height: null,
+      cupSize: null,
+      bandSize: null,
+      waistSize: null,
+      hipSize: null,
+      breastType: null,
+      careerStartYear: null,
+      careerEndYear: null,
+      deleted: false,
+      mergedIds: [],
+      mergedIntoId: null,
+      isFavorite: false,
+      createdAt: null,
+      updatedAt: null,
+      imageUrl: 'http://cdn.local/default.jpg',
+      images: [
+        { id: 'image', url: 'http://cdn.local/default.jpg', width: null, height: null },
+        { id: 'poster-1', url: 'http://cdn.local/chosen.jpg', width: null, height: null },
+      ],
+    });
+    performerImagePreferenceService.getMainImageUrls = jest
+      .fn()
+      .mockResolvedValue(new Map([['p-1', 'http://cdn.local/chosen.jpg']]));
+
+    const result = await service.getPerformersFeed(1, 24, { favoritesOnly: true });
+
+    expect(result.items[0]).toMatchObject({
+      imageUrl: 'http://cdn.local/chosen.jpg',
+      cardImageUrl: 'http://cdn.local/chosen.jpg?size=300',
+    });
   });
 
   it('drops a favorited performer that no longer resolves upstream instead of failing the feed', async () => {

@@ -2,6 +2,7 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { IntegrationStatus, IntegrationType } from '@prisma/client';
 import { IntegrationsService } from '../integrations/integrations.service';
 import { PerformerFavoritesService } from '../performers/performer-favorites.service';
+import { PerformerImagePreferenceService } from '../performers/performer-image-preference.service';
 import { CatalogProviderService } from '../providers/catalog/catalog-provider.service';
 import { type CatalogProviderKey } from '../providers/catalog/catalog-provider.util';
 import { StashAdapter } from '../providers/stash/stash.adapter';
@@ -46,6 +47,7 @@ export class ScenesService {
     private readonly whisparrAdapter: WhisparrAdapter,
     private readonly appSettingsService: AppSettingsService,
     private readonly performerFavoritesService: PerformerFavoritesService,
+    private readonly performerImagePreferenceService: PerformerImagePreferenceService,
   ) {}
 
   async getScenesFeed(
@@ -304,6 +306,12 @@ export class ScenesService {
       catalogProvider.providerKey,
     );
     const whisparr = await this.resolveWhisparrAvailability(scene.id);
+    // A scene credit only carries a single imageUrl (no full images[] list
+    // to validate against, unlike getPerformerById) -- trusted as-is, same
+    // tradeoff as the performers feed.
+    const mainImageOverrides = await this.performerImagePreferenceService.getMainImageUrls(
+      scene.performers.map((performer) => performer.id),
+    );
 
     return {
       id: scene.id,
@@ -319,10 +327,14 @@ export class ScenesService {
       releaseDate: scene.releaseDate,
       duration: scene.duration,
       tags: scene.tags,
-      performers: scene.performers.map((performer) => ({
-        ...performer,
-        cardImageUrl: withStashImageSize(performer.imageUrl, 300),
-      })),
+      performers: scene.performers.map((performer) => {
+        const imageUrl = mainImageOverrides.get(performer.id) ?? performer.imageUrl;
+        return {
+          ...performer,
+          imageUrl,
+          cardImageUrl: withStashImageSize(imageUrl, 300),
+        };
+      }),
       sourceUrls: scene.sourceUrls,
       source: catalogProvider.integrationType,
       status,

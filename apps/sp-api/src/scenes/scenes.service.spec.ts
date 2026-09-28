@@ -1,6 +1,7 @@
 import { IntegrationStatus, IntegrationType } from '@prisma/client';
 import { IntegrationsService } from '../integrations/integrations.service';
 import { PerformerFavoritesService } from '../performers/performer-favorites.service';
+import { PerformerImagePreferenceService } from '../performers/performer-image-preference.service';
 import { CatalogProviderService } from '../providers/catalog/catalog-provider.service';
 import type { CatalogAdapter } from '../providers/catalog/catalog-adapter.interface';
 import { StashAdapter } from '../providers/stash/stash.adapter';
@@ -48,6 +49,10 @@ describe('ScenesService', () => {
   const performerFavoritesService = {
     listAllFavoriteIds: jest.fn(),
   } as unknown as PerformerFavoritesService;
+
+  const performerImagePreferenceService = {
+    getMainImageUrls: jest.fn(),
+  } as unknown as PerformerImagePreferenceService;
 
   const stashdbIntegration = {
     enabled: true,
@@ -99,7 +104,10 @@ describe('ScenesService', () => {
       whisparrAdapter,
       appSettingsService,
       performerFavoritesService,
+      performerImagePreferenceService,
     );
+
+    performerImagePreferenceService.getMainImageUrls = jest.fn().mockResolvedValue(new Map());
 
     integrationsService.findOne = jest
       .fn()
@@ -583,6 +591,49 @@ describe('ScenesService', () => {
         apiKey: stashIntegration.apiKey,
       },
     );
+  });
+
+  it('applies a saved main-image override to scene cast members', async () => {
+    catalogAdapter.getSceneById = jest.fn().mockResolvedValue({
+      ...sceneDetails,
+      performers: [
+        {
+          id: 'performer-1',
+          name: 'Performer One',
+          gender: 'FEMALE',
+          isFavorite: false,
+          imageUrl: 'http://cdn.local/default.jpg',
+        },
+        {
+          id: 'performer-2',
+          name: 'Performer Two',
+          gender: 'FEMALE',
+          isFavorite: false,
+          imageUrl: 'http://cdn.local/performer-2.jpg',
+        },
+      ],
+    });
+    performerImagePreferenceService.getMainImageUrls = jest
+      .fn()
+      .mockResolvedValue(new Map([['performer-1', 'http://cdn.local/chosen.jpg']]));
+
+    const result = await service.getSceneById('stashdb-scene-1');
+
+    expect(performerImagePreferenceService.getMainImageUrls).toHaveBeenCalledWith([
+      'performer-1',
+      'performer-2',
+    ]);
+    expect(result.performers).toEqual([
+      expect.objectContaining({
+        id: 'performer-1',
+        imageUrl: 'http://cdn.local/chosen.jpg',
+        cardImageUrl: 'http://cdn.local/chosen.jpg?size=300',
+      }),
+      expect.objectContaining({
+        id: 'performer-2',
+        imageUrl: 'http://cdn.local/performer-2.jpg',
+      }),
+    ]);
   });
 
   it('dispatches to the TPDB catalog adapter when TPDB is the active provider', async () => {

@@ -80,9 +80,11 @@ export class PerformersService {
         filters?.direction ?? PerformersService.DEFAULT_PERFORMERS_SORT_DIRECTION,
       favoritesOnly: false,
     });
-    const favoriteIds = await this.performerFavoritesService.getFavoriteIds(
-      performers.performers.map((performer) => performer.id),
-    );
+    const performerIds = performers.performers.map((performer) => performer.id);
+    const [favoriteIds, mainImageOverrides] = await Promise.all([
+      this.performerFavoritesService.getFavoriteIds(performerIds),
+      this.performerImagePreferenceService.getMainImageUrls(performerIds),
+    ]);
 
     const hasMore = page * perPage < performers.total;
 
@@ -91,17 +93,23 @@ export class PerformersService {
       page,
       perPage,
       hasMore,
-      items: performers.performers.map((performer) => ({
-        id: performer.id,
-        name: performer.name,
-        gender: performer.gender,
-        sceneCount: performer.sceneCount,
-        // isFavorite is locally-tracked, not the catalog provider's own
-        // flag -- see PerformerFavoritesService for why.
-        isFavorite: favoriteIds.has(performer.id),
-        imageUrl: performer.imageUrl,
-        cardImageUrl: withStashImageSize(performer.imageUrl, 300),
-      })),
+      items: performers.performers.map((performer) => {
+        // The feed only carries a single imageUrl (no full images[] list),
+        // so unlike getPerformerById there's nothing to validate the saved
+        // override against here -- trusted as-is.
+        const imageUrl = mainImageOverrides.get(performer.id) ?? performer.imageUrl;
+        return {
+          id: performer.id,
+          name: performer.name,
+          gender: performer.gender,
+          sceneCount: performer.sceneCount,
+          // isFavorite is locally-tracked, not the catalog provider's own
+          // flag -- see PerformerFavoritesService for why.
+          isFavorite: favoriteIds.has(performer.id),
+          imageUrl,
+          cardImageUrl: withStashImageSize(imageUrl, 300),
+        };
+      }),
     };
   }
 
@@ -161,13 +169,22 @@ export class PerformersService {
     const start = (page - 1) * perPage;
     const pageItems = sorted.slice(start, start + perPage);
 
+    const mainImageOverrides = await this.performerImagePreferenceService.getMainImageUrls(
+      pageItems.map((performer) => performer.id),
+    );
+
     return {
       total,
       page,
       perPage,
       hasMore: page * perPage < total,
-      items: pageItems.map(
-        (performer): PerformerFeedItemDto => ({
+      items: pageItems.map((performer): PerformerFeedItemDto => {
+        const savedOverride = mainImageOverrides.get(performer.id);
+        const imageUrl =
+          savedOverride && performer.images.some((image) => image.url === savedOverride)
+            ? savedOverride
+            : performer.imageUrl;
+        return {
           id: performer.id,
           name: performer.name,
           gender: performer.gender,
@@ -176,10 +193,10 @@ export class PerformersService {
           // show it as a sortable/reliable figure anyway.
           sceneCount: 0,
           isFavorite: true,
-          imageUrl: performer.imageUrl,
-          cardImageUrl: withStashImageSize(performer.imageUrl, 300),
-        }),
-      ),
+          imageUrl,
+          cardImageUrl: withStashImageSize(imageUrl, 300),
+        };
+      }),
     };
   }
 

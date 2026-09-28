@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { IntegrationsModule } from '../integrations/integrations.module';
 import { PerformerFavoritesModule } from '../performers/performer-favorites.module';
+import { PerformerImagePreferenceModule } from '../performers/performer-image-preference.module';
 import { StashModule } from '../providers/stash/stash.module';
 import { StashdbModule } from '../providers/stashdb/stashdb.module';
 import { WhisparrModule } from '../providers/whisparr/whisparr.module';
@@ -18,6 +19,7 @@ import { ScenesService } from './scenes.service';
     WhisparrModule,
     SettingsModule,
     PerformerFavoritesModule,
+    PerformerImagePreferenceModule,
   ],
   controllers: [ScenesController],
   providers: [ScenesService],
