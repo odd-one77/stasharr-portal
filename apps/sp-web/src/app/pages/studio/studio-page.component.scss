@@ -12,16 +12,43 @@ ul {
   margin: 0;
 }
 
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 // The studio logo: no box, no backdrop -- it sits directly on the page.
-// Sticky-positioned from the start (it's the first thing on the page, so
-// this has no visible effect until scrolling), with its height driven by
-// --hero-collapse (set from scroll position in the component). As the user
-// scrolls, the height shrinks smoothly and the content below reflows up
-// behind it, landing it as a small badge pinned to the top-left corner.
-.hero-logo-shell {
+// Sticky to the top from the start (it's the first thing on the page, so
+// this has no visible effect until scrolling). --hero-collapse (scroll
+// position, set in the component) drives both the logo's own height and
+// this bar's background opacity together: as the user scrolls, the logo
+// shrinks smoothly while a blurred bar fades in behind it, so it reads as
+// settling into a proper header bar instead of just floating there small.
+// Breaks out of <main>'s own 1rem horizontal padding (not the full
+// viewport) so it spans the page's content column without overlapping the
+// app's sidebar.
+.hero-header-bar {
   position: sticky;
-  top: 0.75rem;
+  top: 0;
   z-index: 20;
+  margin-inline: -1rem;
+  padding-inline: 1rem;
+  display: flex;
+  align-items: center;
+  background: color-mix(in srgb, var(--surface-1) 82%, transparent);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--border-subtle) 70%, transparent);
+  opacity: var(--hero-collapse, 0);
+  transition: opacity 0.28s ease;
+  pointer-events: none;
 }
 
 .hero-logo {
@@ -29,7 +56,8 @@ ul {
   align-items: center;
   justify-content: flex-start;
   height: calc(9rem - 5.6rem * var(--hero-collapse, 0));
-  transition: height 0.12s linear;
+  padding-block: 0.5rem;
+  transition: height 0.32s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 // A phone in landscape has very little vertical room -- start from a
@@ -73,13 +101,7 @@ ul {
   display: flex;
   align-items: center;
   gap: 0.55rem;
-  justify-content: space-between;
-}
-
-.title-row h1 {
-  font-size: clamp(1.5rem, 2.3vw, 2rem);
-  line-height: 1.12;
-  margin: 0;
+  justify-content: flex-end;
 }
 
 .favorite-indicator {
@@ -163,6 +185,16 @@ ul {
 
 .section h2 {
   font-size: 1rem;
+}
+
+.info-block {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.info-block + .info-block {
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border-subtle);
 }
 
 .hierarchy-card {
