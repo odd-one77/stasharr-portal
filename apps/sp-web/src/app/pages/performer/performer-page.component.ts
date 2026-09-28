@@ -137,6 +137,7 @@ export class PerformerPageComponent implements OnInit, AfterViewInit, OnDestroy 
   protected readonly performerError = signal<string | null>(null);
   protected readonly activeImageIndex = signal(0);
   protected readonly favoritingPerformer = signal(false);
+  protected readonly settingMainImage = signal(false);
 
   protected readonly sceneSort = signal<SceneFeedSort>(PerformerPageComponent.DEFAULT_SORT);
   protected readonly sceneSortDirection = signal<SortDirection>(
@@ -547,6 +548,34 @@ export class PerformerPageComponent implements OnInit, AfterViewInit, OnDestroy 
     }
 
     this.activeImageIndex.set((this.activeImageIndex() - 1 + imageCount) % imageCount);
+  }
+
+  protected isActiveImageMainImage(): boolean {
+    const performer = this.performer();
+    const activeUrl = this.activeCarouselImageUrl();
+    return !!performer && !!activeUrl && performer.imageUrl === activeUrl;
+  }
+
+  protected setActiveImageAsMain(): void {
+    const performer = this.performer();
+    const activeUrl = this.activeCarouselImageUrl();
+    if (!performer || !activeUrl || this.settingMainImage() || this.isActiveImageMainImage()) {
+      return;
+    }
+
+    this.settingMainImage.set(true);
+    this.discoverService
+      .setPerformerMainImage(performer.id, activeUrl)
+      .pipe(finalize(() => this.settingMainImage.set(false)))
+      .subscribe({
+        next: (updated) => {
+          this.performer.set(updated);
+          this.notifications.success('Main image updated');
+        },
+        error: () => {
+          this.notifications.error('Failed to set main image');
+        },
+      });
   }
 
   protected performerInitial(name: string): string {

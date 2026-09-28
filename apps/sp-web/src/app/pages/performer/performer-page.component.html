@@ -46,6 +46,20 @@
             <div class="carousel-controls">
               <button type="button" (click)="previousImage()">Previous</button>
               <button type="button" (click)="nextImage()">Next</button>
+              <button
+                type="button"
+                class="set-main-image"
+                [disabled]="settingMainImage() || isActiveImageMainImage()"
+                (click)="setActiveImageAsMain()"
+              >
+                {{
+                  isActiveImageMainImage()
+                    ? 'Main image'
+                    : settingMainImage()
+                      ? 'Saving...'
+                      : 'Set as main image'
+                }}
+              </button>
             </div>
 
             <div class="carousel-thumbs">
@@ -266,7 +280,6 @@
             [requestable]="isRequestable(item)"
             tone="surface"
             [sceneQueryParams]="{ returnTo: currentRouteUrl() }"
-            studioBadgeRoute="scenes"
             (request)="openRequestModal($event)"
           />
         }

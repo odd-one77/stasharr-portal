@@ -15,6 +15,7 @@ import { SceneStatusService } from '../scene-status/scene-status.service';
 import { filterExcludedNetworkScenes } from '../scene-status/exclude-network-scenes.util';
 import { AppSettingsService } from '../settings/app-settings.service';
 import { PerformerFavoritesService } from './performer-favorites.service';
+import { PerformerImagePreferenceService } from './performer-image-preference.service';
 import { PerformerDetailsDto } from './dto/performer-details.dto';
 import { PerformerFeedItemDto } from './dto/performer-feed-item.dto';
 import { PerformerFeedResponseDto } from './dto/performer-feed-response.dto';
@@ -42,6 +43,7 @@ export class PerformersService {
     private readonly sceneStatusService: SceneStatusService,
     private readonly appSettingsService: AppSettingsService,
     private readonly performerFavoritesService: PerformerFavoritesService,
+    private readonly performerImagePreferenceService: PerformerImagePreferenceService,
     private readonly integrationsService: IntegrationsService,
     private readonly stashAdapter: StashAdapter,
   ) {}
@@ -235,10 +237,19 @@ export class PerformersService {
     const config = await this.getActiveCatalogConfig();
     const catalogAdapter =
       await this.catalogProviderService.getConfiguredCatalogAdapter();
-    const [performer, isFavorite] = await Promise.all([
+    const [performer, isFavorite, savedMainImageUrl] = await Promise.all([
       catalogAdapter.getPerformerById(normalizedPerformerId, config),
       this.performerFavoritesService.isFavorite(normalizedPerformerId),
+      this.performerImagePreferenceService.getMainImageUrl(normalizedPerformerId),
     ]);
+
+    // Only honor a saved pick while it's still one of the provider's current
+    // images -- if the gallery has since changed upstream, fall back rather
+    // than surface a stale/broken URL as the main image.
+    const imageUrl =
+      savedMainImageUrl && performer.images.some((image) => image.url === savedMainImageUrl)
+        ? savedMainImageUrl
+        : performer.imageUrl;
 
     return {
       id: performer.id,
@@ -269,9 +280,43 @@ export class PerformersService {
       isFavorite,
       createdAt: performer.createdAt,
       updatedAt: performer.updatedAt,
-      imageUrl: performer.imageUrl,
+      imageUrl,
       images: performer.images,
     };
+  }
+
+  async setMainPerformerImage(
+    performerId: string,
+    imageUrl: string,
+  ): Promise<PerformerDetailsDto> {
+    const normalizedPerformerId = performerId.trim();
+    if (!normalizedPerformerId) {
+      throw new BadRequestException('Performer id is required.');
+    }
+
+    const normalizedImageUrl = imageUrl.trim();
+    if (!normalizedImageUrl) {
+      throw new BadRequestException('Image URL is required.');
+    }
+
+    const config = await this.getActiveCatalogConfig();
+    const catalogAdapter =
+      await this.catalogProviderService.getConfiguredCatalogAdapter();
+    const performer = await catalogAdapter.getPerformerById(normalizedPerformerId, config);
+
+    const isKnownImage = performer.images.some((image) => image.url === normalizedImageUrl);
+    if (!isKnownImage) {
+      throw new BadRequestException(
+        "Image URL is not one of this performer's available images.",
+      );
+    }
+
+    await this.performerImagePreferenceService.setMainImage(
+      normalizedPerformerId,
+      normalizedImageUrl,
+    );
+
+    return this.getPerformerById(normalizedPerformerId);
   }
 
   async getPerformerScenes(

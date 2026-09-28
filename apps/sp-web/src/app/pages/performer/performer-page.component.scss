@@ -116,6 +116,11 @@ main > button {
   cursor: pointer;
 }
 
+.set-main-image[disabled] {
+  opacity: 0.75;
+  cursor: default;
+}
+
 .carousel-thumbs {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(62px, 1fr));

@@ -652,18 +652,34 @@ export class TpdbAdapter implements CatalogAdapter {
 
   private performerImages(record: Record<string, unknown> | null): StashdbSceneImage[] {
     const images: StashdbSceneImage[] = [];
-    const image = this.readString(record?.image);
-    if (image) {
-      images.push({ id: 'image', url: image, width: null, height: null });
+    const seenUrls = new Set<string>();
+
+    const push = (id: string, url: string | null) => {
+      if (url && !seenUrls.has(url)) {
+        seenUrls.add(url);
+        images.push({ id, url, width: null, height: null });
+      }
+    };
+
+    push('image', this.readString(record?.image));
+    push('thumbnail', this.readString(record?.thumbnail));
+    push('face', this.readString(record?.face));
+
+    // `posters` is TPDB's actual per-performer photo gallery (confirmed
+    // against the official Jellyfin plugin's model: each entry is
+    // {id, url, size, order}, no width/height) -- a real multi-image set
+    // distinct from the single image/thumbnail/face fields above. Sorted by
+    // `order` so the gallery matches what TPDB itself displays.
+    const posters = this.readArray(record?.posters)
+      .map((entry) => this.asRecord(entry))
+      .filter((entry): entry is Record<string, unknown> => entry !== null)
+      .sort((a, b) => (this.readNumber(a.order) ?? 0) - (this.readNumber(b.order) ?? 0));
+
+    for (const poster of posters) {
+      const id = this.readIdAsString(poster.id) ?? `poster-${images.length}`;
+      push(`poster-${id}`, this.readString(poster.url));
     }
-    const thumbnail = this.readString(record?.thumbnail);
-    if (thumbnail && thumbnail !== image) {
-      images.push({ id: 'thumbnail', url: thumbnail, width: null, height: null });
-    }
-    const face = this.readString(record?.face);
-    if (face && face !== image) {
-      images.push({ id: 'face', url: face, width: null, height: null });
-    }
+
     return images;
   }
 

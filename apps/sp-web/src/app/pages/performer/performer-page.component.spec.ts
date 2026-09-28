@@ -4,6 +4,7 @@ import { BehaviorSubject, of } from 'rxjs';
 import { DiscoverService } from '../../core/api/discover.service';
 import { DiscoverItem, PerformerDetails } from '../../core/api/discover.types';
 import { AppNotificationsService } from '../../core/notifications/app-notifications.service';
+import { SceneQuickRequestService } from '../../core/requests/scene-quick-request.service';
 import { PerformerPageComponent } from './performer-page.component';
 
 function buildPerformer(overrides: Partial<PerformerDetails> = {}): PerformerDetails {
@@ -76,12 +77,14 @@ describe('PerformerPageComponent', () => {
     TestBed.resetTestingModule();
   });
 
-  async function renderPage(options?: { items?: DiscoverItem[] }) {
+  async function renderPage(options?: { items?: DiscoverItem[]; performer?: PerformerDetails }) {
     const items = options?.items ?? [buildScene()];
     const paramMap$ = new BehaviorSubject(convertToParamMap({ performerId: 'performer-1' }));
     const queryParamMap$ = new BehaviorSubject(convertToParamMap({}));
     const discoverService = {
-      getPerformerDetails: vi.fn().mockReturnValue(of(buildPerformer())),
+      getPerformerDetails: options?.performer
+        ? vi.fn().mockReturnValue(of(options.performer))
+        : vi.fn().mockReturnValue(of(buildPerformer())),
       getPerformerScenesFeed: vi.fn().mockReturnValue(
         of({
           total: items.length,
@@ -93,6 +96,12 @@ describe('PerformerPageComponent', () => {
       ),
       searchPerformerStudios: vi.fn().mockReturnValue(of([])),
       searchSceneTags: vi.fn().mockReturnValue(of([])),
+      setPerformerMainImage: vi.fn(),
+    };
+    const notifications = {
+      success: vi.fn(),
+      error: vi.fn(),
+      info: vi.fn(),
     };
 
     await TestBed.configureTestingModule({
@@ -112,11 +121,11 @@ describe('PerformerPageComponent', () => {
         },
         {
           provide: AppNotificationsService,
-          useValue: {
-            success: vi.fn(),
-            error: vi.fn(),
-            info: vi.fn(),
-          },
+          useValue: notifications,
+        },
+        {
+          provide: SceneQuickRequestService,
+          useValue: { tryQuickRequest: vi.fn().mockReturnValue(of({ submitted: false })) },
         },
       ],
     }).compileComponents();
@@ -126,7 +135,7 @@ describe('PerformerPageComponent', () => {
     await fixture.whenStable();
     fixture.detectChanges();
 
-    return { fixture };
+    return { fixture, discoverService, notifications };
   }
 
   it('renders performer scenes with the shared scene card and keeps request handling on the page', async () => {
@@ -148,6 +157,40 @@ describe('PerformerPageComponent', () => {
       title: 'Performer Scene',
       imageUrl: 'http://cdn.local/scene.jpg',
     });
+  });
+
+  it('sets the active carousel image as the main image', async () => {
+    const performer = buildPerformer({
+      images: [
+        { id: 'image', url: 'http://cdn.local/performer.jpg', width: null, height: null },
+        { id: 'poster-1', url: 'http://cdn.local/poster-1.jpg', width: null, height: null },
+      ],
+    });
+    const { fixture, discoverService, notifications } = await renderPage({ performer });
+    (discoverService.setPerformerMainImage as ReturnType<typeof vi.fn>).mockReturnValue(
+      of({ ...performer, imageUrl: 'http://cdn.local/poster-1.jpg' }),
+    );
+
+    const component = fixture.componentInstance as any;
+    component.setActiveImage(1);
+    fixture.detectChanges();
+
+    const setMainButton = fixture.nativeElement.querySelector(
+      '.set-main-image',
+    ) as HTMLButtonElement;
+    expect(setMainButton.disabled).toBe(false);
+
+    setMainButton.click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(discoverService.setPerformerMainImage).toHaveBeenCalledWith(
+      'performer-1',
+      'http://cdn.local/poster-1.jpg',
+    );
+    expect(notifications.success).toHaveBeenCalled();
+    expect(setMainButton.disabled).toBe(true);
+    expect(setMainButton.textContent?.trim()).toBe('Main image');
   });
 
   it('filters to library-only scenes when the toggle is enabled', async () => {

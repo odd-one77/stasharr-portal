@@ -300,3 +300,12 @@ model FavoritePerformer {
   performerId String   @unique
   createdAt   DateTime @default(now())
 }
+
+model PerformerImagePreference {
+  id           String   @id @default(cuid())
+  /// External performer id from the instance's currently active catalog provider (StashDB/FansDB/TPDB).
+  performerId  String   @unique
+  mainImageUrl String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}

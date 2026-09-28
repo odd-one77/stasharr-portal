@@ -443,6 +443,37 @@ describe('TpdbAdapter', () => {
     });
   });
 
+  it('includes the posters gallery (sorted by order) alongside image/thumbnail/face', async () => {
+    fetchMock.mockResolvedValue(
+      jsonResponse(200, {
+        data: {
+          id: 'performer-uuid-1',
+          name: 'Performer One',
+          image: 'http://cdn.local/image.jpg',
+          thumbnail: 'http://cdn.local/thumbnail.jpg',
+          face: 'http://cdn.local/face.jpg',
+          posters: [
+            { id: 'p2', url: 'http://cdn.local/poster-2.jpg', size: 200, order: 2 },
+            { id: 'p1', url: 'http://cdn.local/poster-1.jpg', size: 100, order: 1 },
+            // Duplicate of the already-captured `image` URL -- must be
+            // deduped, not listed twice.
+            { id: 'p0', url: 'http://cdn.local/image.jpg', size: 50, order: 0 },
+          ],
+        },
+      }),
+    );
+
+    const performer = await adapter.getPerformerById('performer-uuid-1', config);
+
+    expect(performer.images).toEqual([
+      { id: 'image', url: 'http://cdn.local/image.jpg', width: null, height: null },
+      { id: 'thumbnail', url: 'http://cdn.local/thumbnail.jpg', width: null, height: null },
+      { id: 'face', url: 'http://cdn.local/face.jpg', width: null, height: null },
+      { id: 'poster-p1', url: 'http://cdn.local/poster-1.jpg', width: null, height: null },
+      { id: 'poster-p2', url: 'http://cdn.local/poster-2.jpg', width: null, height: null },
+    ]);
+  });
+
   it('resolves a performer scenes feed via the numeric performer id', async () => {
     fetchMock
       .mockResolvedValueOnce(

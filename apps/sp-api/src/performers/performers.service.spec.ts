@@ -1,3 +1,4 @@
+import { BadRequestException } from '@nestjs/common';
 import { IntegrationStatus } from '@prisma/client';
 import { IntegrationsService } from '../integrations/integrations.service';
 import { CatalogProviderService } from '../providers/catalog/catalog-provider.service';
@@ -6,6 +7,7 @@ import { StashAdapter } from '../providers/stash/stash.adapter';
 import { SceneStatusService } from '../scene-status/scene-status.service';
 import { AppSettingsService } from '../settings/app-settings.service';
 import { PerformerFavoritesService } from './performer-favorites.service';
+import { PerformerImagePreferenceService } from './performer-image-preference.service';
 import { PerformersService } from './performers.service';
 
 describe('PerformersService', () => {
@@ -36,6 +38,11 @@ describe('PerformersService', () => {
     listAllFavoriteIds: jest.fn(),
     setFavorite: jest.fn(),
   } as unknown as PerformerFavoritesService;
+
+  const performerImagePreferenceService = {
+    getMainImageUrl: jest.fn(),
+    setMainImage: jest.fn(),
+  } as unknown as PerformerImagePreferenceService;
 
   const integrationsService = {
     findOne: jest.fn(),
@@ -70,9 +77,12 @@ describe('PerformersService', () => {
       sceneStatusService,
       appSettingsService,
       performerFavoritesService,
+      performerImagePreferenceService,
       integrationsService,
       stashAdapter,
     );
+
+    performerImagePreferenceService.getMainImageUrl = jest.fn().mockResolvedValue(null);
 
     catalogProviderService.getConfiguredCatalogProvider = jest
       .fn()
@@ -352,6 +362,86 @@ describe('PerformersService', () => {
       gender: 'FEMALE',
       isFavorite: true,
     });
+  });
+
+  it('uses a saved main-image override when it is still one of the current images', async () => {
+    catalogAdapter.getPerformerById = jest.fn().mockResolvedValue({
+      id: 'p-1',
+      name: 'Performer One',
+      imageUrl: 'http://cdn.local/image.jpg',
+      images: [
+        { id: 'image', url: 'http://cdn.local/image.jpg', width: null, height: null },
+        { id: 'poster-1', url: 'http://cdn.local/poster-1.jpg', width: null, height: null },
+      ],
+      isFavorite: false,
+      deleted: false,
+      mergedIds: [],
+    });
+    performerImagePreferenceService.getMainImageUrl = jest
+      .fn()
+      .mockResolvedValue('http://cdn.local/poster-1.jpg');
+
+    const result = await service.getPerformerById('p-1');
+
+    expect(result.imageUrl).toBe('http://cdn.local/poster-1.jpg');
+  });
+
+  it('falls back to the provider default when a saved override is no longer among the images', async () => {
+    catalogAdapter.getPerformerById = jest.fn().mockResolvedValue({
+      id: 'p-1',
+      name: 'Performer One',
+      imageUrl: 'http://cdn.local/image.jpg',
+      images: [{ id: 'image', url: 'http://cdn.local/image.jpg', width: null, height: null }],
+      isFavorite: false,
+      deleted: false,
+      mergedIds: [],
+    });
+    performerImagePreferenceService.getMainImageUrl = jest
+      .fn()
+      .mockResolvedValue('http://cdn.local/stale-poster.jpg');
+
+    const result = await service.getPerformerById('p-1');
+
+    expect(result.imageUrl).toBe('http://cdn.local/image.jpg');
+  });
+
+  it('saves a main-image override after validating it against the current images', async () => {
+    catalogAdapter.getPerformerById = jest.fn().mockResolvedValue({
+      id: 'p-1',
+      name: 'Performer One',
+      imageUrl: 'http://cdn.local/image.jpg',
+      images: [
+        { id: 'image', url: 'http://cdn.local/image.jpg', width: null, height: null },
+        { id: 'poster-1', url: 'http://cdn.local/poster-1.jpg', width: null, height: null },
+      ],
+      isFavorite: false,
+      deleted: false,
+      mergedIds: [],
+    });
+
+    await service.setMainPerformerImage('p-1', 'http://cdn.local/poster-1.jpg');
+
+    expect(performerImagePreferenceService.setMainImage).toHaveBeenCalledWith(
+      'p-1',
+      'http://cdn.local/poster-1.jpg',
+    );
+  });
+
+  it('rejects a main-image override that is not one of the current images', async () => {
+    catalogAdapter.getPerformerById = jest.fn().mockResolvedValue({
+      id: 'p-1',
+      name: 'Performer One',
+      imageUrl: 'http://cdn.local/image.jpg',
+      images: [{ id: 'image', url: 'http://cdn.local/image.jpg', width: null, height: null }],
+      isFavorite: false,
+      deleted: false,
+      mergedIds: [],
+    });
+
+    await expect(
+      service.setMainPerformerImage('p-1', 'http://cdn.local/not-real.jpg'),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(performerImagePreferenceService.setMainImage).not.toHaveBeenCalled();
   });
 
   it('returns performer-scoped scenes with DATE default sort', async () => {

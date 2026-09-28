@@ -146,6 +146,13 @@ export class DiscoverService {
     return this.http.get<PerformerDetails>(`/api/performers/${encodeURIComponent(performerId)}`);
   }
 
+  setPerformerMainImage(performerId: string, imageUrl: string): Observable<PerformerDetails> {
+    return this.http.patch<PerformerDetails>(
+      `/api/performers/${encodeURIComponent(performerId)}/main-image`,
+      { imageUrl },
+    );
+  }
+
   getPerformerScenesFeed(
     performerId: string,
     page: number,

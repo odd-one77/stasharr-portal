@@ -5,6 +5,7 @@ import { StashdbModule } from '../providers/stashdb/stashdb.module';
 import { SceneStatusModule } from '../scene-status/scene-status.module';
 import { SettingsModule } from '../settings/settings.module';
 import { PerformerFavoritesModule } from './performer-favorites.module';
+import { PerformerImagePreferenceService } from './performer-image-preference.service';
 import { PerformersController } from './performers.controller';
 import { PerformersService } from './performers.service';
 
@@ -18,6 +19,6 @@ import { PerformersService } from './performers.service';
     PerformerFavoritesModule,
   ],
   controllers: [PerformersController],
-  providers: [PerformersService],
+  providers: [PerformersService, PerformerImagePreferenceService],
 })
 export class PerformersModule {}
