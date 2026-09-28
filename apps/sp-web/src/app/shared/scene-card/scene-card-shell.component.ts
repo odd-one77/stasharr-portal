@@ -70,6 +70,7 @@ export class SceneCardShellComponent {
   @Input() variant: SceneCardShellVariant = 'default';
   @Input() primaryLink: SceneCardShellLink | null = null;
   @Input() studioBadgeLink: SceneCardShellLink | null = null;
+  @Input() showStudioBadge = true;
   @Input() progressPercent: number | null = null;
 
   protected hasProgressBar(): boolean {
@@ -93,7 +94,7 @@ export class SceneCardShellComponent {
   }
 
   protected hasStudioBadge(): boolean {
-    return Boolean(this.item.studioImageUrl || this.item.studio);
+    return this.showStudioBadge && Boolean(this.item.studioImageUrl || this.item.studio);
   }
 
   protected hasTopRightSlot(): boolean {

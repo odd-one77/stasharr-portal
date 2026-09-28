@@ -27,7 +27,7 @@
 
     @if (hasMediaTop()) {
       <div class="media-top">
-        @if (item.studioImageUrl) {
+        @if (showStudioBadge && item.studioImageUrl) {
           @if (studioBadgeLinkIsExternal()) {
             <a
               class="studio-badge-link"
@@ -56,7 +56,7 @@
               <img [src]="item.studioImageUrl" [alt]="studioBadgeLabel() + ' logo'" loading="lazy" />
             </div>
           }
-        } @else if (item.studio) {
+        } @else if (showStudioBadge && item.studio) {
           @if (studioBadgeLinkIsExternal()) {
             <a
               class="studio-badge-link"

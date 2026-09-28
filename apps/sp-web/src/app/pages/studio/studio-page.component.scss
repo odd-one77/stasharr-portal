@@ -12,153 +12,58 @@ ul {
   margin: 0;
 }
 
-// A second, small rendering of the studio logo that lives outside the hero
-// and stays pinned to the top of the viewport as the page scrolls. It's
-// invisible until --hero-collapse (driven by scroll position, set in the
-// component) rises above 0, then smoothly scales/fades in -- giving the
-// effect of the big hero logo shrinking and tucking into the corner, without
-// actually having to animate one element between two different layout
-// contexts (grid-positioned vs viewport-pinned).
-.compact-studio-badge {
+// The studio logo: no box, no backdrop -- it sits directly on the page.
+// Sticky-positioned from the start (it's the first thing on the page, so
+// this has no visible effect until scrolling), with its height driven by
+// --hero-collapse (set from scroll position in the component). As the user
+// scrolls, the height shrinks smoothly and the content below reflows up
+// behind it, landing it as a small badge pinned to the top-left corner.
+.hero-logo-shell {
   position: sticky;
   top: 0.75rem;
   z-index: 20;
+}
+
+.hero-logo {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  height: 2.6rem;
-  max-width: 9rem;
-  padding: 0.3rem 0.65rem;
-  border-radius: 0.75rem;
-  margin-bottom: -2.6rem; // don't push the hero down while collapsed to 0 height's worth of space
-  background: rgb(0 0 0 / 55%);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  opacity: var(--hero-collapse, 0);
-  transform: scale(calc(0.7 + 0.3 * var(--hero-collapse, 0)));
-  transform-origin: left center;
-  transition:
-    opacity 0.15s ease,
-    transform 0.15s ease;
-  pointer-events: none;
+  justify-content: flex-start;
+  height: calc(9rem - 5.6rem * var(--hero-collapse, 0));
+  transition: height 0.12s linear;
 }
 
-.compact-studio-badge img {
+// A phone in landscape has very little vertical room -- start from a
+// smaller base height there too (still collapsing down to the same size).
+@media (orientation: landscape) and (max-height: 500px) {
+  .hero-logo {
+    height: calc(5rem - 1.6rem * var(--hero-collapse, 0));
+  }
+}
+
+.hero-logo img {
   height: 100%;
   width: auto;
-  max-width: 100%;
+  max-width: min(80vw, 20rem);
   object-fit: contain;
   display: block;
-  filter: drop-shadow(0 1px 1px rgb(0 0 0 / 25%));
+  filter: drop-shadow(0 2px 6px rgb(0 0 0 / 30%));
 }
 
-.hero-shell {
-  position: relative;
-  border-radius: 14px;
-  border: 1px solid var(--border-subtle);
-  overflow: hidden;
-  background: var(--surface-2);
-}
-
-.hero-backdrop {
-  position: absolute;
-  inset: 0;
-  background-size: cover;
-  background-position: center;
-}
-
-.hero-shade {
-  position: absolute;
-  inset: 0;
-  background:
-    linear-gradient(90deg, rgb(10 17 24 / 84%) 0%, rgb(10 17 24 / 55%) 54%, rgb(10 17 24 / 70%) 100%);
-}
-
-.hero-layout {
-  position: relative;
-  z-index: 1;
-  display: grid;
-  grid-template-columns: minmax(230px, 300px) minmax(0, 1fr);
-  gap: 1rem;
-  padding: 1rem;
-}
-
-.media-column {
-  display: grid;
-  gap: 0.55rem;
-}
-
-.carousel-main {
-  border-radius: 11px;
-  overflow: hidden;
-  border: 1px solid rgb(220 233 246 / 35%);
-  background: rgb(9 17 28 / 48%);
-  aspect-ratio: 4 / 3;
-}
-
-.carousel-main img {
-  width: 100%;
+.hero-logo-placeholder {
   height: 100%;
-  object-fit: cover;
-  display: block;
-}
-
-.carousel-placeholder {
-  width: 100%;
-  height: 100%;
+  aspect-ratio: 1;
   display: grid;
   place-items: center;
-  font-size: 1.8rem;
+  border-radius: 1rem;
+  background: var(--media-detail-placeholder-background);
+  color: var(--media-detail-placeholder-text);
   font-weight: 700;
-  color: var(--text-on-media);
-}
-
-.carousel-controls {
-  display: flex;
-  gap: 0.45rem;
-}
-
-.carousel-controls button {
-  border-radius: 999px;
-  border: 1px solid var(--border-strong);
-  background: var(--surface-elevated);
-  color: var(--text-primary);
-  padding: 0.32rem 0.7rem;
-  cursor: pointer;
-}
-
-.carousel-thumbs {
-  display: flex;
-  gap: 0.35rem;
-  overflow-x: auto;
-  padding-bottom: 0.15rem;
-}
-
-.thumb {
-  border: 1px solid rgb(220 233 246 / 30%);
-  border-radius: 8px;
-  padding: 0;
-  width: 3.8rem;
-  min-width: 3.8rem;
-  height: 2.6rem;
-  overflow: hidden;
-  background: rgb(7 14 24 / 40%);
-  cursor: pointer;
-}
-
-.thumb img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-}
-
-.thumb.active {
-  border-color: var(--focus-ring);
+  font-size: calc(1.1rem + 1.1rem * (1 - var(--hero-collapse, 0)));
 }
 
 .hero-info {
-  color: var(--text-on-media);
+  margin-top: 0.7rem;
+  color: var(--text-primary);
   display: grid;
   gap: 0.66rem;
   align-content: start;
@@ -181,9 +86,9 @@ ul {
   width: 2rem;
   height: 2rem;
   border-radius: 999px;
-  border: 1px solid rgb(220 233 246 / 45%);
-  background: rgb(7 14 24 / 60%);
-  color: rgb(255 255 255 / 85%);
+  border: 1px solid var(--border-strong);
+  background: var(--surface-elevated);
+  color: var(--text-muted);
   display: grid;
   place-items: center;
   padding: 0;
@@ -196,7 +101,7 @@ ul {
 
 .aliases {
   font-size: 0.9rem;
-  color: color-mix(in srgb, var(--text-on-media) 85%, #c8d8ea);
+  color: var(--text-muted);
 }
 
 .meta-flags {
@@ -207,9 +112,9 @@ ul {
 
 .meta-chip {
   border-radius: 999px;
-  border: 1px solid rgb(220 233 246 / 35%);
-  background: rgb(10 22 34 / 62%);
-  color: var(--text-on-media);
+  border: 1px solid var(--border-subtle);
+  background: var(--surface-2);
+  color: var(--text-primary);
   padding: 0.2rem 0.55rem;
   font-size: 0.72rem;
 }
@@ -227,9 +132,9 @@ ul {
 }
 
 .metadata-item {
-  border: 1px solid rgb(220 233 246 / 28%);
+  border: 1px solid var(--border-subtle);
   border-radius: 8px;
-  background: rgb(10 22 34 / 56%);
+  background: var(--surface-2);
   padding: 0.42rem 0.55rem;
   display: grid;
   gap: 0.16rem;
@@ -239,12 +144,12 @@ ul {
   font-size: 0.68rem;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: color-mix(in srgb, var(--text-on-media) 80%, #b1c2d6);
+  color: var(--text-muted);
 }
 
 .metadata-item .value {
   font-size: 0.86rem;
-  color: var(--text-on-media);
+  color: var(--text-primary);
 }
 
 .content-shell {
@@ -419,10 +324,6 @@ ul {
 }
 
 @media (max-width: 980px) {
-  .hero-layout {
-    grid-template-columns: 1fr;
-  }
-
   .controls-row {
     grid-template-columns: 1fr;
   }

@@ -84,6 +84,19 @@ describe('SceneCardComponent', () => {
     expect(studioBadgeLink).toBeNull();
   });
 
+  it('suppresses the studio badge entirely when showStudioBadge is false', async () => {
+    const { fixture, component } = await renderCard();
+    component.item = buildSceneCardItem();
+    component.showStudioBadge = false;
+
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.studio-badge')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.studio-badge-link')).toBeNull();
+  });
+
   it('renders status-driven external cards without the request CTA', async () => {
     const { fixture, component } = await renderCard();
     component.item = buildSceneCardItem({

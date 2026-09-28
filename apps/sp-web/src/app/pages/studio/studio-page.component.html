@@ -20,102 +20,59 @@
     <p-message severity="error" styleClass="app-page-message">{{ studioError() }}</p-message>
     <button pButton type="button" (click)="retryStudioLoad()">Retry</button>
   } @else if (studio(); as studio) {
-    @if (activeStudioImageUrl(); as compactImage) {
-      <div
-        class="compact-studio-badge"
-        [style.--hero-collapse]="heroCollapseProgress()"
-        aria-hidden="true"
-      >
-        <img [src]="compactImage" [alt]="studio.name" />
+    <div class="hero-logo-shell">
+      <div class="hero-logo" [style.--hero-collapse]="heroCollapseProgress()">
+        @if (activeStudioImageUrl(); as logoImage) {
+          <img [src]="logoImage" [alt]="studio.name" />
+        } @else {
+          <div class="hero-logo-placeholder" aria-hidden="true">
+            {{ childInitial(studio.name) }}
+          </div>
+        }
       </div>
-    }
+    </div>
 
-    <section class="hero-shell">
-      @if (activeStudioImageUrl(); as backdropImage) {
-        <div
-          class="hero-backdrop"
-          [style.background-image]="'url(' + backdropImage + ')'"
-          aria-hidden="true"
-        ></div>
+    <div class="hero-info">
+      <div class="title-row">
+        <h1>{{ studio.name }}</h1>
+        <button
+          type="button"
+          class="favorite-indicator"
+          [class.active]="studio.isFavorite"
+          [disabled]="!canToggleFavoriteStudio(studio)"
+          [attr.aria-busy]="favoritingStudio()"
+          [attr.aria-label]="studioFavoriteLabel(studio)"
+          [title]="studioFavoriteLabel(studio)"
+          (click)="toggleFavoriteStudio(studio)"
+        >
+          <i
+            [class]="studio.isFavorite ? 'pi pi-star-fill' : 'pi pi-star'"
+            aria-hidden="true"
+          ></i>
+        </button>
+      </div>
+
+      @if (studio.aliases.length > 0) {
+        <p class="aliases">Also known as: {{ studio.aliases.join(', ') }}</p>
       }
-      <div class="hero-shade" aria-hidden="true"></div>
 
-      <div class="hero-layout">
-        <div class="media-column">
-          <div class="carousel-main">
-            @if (activeStudioImageUrl(); as activeImage) {
-              <img [src]="activeImage" [alt]="studio.name" />
-            } @else {
-              <div class="carousel-placeholder" aria-hidden="true">
-                {{ childInitial(studio.name) }}
-              </div>
-            }
-          </div>
+      @if (studio.deleted) {
+        <div class="meta-flags">
+          <span class="meta-chip warning">Marked Deleted</span>
+        </div>
+      }
 
-          @if (studio.images.length > 1) {
-            <div class="carousel-controls">
-              <button type="button" (click)="previousImage()">Previous</button>
-              <button type="button" (click)="nextImage()">Next</button>
-            </div>
-
-            <div class="carousel-thumbs">
-              @for (image of studio.images; track image.id; let i = $index) {
-                <button
-                  type="button"
-                  class="thumb"
-                  [class.active]="activeImageIndex() === i"
-                  (click)="setActiveImage(i)"
-                >
-                  <img [src]="image.url" [alt]="studio.name + ' image ' + (i + 1)" />
-                </button>
-              }
+      @if (metadataRows(studio).length > 0) {
+        <div class="metadata-grid">
+          @for (row of metadataRows(studio); track row.label) {
+            <div class="metadata-item">
+              <span class="label">{{ row.label }}</span>
+              <span class="value">{{ row.value }}</span>
             </div>
           }
         </div>
-
-        <div class="hero-info">
-          <div class="title-row">
-            <h1>{{ studio.name }}</h1>
-            <button
-              type="button"
-              class="favorite-indicator"
-              [class.active]="studio.isFavorite"
-              [disabled]="!canToggleFavoriteStudio(studio)"
-              [attr.aria-busy]="favoritingStudio()"
-              [attr.aria-label]="studioFavoriteLabel(studio)"
-              [title]="studioFavoriteLabel(studio)"
-              (click)="toggleFavoriteStudio(studio)"
-            >
-              <i
-                [class]="studio.isFavorite ? 'pi pi-star-fill' : 'pi pi-star'"
-                aria-hidden="true"
-              ></i>
-            </button>
-          </div>
-
-          @if (studio.aliases.length > 0) {
-            <p class="aliases">Also known as: {{ studio.aliases.join(', ') }}</p>
-          }
-
-          @if (studio.deleted) {
-            <div class="meta-flags">
-              <span class="meta-chip warning">Marked Deleted</span>
-            </div>
-          }
-
-          @if (metadataRows(studio).length > 0) {
-            <div class="metadata-grid">
-              @for (row of metadataRows(studio); track row.label) {
-                <div class="metadata-item">
-                  <span class="label">{{ row.label }}</span>
-                  <span class="value">{{ row.value }}</span>
-                </div>
-              }
-            </div>
-          }
-        </div>
-      </div>
-    </section>
+      }
+    </div>
 
     <div class="content-shell app-section-stack">
       @if (studio.parentStudio; as parentStudio) {
@@ -298,6 +255,7 @@
             [item]="item"
             [requestable]="isRequestable(item)"
             [sceneQueryParams]="{ returnTo: currentRouteUrl() }"
+            [showStudioBadge]="false"
             (request)="openRequestModal($event)"
           />
         }

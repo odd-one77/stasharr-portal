@@ -56,6 +56,7 @@ export class SceneCardComponent {
   @Input() sceneRouteId: string | null = null;
   @Input() sceneQueryParams: Params | null = null;
   @Input() externalHref: string | null = null;
+  @Input() showStudioBadge = true;
   @Input() topBadges: readonly SceneCardBadge[] = [];
   @Input() footerLink: SceneCardShellLink | null = null;
   @Input() footerLinkLabel: string | null = null;
