@@ -42,6 +42,16 @@ ul {
   padding-inline: 1rem;
   display: flex;
   align-items: center;
+}
+
+// A separate layer behind the logo for the fading blurred background --
+// opacity on .hero-header-bar itself would visually hide the logo it
+// contains too (opacity applies to descendants, not just the element's own
+// background), which is exactly what made the logo invisible until scroll.
+.hero-header-bar-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
   background: color-mix(in srgb, var(--surface-1) 82%, transparent);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
@@ -187,24 +197,42 @@ ul {
   font-size: 1rem;
 }
 
-.info-block {
-  display: grid;
-  gap: 0.5rem;
+// The parent studio link and source-site icons: a compact, floating row
+// (no border/background box) sitting right in the page's info column,
+// instead of a separate bordered panel.
+.site-meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
 }
 
-.info-block + .info-block {
-  padding-top: 0.75rem;
-  border-top: 1px solid var(--border-subtle);
+.parent-studio-chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.35rem;
+  padding: 0.22rem 0.6rem;
+  border-radius: 999px;
+  background: var(--surface-elevated);
+  color: var(--text-primary);
+  text-decoration: none;
+  font-size: 0.8rem;
 }
 
-.hierarchy-card {
-  position: relative;
-  border: 1px solid var(--border-subtle);
-  border-radius: 10px;
-  background: var(--surface-2);
-  padding: 0.65rem 0.7rem;
-  display: grid;
-  gap: 0.32rem;
+.parent-studio-chip:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.parent-studio-eyebrow {
+  color: var(--text-muted);
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.parent-studio-name {
+  font-weight: 700;
 }
 
 .hierarchy-link-stretch {
@@ -219,21 +247,17 @@ ul {
   outline-offset: 2px;
 }
 
-.hierarchy-name,
-.hierarchy-meta,
 .child-name,
 .child-aliases {
   position: relative;
   z-index: 1;
 }
 
-.hierarchy-name,
 .child-name {
   font-size: 0.95rem;
   font-weight: 700;
 }
 
-.hierarchy-meta,
 .child-aliases {
   font-size: 0.8rem;
   color: var(--text-muted);

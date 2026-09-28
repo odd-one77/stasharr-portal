@@ -22,8 +22,13 @@
   } @else if (studio(); as studio) {
     <h1 class="sr-only">{{ studio.name }}</h1>
 
-    <div class="hero-header-bar" [style.--hero-collapse]="heroCollapseProgress()">
-      <div class="hero-logo">
+    <div class="hero-header-bar">
+      <div
+        class="hero-header-bar-backdrop"
+        [style.--hero-collapse]="heroCollapseProgress()"
+        aria-hidden="true"
+      ></div>
+      <div class="hero-logo" [style.--hero-collapse]="heroCollapseProgress()">
         @if (activeStudioImageUrl(); as logoImage) {
           <img [src]="logoImage" [alt]="studio.name" />
         } @else {
@@ -57,6 +62,52 @@
         <p class="aliases">Also known as: {{ studio.aliases.join(', ') }}</p>
       }
 
+      @if (studio.parentStudio || studio.urls.length > 0) {
+        <div class="site-meta-row">
+          @if (studio.parentStudio; as parentStudio) {
+            <a
+              class="parent-studio-chip"
+              [routerLink]="['/studio', parentStudio.id]"
+              [queryParams]="{ returnTo: currentRouteUrl() }"
+              [attr.aria-label]="'View studio ' + parentStudio.name"
+            >
+              <span class="parent-studio-eyebrow">Part of</span>
+              <span class="parent-studio-name">{{ parentStudio.name }}</span>
+            </a>
+          }
+
+          @if (studio.urls.length > 0) {
+            <ul class="source-list">
+              @for (entry of studio.urls; track entry.url) {
+                <li>
+                  <a
+                    class="source-link"
+                    [href]="entry.url"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    [attr.aria-label]="'Open ' + (entry.siteName ?? entry.type ?? 'source link') + ' in a new tab'"
+                    [title]="entry.siteName ?? entry.type ?? 'Source link'"
+                  >
+                    @if (entry.siteIcon) {
+                      <img
+                        class="source-link-icon"
+                        [src]="entry.siteIcon"
+                        [alt]="(entry.siteName ?? entry.type ?? 'Source') + ' logo'"
+                        loading="lazy"
+                      />
+                    } @else {
+                      <span class="source-link-fallback">
+                        {{ entry.siteName ?? entry.type ?? 'Source' }}
+                      </span>
+                    }
+                  </a>
+                </li>
+              }
+            </ul>
+          }
+        </div>
+      }
+
       @if (studio.deleted) {
         <div class="meta-flags">
           <span class="meta-chip warning">Marked Deleted</span>
@@ -76,60 +127,6 @@
     </div>
 
     <div class="content-shell app-section-stack">
-      @if (studio.parentStudio || studio.urls.length > 0) {
-        <section class="section app-section-panel">
-          @if (studio.parentStudio; as parentStudio) {
-            <div class="info-block">
-              <h2>Parent Studio</h2>
-              <article class="hierarchy-card">
-                <a
-                  class="hierarchy-link-stretch"
-                  [routerLink]="['/studio', parentStudio.id]"
-                  [queryParams]="{ returnTo: currentRouteUrl() }"
-                  [attr.aria-label]="'View studio ' + parentStudio.name"
-                ></a>
-                <p class="hierarchy-name">{{ parentStudio.name }}</p>
-                @if (parentStudio.aliases.length > 0) {
-                  <p class="hierarchy-meta">Aliases: {{ parentStudio.aliases.join(', ') }}</p>
-                }
-              </article>
-            </div>
-          }
-
-          @if (studio.urls.length > 0) {
-            <div class="info-block">
-              <h2>Source Links</h2>
-              <ul class="source-list">
-                @for (entry of studio.urls; track entry.url) {
-                  <li>
-                    <a
-                      class="source-link"
-                      [href]="entry.url"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      [attr.aria-label]="'Open ' + (entry.siteName ?? entry.type ?? 'source link') + ' in a new tab'"
-                      [title]="entry.siteName ?? entry.type ?? 'Source link'"
-                    >
-                      @if (entry.siteIcon) {
-                        <img
-                          class="source-link-icon"
-                          [src]="entry.siteIcon"
-                          [alt]="(entry.siteName ?? entry.type ?? 'Source') + ' logo'"
-                          loading="lazy"
-                        />
-                      } @else {
-                        <span class="source-link-fallback">
-                          {{ entry.siteName ?? entry.type ?? 'Source' }}
-                        </span>
-                      }
-                    </a>
-                  </li>
-                }
-              </ul>
-            </div>
-          }
-        </section>
-      }
 
       @if (studio.childStudios.length > 0) {
         <section class="section app-section-panel">
