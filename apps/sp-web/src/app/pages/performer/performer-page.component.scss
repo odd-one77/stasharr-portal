@@ -145,7 +145,15 @@ main > button {
 
 .image-picker-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  // A fixed row height instead of aspect-ratio on the tiles below: iOS
+  // Safari has a real bug where aspect-ratio on a grid item combined with
+  // a percentage-height <img> child collapses to a near-zero height (each
+  // photo renders as a thin, cropped sliver instead of a portrait tile).
+  // grid-auto-rows gives the tile a genuine pixel height for img's
+  // height: 100% to resolve against, sidestepping that entirely. 255px
+  // against the 170px min column width keeps a ~2:3 portrait shape.
+  grid-auto-rows: 255px;
   gap: 0.75rem;
   max-height: 72vh;
   overflow-y: auto;
@@ -157,9 +165,6 @@ main > button {
   border-radius: 8px;
   overflow: hidden;
   padding: 0;
-  // Portrait tile so photos (almost always portrait) show in full via
-  // object-fit: contain below, instead of being cropped to fit a square.
-  aspect-ratio: 2 / 3;
   background: var(--media-detail-subtle-surface-background);
   cursor: pointer;
 }
