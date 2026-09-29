@@ -84,7 +84,9 @@ interface MultiSelectGroup {
   styleUrl: './performer-page.component.scss',
 })
 export class PerformerPageComponent implements OnInit, AfterViewInit, OnDestroy {
-  private static readonly HERO_COLLAPSE_DISTANCE = 220;
+  // Matches the scene/studio pages' own collapse distance so all three
+  // hero headers shrink at the same rate.
+  private static readonly HERO_COLLAPSE_DISTANCE = 240;
   private static readonly SCENES_PAGE_SIZE = 24;
   private static readonly SEARCH_DEBOUNCE_MS = 250;
   private static readonly DEFAULT_SORT: SceneFeedSort = 'DATE';

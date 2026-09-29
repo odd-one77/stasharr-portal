@@ -93,6 +93,19 @@
           <i class="pi pi-download" aria-hidden="true"></i>
           <span>Request</span>
         </button>
+      } @else if (canRemoveRequest(scene)) {
+        <button
+          type="button"
+          class="cluster-action is-remove"
+          aria-label="Remove request"
+          title="Remove request"
+          [disabled]="removingRequest()"
+          [attr.aria-busy]="removingRequest()"
+          (click)="removeSceneRequestFromHero(scene)"
+        >
+          <i class="pi pi-trash" aria-hidden="true"></i>
+          <span>Remove</span>
+        </button>
       }
 
       <p class="header-title" aria-hidden="true">{{ scene.title }}</p>

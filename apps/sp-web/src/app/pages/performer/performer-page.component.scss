@@ -66,7 +66,9 @@ p {
   background-position: center 20%;
   filter: blur(calc(20px + 6px * var(--hero-collapse, 0))) brightness(0.55) saturate(1.1);
   transform: scale(1.15);
-  transition: filter 0.32s ease;
+  // 0.28s ease matches every other fade/blur across the scene, performer,
+  // and studio hero headers, so the collapse reads the same everywhere.
+  transition: filter 0.28s ease;
 }
 
 // Fades the bottom of the banner into the page background instead of a
@@ -109,8 +111,15 @@ p {
   border: 1px solid var(--media-detail-card-border);
   box-shadow: var(--media-detail-card-shadow);
   background: var(--media-detail-card-background);
+  // The gradient's opaque tail runs from --wipe-start to
+  // (--wipe-start + --wipe-band) -- anything past that stays at the last
+  // stop's color (opaque) forever, since no stop follows it. Scaling
+  // --wipe-start by (100% + band) instead of plain 100% pushes that
+  // whole opaque tail past the box's top edge by the time collapse
+  // reaches 1, so the card actually reaches full transparency instead of
+  // leaving a permanently-visible sliver at the top.
   --wipe-band: 18%;
-  --wipe-start: calc(var(--hero-collapse, 0) * 100% - var(--wipe-band));
+  --wipe-start: calc(var(--hero-collapse, 0) * (100% + var(--wipe-band)) - var(--wipe-band));
   mask-image: linear-gradient(
     to top,
     transparent 0%,
@@ -124,6 +133,7 @@ p {
     #000 calc(var(--wipe-start) + var(--wipe-band))
   );
   filter: blur(calc(var(--hero-collapse, 0) * 7px));
+  transition: filter 0.28s ease;
 }
 
 .portrait-card img {

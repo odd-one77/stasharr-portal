@@ -77,7 +77,9 @@ p {
   width: 100%;
   height: auto;
   filter: blur(calc(3px * var(--hero-collapse, 0)));
-  transition: filter 0.32s ease;
+  // 0.28s ease matches every other fade/blur across the scene, performer,
+  // and studio hero headers, so the collapse reads the same everywhere.
+  transition: filter 0.28s ease;
 }
 
 // Fades the bottom of the banner into the page background instead of a
@@ -146,7 +148,7 @@ p {
   font-size: 0.8rem;
   font-weight: 700;
   opacity: max(0, 1 - var(--hero-collapse, 0) * 2.2);
-  transition: opacity 0.24s ease;
+  transition: opacity 0.28s ease;
 }
 
 // Same travel technique as .hero-cluster, mirrored to the right edge:
@@ -158,8 +160,11 @@ p {
   // Rest position hangs down to sit alongside the status badge/date row
   // in .hero-info below (not next to the logo), so it reads as part of
   // that row rather than crowding the banner -- it still lands in the
-  // same top-right corner as the logo's top-left once collapsed.
-  bottom: calc(-9rem + 11rem * var(--hero-collapse, 0));
+  // same top-right corner as the logo's top-left once collapsed. -9rem
+  // landed level with the title instead of the status/date row below it
+  // (.hero-layout's own 6.8rem top padding only clears the title) --
+  // hangs further down now to actually reach that row.
+  bottom: calc(-11.5rem + 13.5rem * var(--hero-collapse, 0));
   z-index: 4;
   display: inline-flex;
   align-items: center;
@@ -207,6 +212,7 @@ p {
   overflow: hidden;
   text-overflow: ellipsis;
   opacity: max(0, (var(--hero-collapse, 0) - 0.6) * 2.5);
+  transition: opacity 0.28s ease;
 }
 
 .performer-favorite {
@@ -287,6 +293,16 @@ p {
 .cluster-action.is-request {
   border-color: color-mix(in srgb, var(--focus-ring) 40%, var(--border-strong));
   background: color-mix(in srgb, var(--media-detail-action-background) 78%, var(--focus-ring) 22%);
+}
+
+.cluster-action.is-remove {
+  border-color: color-mix(in srgb, var(--danger) 45%, var(--border-strong));
+  background: color-mix(in srgb, var(--media-detail-action-background) 80%, var(--danger) 20%);
+}
+
+.cluster-action.is-remove:disabled {
+  cursor: wait;
+  opacity: 0.75;
 }
 
 .cluster-action:focus-visible,
@@ -570,7 +586,7 @@ button {
   }
 
   .cluster-action {
-    bottom: calc(-8.5rem + 10rem * var(--hero-collapse, 0));
+    bottom: calc(-10.2rem + 11.7rem * var(--hero-collapse, 0));
     padding: 0.48rem 0.95rem;
     font-size: 0.88rem;
   }

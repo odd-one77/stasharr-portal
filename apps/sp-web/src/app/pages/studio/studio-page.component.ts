@@ -76,9 +76,9 @@ interface MultiSelectOption {
 export class StudioPageComponent implements OnInit, AfterViewInit, OnDestroy {
   private static readonly SCENES_PAGE_SIZE = 24;
   private static readonly SEARCH_DEBOUNCE_MS = 250;
-  // How far (px) the user scrolls before the compact corner logo is fully
-  // "tucked in" -- roughly the height of the large hero logo above it.
-  private static readonly HERO_COLLAPSE_DISTANCE = 220;
+  // Matches the scene/performer pages' own collapse distance so all
+  // three hero headers shrink at the same rate.
+  private static readonly HERO_COLLAPSE_DISTANCE = 240;
   private static readonly DEFAULT_SCENE_SORT: SceneFeedSort = 'DATE';
   private static readonly DEFAULT_SCENE_DIRECTION: SortDirection = 'DESC';
   private static readonly DEFAULT_FAVORITES: FavoritesFilterOption = 'NONE';

@@ -15,6 +15,7 @@ import { ButtonDirective } from 'primeng/button';
 import { Message } from 'primeng/message';
 import { ProgressSpinner } from 'primeng/progressspinner';
 import { Select } from 'primeng/select';
+import { AcquisitionService } from '../../core/api/acquisition.service';
 import { DiscoverService } from '../../core/api/discover.service';
 import { integrationLabel } from '../../core/api/integrations.types';
 import { AppNotificationsService } from '../../core/notifications/app-notifications.service';
@@ -61,6 +62,7 @@ export class ScenePageComponent implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly discoverService = inject(DiscoverService);
+  private readonly acquisitionService = inject(AcquisitionService);
   private readonly notifications = inject(AppNotificationsService);
   private readonly sceneQuickRequestService = inject(SceneQuickRequestService);
   private readonly playerService = inject(PlayerService);
@@ -84,6 +86,7 @@ export class ScenePageComponent implements OnInit, OnDestroy {
   protected readonly backLinkLabel = signal('Back to Scenes');
   protected readonly heroCollapseProgress = signal(0);
   protected readonly similarScenes = signal<SceneExplorerItem[]>([]);
+  protected readonly removingRequest = signal(false);
 
   @HostListener('window:scroll')
   @HostListener('window:resize')
@@ -294,6 +297,47 @@ export class ScenePageComponent implements OnInit, OnDestroy {
 
   protected canRequestScene(scene: SceneDetails): boolean {
     return isSceneStatusRequestable(scene.status);
+  }
+
+  // Covers the gap between "not requested yet" and "already in Stash":
+  // Whisparr has a request tracked (or it failed) but there's no local
+  // copy to play yet, so the only useful action is backing the request
+  // out again.
+  protected canRemoveRequest(scene: SceneDetails): boolean {
+    return (
+      !this.hasStashCopy(scene) &&
+      (scene.status.state === 'REQUESTED' ||
+        scene.status.state === 'DOWNLOADING' ||
+        scene.status.state === 'IMPORT_PENDING' ||
+        scene.status.state === 'FAILED')
+    );
+  }
+
+  protected removeSceneRequestFromHero(scene: SceneDetails): void {
+    if (this.removingRequest()) {
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Remove "${scene.title}" from your requests and delete it from Whisparr?`,
+    );
+    if (!confirmed) {
+      return;
+    }
+
+    this.removingRequest.set(true);
+    this.acquisitionService
+      .removeSceneRequest(scene.id)
+      .pipe(finalize(() => this.removingRequest.set(false)))
+      .subscribe({
+        next: () => {
+          this.notifications.success('Removed from requests');
+          this.loadScene(scene.id);
+        },
+        error: () => {
+          this.notifications.error(`Failed to remove "${scene.title}". Please try again.`);
+        },
+      });
   }
 
   protected isSimilarSceneRequestable(item: SceneExplorerItem): boolean {

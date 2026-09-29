@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
 import { of } from 'rxjs';
+import { AcquisitionService } from '../../core/api/acquisition.service';
 import { DiscoverService } from '../../core/api/discover.service';
 import { AppNotificationsService } from '../../core/notifications/app-notifications.service';
 import { SceneQuickRequestService } from '../../core/requests/scene-quick-request.service';
@@ -59,6 +60,12 @@ describe('ScenePageComponent', () => {
       openByCatalogSceneId: vi.fn(),
     };
 
+    const acquisitionService = {
+      removeSceneRequest: vi.fn().mockReturnValue(
+        of({ removed: true, stashId: scene.id, whisparrMovieId: null }),
+      ),
+    };
+
     await TestBed.configureTestingModule({
       imports: [ScenePageComponent],
       providers: [
@@ -80,6 +87,10 @@ describe('ScenePageComponent', () => {
           useValue: playerService,
         },
         {
+          provide: AcquisitionService,
+          useValue: acquisitionService,
+        },
+        {
           provide: ActivatedRoute,
           useValue: activatedRoute,
         },
@@ -95,7 +106,7 @@ describe('ScenePageComponent', () => {
     await fixture.whenStable();
     fixture.detectChanges();
 
-    return { fixture, discoverService, playerService };
+    return { fixture, discoverService, playerService, acquisitionService };
   }
 
   afterEach(() => {
