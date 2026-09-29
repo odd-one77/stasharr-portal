@@ -2,6 +2,7 @@ import {
   AfterViewInit,
   Component,
   ElementRef,
+  HostListener,
   OnDestroy,
   OnInit,
   ViewChild,
@@ -82,6 +83,7 @@ interface MultiSelectGroup {
   styleUrl: './performer-page.component.scss',
 })
 export class PerformerPageComponent implements OnInit, AfterViewInit, OnDestroy {
+  private static readonly HERO_COLLAPSE_DISTANCE = 220;
   private static readonly SCENES_PAGE_SIZE = 24;
   private static readonly SEARCH_DEBOUNCE_MS = 250;
   private static readonly DEFAULT_SORT: SceneFeedSort = 'DATE';
@@ -182,8 +184,19 @@ export class PerformerPageComponent implements OnInit, AfterViewInit, OnDestroy 
   protected readonly backLinkPath = signal('/performers');
   protected readonly backLinkQueryParams = signal<Params>({});
   protected readonly backLinkLabel = signal('Back to Performers');
+  protected readonly heroCollapseProgress = signal(0);
+
+  @HostListener('window:scroll')
+  protected onWindowScroll(): void {
+    const progress = Math.min(
+      1,
+      Math.max(0, window.scrollY / PerformerPageComponent.HERO_COLLAPSE_DISTANCE),
+    );
+    this.heroCollapseProgress.set(progress);
+  }
 
   ngOnInit(): void {
+    this.onWindowScroll();
     this.setupStudioSearch();
     this.setupTagSearch();
     this.routeSubscription = combineLatest([

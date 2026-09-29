@@ -20,91 +20,105 @@
     <p-message severity="error" styleClass="app-page-message">{{ performerError() }}</p-message>
     <button type="button" (click)="retryPerformerLoad()">Retry</button>
   } @else if (performer(); as performer) {
-    <section class="hero-shell">
-      @if (performer.imageUrl; as backdropImage) {
-        <div
-          class="hero-backdrop"
-          [style.background-image]="'url(' + backdropImage + ')'"
-          aria-hidden="true"
-        ></div>
-      }
-      <div class="hero-shade" aria-hidden="true"></div>
-
-      <div class="hero-layout">
-        <div class="media-column">
-          <div class="carousel-main">
-            @if (performer.imageUrl; as mainImage) {
-              <img [src]="mainImage" [alt]="performer.name" />
-            } @else {
-              <div class="carousel-placeholder" aria-hidden="true">
-                {{ performerInitial(performer.name) }}
-              </div>
-            }
+    <div class="hero-banner-wrap" [style.--hero-collapse]="heroCollapseProgress()">
+      <div class="hero-banner">
+        @if (performer.imageUrl; as mainImage) {
+          <div
+            class="hero-backdrop-blur"
+            [style.background-image]="'url(' + mainImage + ')'"
+            aria-hidden="true"
+          ></div>
+          <img class="hero-portrait" [src]="mainImage" [alt]="performer.name" />
+        } @else {
+          <div class="hero-portrait-placeholder" aria-hidden="true">
+            {{ performerInitial(performer.name) }}
           </div>
-
-          @if (hasCarouselImages()) {
-            <div class="carousel-controls">
-              <button type="button" class="set-main-image" (click)="openMainImagePicker()">
-                {{ imagePickerButtonLabel() }}
-              </button>
-            </div>
-          }
-        </div>
-
-        <div class="hero-info">
-          <div class="title-row">
-            <h1>{{ performer.name }}</h1>
-            <button
-              type="button"
-              class="favorite-indicator"
-              [class.active]="performer.isFavorite"
-              [disabled]="!canToggleFavoritePerformer(performer)"
-              [attr.aria-busy]="favoritingPerformer()"
-              [attr.aria-label]="performer.isFavorite ? 'Unfavorite performer' : 'Favorite performer'"
-              (click)="toggleFavoritePerformer(performer)"
-            >
-              <i
-                [class]="performer.isFavorite ? 'pi pi-star-fill' : 'pi pi-star'"
-                aria-hidden="true"
-              ></i>
-            </button>
-          </div>
-
-          @if (performer.disambiguation) {
-            <p class="subheading">{{ performer.disambiguation }}</p>
-          }
-
-          @if (performer.aliases.length > 0) {
-            <p class="aliases">Also known as: {{ performer.aliases.join(', ') }}</p>
-          }
-
-          @if (performer.deleted || performer.mergedIntoId || performer.mergedIds.length > 0) {
-            <div class="meta-flags">
-              @if (performer.deleted) {
-                <span class="meta-chip warning">Marked Deleted</span>
-              }
-              @if (performer.mergedIntoId) {
-                <span class="meta-chip">Merged Into: {{ performer.mergedIntoId }}</span>
-              }
-              @if (performer.mergedIds.length > 0) {
-                <span class="meta-chip">Merged IDs: {{ performer.mergedIds.join(', ') }}</span>
-              }
-            </div>
-          }
-
-          @if (metadataRows(performer).length > 0) {
-            <div class="metadata-grid">
-              @for (row of metadataRows(performer); track row.label) {
-                <div class="metadata-item">
-                  <span class="label">{{ row.label }}</span>
-                  <span class="value">{{ row.value }}</span>
-                </div>
-              }
-            </div>
-          }
-        </div>
+        }
+        <div class="hero-banner-fade" aria-hidden="true"></div>
       </div>
-    </section>
+
+      <div class="header-name-slot">
+        <p class="header-name" aria-hidden="true">{{ performer.name }}</p>
+      </div>
+
+      <button
+        type="button"
+        class="header-action"
+        [class.active]="performer.isFavorite"
+        [disabled]="!canToggleFavoritePerformer(performer)"
+        [attr.aria-busy]="favoritingPerformer()"
+        [attr.aria-label]="performer.isFavorite ? 'Unfavorite performer' : 'Favorite performer'"
+        (click)="toggleFavoritePerformer(performer)"
+      >
+        <i
+          [class]="performer.isFavorite ? 'pi pi-star-fill' : 'pi pi-star'"
+          aria-hidden="true"
+        ></i>
+      </button>
+    </div>
+
+    <div class="hero-below-banner">
+      <div class="name-row">
+        <h1>{{ performer.name }}</h1>
+        <button
+          type="button"
+          class="favorite-indicator"
+          [class.active]="performer.isFavorite"
+          [disabled]="!canToggleFavoritePerformer(performer)"
+          [attr.aria-busy]="favoritingPerformer()"
+          [attr.aria-label]="performer.isFavorite ? 'Unfavorite performer' : 'Favorite performer'"
+          (click)="toggleFavoritePerformer(performer)"
+        >
+          <i
+            [class]="performer.isFavorite ? 'pi pi-star-fill' : 'pi pi-star'"
+            aria-hidden="true"
+          ></i>
+        </button>
+      </div>
+
+      @if (hasCarouselImages()) {
+        <div class="carousel-controls">
+          <button type="button" class="set-main-image" (click)="openMainImagePicker()">
+            {{ imagePickerButtonLabel() }}
+          </button>
+        </div>
+      }
+    </div>
+
+    <div class="hero-info">
+      @if (performer.disambiguation) {
+        <p class="subheading">{{ performer.disambiguation }}</p>
+      }
+
+      @if (performer.aliases.length > 0) {
+        <p class="aliases">Also known as: {{ performer.aliases.join(', ') }}</p>
+      }
+
+      @if (performer.deleted || performer.mergedIntoId || performer.mergedIds.length > 0) {
+        <div class="meta-flags">
+          @if (performer.deleted) {
+            <span class="meta-chip warning">Marked Deleted</span>
+          }
+          @if (performer.mergedIntoId) {
+            <span class="meta-chip">Merged Into: {{ performer.mergedIntoId }}</span>
+          }
+          @if (performer.mergedIds.length > 0) {
+            <span class="meta-chip">Merged IDs: {{ performer.mergedIds.join(', ') }}</span>
+          }
+        </div>
+      }
+
+      @if (metadataRows(performer).length > 0) {
+        <div class="metadata-grid">
+          @for (row of metadataRows(performer); track row.label) {
+            <div class="metadata-item">
+              <span class="label">{{ row.label }}</span>
+              <span class="value">{{ row.value }}</span>
+            </div>
+          }
+        </div>
+      }
+    </div>
 
     <p-dialog
       [visible]="mainImagePickerOpen()"

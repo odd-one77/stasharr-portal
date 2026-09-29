@@ -31,72 +31,145 @@ p {
   color: var(--danger);
 }
 
-.hero-shell {
+// Same sticky-collapsing-header pattern as the scene and studio pages:
+// the wrapper is sticky from the top, --hero-collapse (scroll position,
+// set in the component) drives the banner's height/blur, and crossfades
+// the collapsed header content (.header-name-slot/.header-action) in as
+// the equivalent rest-state elements below scroll out of view underneath
+// it. The main photo uses object-fit: contain (not cover) against a
+// blurred fill of itself, so the portrait is never cropped.
+.hero-banner-wrap {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+
+.hero-banner {
   position: relative;
-  border-radius: 16px;
   overflow: hidden;
-  min-height: 560px;
-  border: 1px solid var(--media-detail-hero-border);
-  box-shadow: var(--media-detail-hero-shadow);
+  height: calc(24rem - 19.5rem * var(--hero-collapse, 0));
+  transition: height 0.32s cubic-bezier(0.22, 1, 0.36, 1);
   background: var(--media-detail-hero-background);
 }
 
-.hero-backdrop {
+.hero-backdrop-blur {
   position: absolute;
   inset: 0;
   background-size: cover;
   background-position: center 20%;
-  transform: scale(1.06);
-  opacity: 0.72;
+  filter: blur(24px) brightness(0.55) saturate(1.1);
+  transform: scale(1.15);
 }
 
-.hero-shade {
-  position: absolute;
-  inset: 0;
-  background: var(--media-detail-hero-shade);
-}
-
-.hero-layout {
+.hero-portrait {
   position: relative;
   z-index: 1;
-  min-height: 560px;
-  padding: 1.4rem 1.1rem 1.1rem;
-  display: grid;
-  grid-template-columns: minmax(230px, 360px) 1fr;
-  gap: 1rem;
-  color: var(--media-detail-text);
-}
-
-.media-column {
-  display: grid;
-  gap: 0.6rem;
-  align-content: start;
-}
-
-.carousel-main {
-  border-radius: 12px;
-  overflow: hidden;
-  border: 1px solid var(--media-detail-card-border);
-  box-shadow: var(--media-detail-card-shadow);
-  background: var(--media-detail-card-background);
-}
-
-.carousel-main img {
-  width: 100%;
-  aspect-ratio: 3 / 4;
-  object-fit: cover;
   display: block;
+  height: 100%;
+  width: 100%;
+  object-fit: contain;
+  filter: blur(calc(2px * var(--hero-collapse, 0)));
 }
 
-.carousel-placeholder {
-  width: 100%;
-  aspect-ratio: 3 / 4;
+.hero-portrait-placeholder {
+  position: relative;
+  z-index: 1;
+  height: 100%;
   display: grid;
   place-items: center;
-  font-size: 2rem;
+  font-size: 3rem;
   font-weight: 700;
   color: var(--media-detail-placeholder-text);
   background: var(--media-detail-placeholder-background);
+}
+
+// Fades the bottom of the banner into the page background instead of a
+// hard box edge. Gradient stops are in %, so they stay proportionally
+// correct as .hero-banner's height collapses.
+.hero-banner-fade {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    transparent 40%,
+    color-mix(in srgb, var(--app-bg) 65%, transparent) 78%,
+    var(--app-bg) 100%
+  );
+}
+
+.header-name-slot {
+  position: absolute;
+  top: calc(0.7rem + env(safe-area-inset-top, 0px));
+  left: calc(0.8rem + env(safe-area-inset-left, 0px));
+  z-index: 3;
+  opacity: var(--hero-collapse, 0);
+  transition: opacity 0.24s ease;
+}
+
+.header-name {
+  max-width: 12rem;
+  margin: 0;
+  font-size: 0.86rem;
+  font-weight: 700;
+  color: var(--text-on-media);
+  text-shadow: 0 1px 3px rgb(0 0 0 / 55%);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.header-action {
+  position: absolute;
+  top: calc(0.7rem + env(safe-area-inset-top, 0px));
+  right: calc(0.8rem + env(safe-area-inset-right, 0px));
+  z-index: 4;
+  width: 2.1rem;
+  height: 2.1rem;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid var(--media-detail-subtle-action-border);
+  border-radius: 999px;
+  background: var(--media-detail-subtle-action-background);
+  color: var(--media-detail-action-text);
+  cursor: pointer;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  opacity: var(--hero-collapse, 0);
+  transition: opacity 0.24s ease;
+}
+
+.header-action.active {
+  color: var(--media-gold);
+}
+
+.header-action:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+// Rest-state content: normal document flow, directly below the banner
+// (not overlapping it). Scrolls away on its own -- the header content
+// above takes over once this is out of view.
+.hero-below-banner {
+  padding: 1.3rem 0.3rem 0;
+  display: grid;
+  gap: 0.7rem;
+  justify-items: center;
+}
+
+.name-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+}
+
+.name-row h1 {
+  font-size: clamp(1.5rem, 4.4vw, 2.3rem);
+  line-height: 1.08;
+  text-wrap: balance;
+  text-align: center;
 }
 
 .carousel-controls {
@@ -197,23 +270,13 @@ main > button {
 }
 
 .hero-info {
+  max-width: 640px;
+  margin-inline: auto;
+  padding-inline: 0.3rem;
   display: grid;
-  gap: 0.75rem;
-  align-content: start;
-}
-
-.title-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.62rem;
-}
-
-.title-row h1 {
-  font-size: clamp(1.7rem, 5.3vw, 3rem);
-  line-height: 1.05;
-  text-wrap: balance;
-  text-shadow: var(--media-detail-title-shadow);
+  gap: 0.6rem;
+  justify-items: center;
+  text-align: center;
 }
 
 .favorite-indicator {
@@ -342,9 +405,29 @@ main > button {
   margin-top: 0.5rem;
 }
 
-@media (max-width: 1080px) {
-  .hero-layout {
-    grid-template-columns: 1fr;
+@media (max-width: 880px) {
+  .hero-banner {
+    height: calc(18rem - 13.5rem * var(--hero-collapse, 0));
+  }
+
+  .name-row h1 {
+    font-size: clamp(1.3rem, 6vw, 1.8rem);
+  }
+
+  .header-name {
+    max-width: 7.5rem;
+    font-size: 0.76rem;
+  }
+
+  .header-action {
+    width: 1.9rem;
+    height: 1.9rem;
+  }
+}
+
+@media (orientation: landscape) and (max-height: 500px) {
+  .hero-banner {
+    height: calc(11rem - 6.5rem * var(--hero-collapse, 0));
   }
 }
 
