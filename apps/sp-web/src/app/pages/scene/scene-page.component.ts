@@ -1,13 +1,4 @@
-import {
-  Component,
-  ElementRef,
-  HostListener,
-  OnDestroy,
-  OnInit,
-  ViewChild,
-  inject,
-  signal,
-} from '@angular/core';
+import { Component, HostListener, OnDestroy, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Params, Router, RouterLink } from '@angular/router';
 import { Subscription, combineLatest, finalize } from 'rxjs';
@@ -62,9 +53,6 @@ export class ScenePageComponent implements OnInit, OnDestroy {
   private readonly playerService = inject(PlayerService);
   private previousFocusedElement: HTMLElement | null = null;
   private routeSubscription: Subscription | null = null;
-
-  @ViewChild('requestTriggerButton')
-  private requestTriggerButton?: ElementRef<HTMLButtonElement>;
 
   protected readonly loading = signal(true);
   protected readonly error = signal<string | null>(null);
@@ -439,8 +427,7 @@ export class ScenePageComponent implements OnInit, OnDestroy {
     this.requestModalOpen.set(false);
 
     setTimeout(() => {
-      const focusTarget = this.requestTriggerButton?.nativeElement ?? this.previousFocusedElement;
-      focusTarget?.focus();
+      this.previousFocusedElement?.focus();
       this.previousFocusedElement = null;
     }, 0);
   }

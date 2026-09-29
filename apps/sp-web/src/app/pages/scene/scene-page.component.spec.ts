@@ -107,7 +107,7 @@ describe('ScenePageComponent', () => {
     const { fixture } = await renderScene(scene);
 
     const studioLink = fixture.nativeElement.querySelector(
-      '.studio-logo-overlay',
+      '.rest-logo',
     ) as HTMLAnchorElement | null;
 
     expect(studioLink?.getAttribute('href')).toContain('/studio/studio-1');
@@ -120,7 +120,7 @@ describe('ScenePageComponent', () => {
     const { fixture } = await renderScene(scene);
 
     const studioLink = fixture.nativeElement.querySelector(
-      '.studio-logo-overlay',
+      '.rest-logo',
     ) as HTMLAnchorElement | null;
 
     expect(studioLink?.getAttribute('href')).toBe('http://studio.local');
@@ -142,7 +142,7 @@ describe('ScenePageComponent', () => {
     expect(discoverService.getSceneDetails).toHaveBeenCalledWith('scene-1');
     expect(text).toContain('Resolve or retry this download in Whisparr.');
     expect(text).not.toContain('Retry in Whisparr');
-    expect(fixture.nativeElement.querySelector('.request-button')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.rest-action.is-request')).toBeNull();
     expect(
       fixture.nativeElement.querySelector('a[href="http://whisparr.local/movie/scene-1"]')
         ?.textContent,
@@ -152,7 +152,10 @@ describe('ScenePageComponent', () => {
   it('keeps the normal request CTA for NOT_REQUESTED scenes', async () => {
     const { fixture } = await renderScene(buildScene());
 
-    expect(fixture.nativeElement.textContent).toContain('Request in Whisparr');
+    const requestButton = fixture.nativeElement.querySelector(
+      '.rest-action.is-request',
+    ) as HTMLButtonElement | null;
+    expect(requestButton?.getAttribute('aria-label')).toBe('Request in Whisparr');
   });
 
   it('opens the embedded player for the linked stash copy', async () => {
@@ -175,7 +178,7 @@ describe('ScenePageComponent', () => {
     const { fixture, playerService } = await renderScene(scene);
 
     const playButton = fixture.nativeElement.querySelector(
-      'button.hero-cluster-play',
+      'button.rest-action',
     ) as HTMLButtonElement;
     expect(playButton).not.toBeNull();
 

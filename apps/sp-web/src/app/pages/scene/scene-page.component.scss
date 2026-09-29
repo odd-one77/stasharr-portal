@@ -32,12 +32,12 @@ p {
 }
 
 // The scene backdrop: a wide, mostly-uncropped landscape banner (like a
-// media server's "cinematic" hero). The whole wrapper is sticky from the
-// top of the page, and --hero-collapse (scroll position, set in the
-// component) drives the banner's own height and the logo cluster's size
-// and vertical offset -- at different rates, so the logo appears to rise
-// and settle into a compact header bar as the image collapses behind it.
-// The cluster stays horizontally centered throughout.
+// media server's "cinematic" hero). The wrapper is sticky from the top of
+// the page; --hero-collapse (scroll position, set in the component)
+// drives the banner's own height/blur and crossfades the collapsed
+// header content (.header-logo-slot/.header-action, both fixed-size and
+// absolutely positioned) in as the equivalent rest-state elements below
+// scroll out of view underneath it.
 .hero-banner-wrap {
   position: sticky;
   top: 0;
@@ -60,6 +60,8 @@ p {
   inset: 0;
   background-size: cover;
   background-position: center 30%;
+  filter: blur(calc(3px * var(--hero-collapse, 0)));
+  transition: filter 0.32s ease;
 }
 
 // Fades the bottom of the banner into the page background instead of a
@@ -77,65 +79,39 @@ p {
   );
 }
 
-// Stays horizontally centered at every scroll position -- only its
-// vertical offset and size animate. At rest it sits mostly below the
-// banner's bottom edge (so it covers less of the photo); on collapse it
-// rises to settle inside the now-compact header bar, logo and play
-// button shrinking together in place.
-.studio-affordance-cluster {
+.header-logo-slot {
   position: absolute;
-  left: 50%;
-  bottom: calc(-3.6rem + 7.3rem * var(--hero-collapse, 0));
-  transform: translateX(-50%);
+  top: calc(0.7rem + env(safe-area-inset-top, 0px));
+  left: calc(0.8rem + env(safe-area-inset-left, 0px));
   z-index: 3;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  transition: bottom 0.32s cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-// Reserves the same vertical space the logo image would occupy even when
-// a scene has no studio logo to show, so the collapsed title/button don't
-// drift to a different vertical position depending on whether a logo
-// happens to be present.
-.cluster-logo-stack {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  justify-content: flex-end;
-  gap: 0.15rem;
-  min-height: calc(6.5rem - 4.7rem * var(--hero-collapse, 0));
+  gap: 0.1rem;
+  opacity: var(--hero-collapse, 0);
+  transition: opacity 0.24s ease;
 }
 
-.studio-logo-overlay {
-  // Intrinsic width: the plaque shrink-wraps to whatever width the logo
-  // actually renders at for this height, instead of showing a bar wider
-  // than the logo it holds. The dark blurred plaque behind it only
-  // appears once collapsing starts -- at rest, against the full-size
-  // banner, it's just the raw logo with no box behind it.
-  height: calc(6.5rem - 4.7rem * var(--hero-collapse, 0));
-  max-width: 15rem;
-  border-radius: 1rem;
-  padding: 0.38rem 0.75rem;
-  background: rgb(0 0 0 / calc(22% * var(--hero-collapse, 0)));
+.header-logo {
+  height: 2.2rem;
+  max-width: 9rem;
+  border-radius: 0.6rem;
+  padding: 0.28rem 0.55rem;
+  background: rgb(0 0 0 / 24%);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  backdrop-filter: blur(calc(6px * var(--hero-collapse, 0)));
-  -webkit-backdrop-filter: blur(calc(6px * var(--hero-collapse, 0)));
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
   text-decoration: none;
-  transition:
-    height 0.32s cubic-bezier(0.22, 1, 0.36, 1),
-    background 0.28s ease,
-    backdrop-filter 0.28s ease;
 }
 
-a.studio-logo-overlay:focus-visible {
+a.header-logo:focus-visible {
   outline: 2px solid var(--focus-ring);
   outline-offset: 2px;
 }
 
-.studio-logo-overlay img {
+.header-logo img {
   height: 100%;
   width: auto;
   max-width: 100%;
@@ -143,20 +119,10 @@ a.studio-logo-overlay:focus-visible {
   filter: drop-shadow(0 1px 1px rgb(0 0 0 / 25%));
 }
 
-// A small copy of the scene title, clipped to zero height at rest so it
-// takes no space until the header starts collapsing. The clip window
-// grows as .hero-collapsed-title itself both fades in AND slides upward
-// inside it, so it genuinely moves into place under the logo rather than
-// just appearing.
-.cluster-title-clip {
-  overflow: hidden;
-  height: calc(1.05rem * var(--hero-collapse, 0));
-  transition: height 0.32s cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.hero-collapsed-title {
+.header-title {
   max-width: 11rem;
-  font-size: 0.74rem;
+  margin: 0;
+  font-size: 0.72rem;
   font-weight: 700;
   line-height: 1.2;
   color: var(--text-on-media);
@@ -164,54 +130,125 @@ a.studio-logo-overlay:focus-visible {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  opacity: var(--hero-collapse, 0);
-  transform: translateY(calc(0.45rem * (1 - var(--hero-collapse, 0))));
-  transition:
-    opacity 0.28s ease,
-    transform 0.28s ease;
 }
 
-// Sits to the right of the (always-centered) logo and rides along with
-// it as the cluster rises into the collapsed header, shrinking in step
-// so it still looks proportional once settled at its final, smaller
-// size next to the collapsed logo.
-.hero-cluster-play {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  padding: calc(0.42rem - 0.1rem * var(--hero-collapse, 0))
-    calc(0.9rem - 0.26rem * var(--hero-collapse, 0));
+.header-action {
+  position: absolute;
+  top: calc(0.7rem + env(safe-area-inset-top, 0px));
+  right: calc(0.8rem + env(safe-area-inset-right, 0px));
+  z-index: 4;
+  width: 2.1rem;
+  height: 2.1rem;
+  display: grid;
+  place-items: center;
+  padding: 0;
   border: 1px solid var(--media-detail-action-border);
   border-radius: 999px;
   background: var(--media-detail-action-background);
   color: var(--media-detail-action-text);
-  font-size: calc(0.86rem - 0.14rem * var(--hero-collapse, 0));
-  font-weight: 700;
-  white-space: nowrap;
   cursor: pointer;
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 14%);
-  transition:
-    padding 0.32s cubic-bezier(0.22, 1, 0.36, 1),
-    font-size 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+  opacity: var(--hero-collapse, 0);
+  transition: opacity 0.24s ease;
 }
 
-.hero-cluster-play i {
-  font-size: 0.85em;
-}
-
-.hero-cluster-play.is-request {
+.header-action.is-request {
   border-color: color-mix(in srgb, var(--focus-ring) 40%, var(--border-strong));
   background: color-mix(in srgb, var(--media-detail-action-background) 78%, var(--focus-ring) 22%);
 }
 
-.hero-cluster-play:focus-visible {
+.header-action:focus-visible {
   outline: 2px solid var(--focus-ring);
   outline-offset: 2px;
 }
 
-.hero-cluster-play:hover {
+// Rest-state content: normal document flow, directly below the banner
+// (not overlapping it). Scrolls away on its own -- the header content
+// above takes over once this is out of view.
+.hero-below-banner {
+  padding: 1.3rem 0.3rem 0;
+  display: grid;
+  gap: 0.85rem;
+}
+
+.rest-logo-wrap {
+  display: flex;
+  justify-content: center;
+}
+
+.rest-logo {
+  display: inline-flex;
+  height: 5.5rem;
+  text-decoration: none;
+}
+
+a.rest-logo:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+  border-radius: 0.4rem;
+}
+
+.rest-logo img {
+  height: 100%;
+  width: auto;
+  max-width: min(80vw, 22rem);
+  object-fit: contain;
+}
+
+.title-action-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+}
+
+.title-with-badge {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+  min-width: 0;
+}
+
+.title-with-badge h1 {
+  font-size: clamp(1.5rem, 4.4vw, 2.3rem);
+  line-height: 1.08;
+  text-wrap: balance;
+}
+
+.rest-action {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.42rem 0.9rem;
+  border: 1px solid var(--media-detail-action-border);
+  border-radius: 999px;
+  background: var(--media-detail-action-background);
+  color: var(--media-detail-action-text);
+  font-size: 0.86rem;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 14%);
+}
+
+.rest-action i {
+  font-size: 0.85em;
+}
+
+.rest-action.is-request {
+  border-color: color-mix(in srgb, var(--focus-ring) 40%, var(--border-strong));
+  background: color-mix(in srgb, var(--media-detail-action-background) 78%, var(--focus-ring) 22%);
+}
+
+.rest-action:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.rest-action:hover {
   border-color: color-mix(in srgb, var(--focus-ring) 55%, var(--border-strong));
 }
 
@@ -247,10 +284,8 @@ a.studio-logo-overlay:focus-visible {
 }
 
 .hero-layout {
-  // Top padding clears the logo cluster, which hangs 3.6rem below the
-  // banner's bottom edge at rest (see .studio-affordance-cluster).
   position: relative;
-  padding: 4.2rem 0.3rem 0;
+  padding: 1.4rem 0.3rem 0;
   color: var(--media-detail-text);
 }
 
@@ -258,20 +293,6 @@ a.studio-logo-overlay:focus-visible {
   max-width: 760px;
   display: grid;
   gap: 0.7rem;
-}
-
-.title-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.62rem;
-}
-
-.title-row h1 {
-  font-size: clamp(1.7rem, 5.3vw, 3rem);
-  line-height: 1.05;
-  text-wrap: balance;
-  text-shadow: var(--media-detail-title-shadow);
 }
 
 .release-subheading {
@@ -406,11 +427,6 @@ a.studio-logo-overlay:focus-visible {
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--focus-ring) 44%, transparent);
 }
 
-.request-button {
-  font-size: 0.8rem;
-  font-weight: 700;
-}
-
 .hero-action-helper {
   color: var(--media-detail-muted-text);
   line-height: 1.45;
@@ -519,44 +535,47 @@ button {
     height: calc(11rem - 6.5rem * var(--hero-collapse, 0));
   }
 
-  .hero-layout {
-    padding: 3rem 0.1rem 0;
+  .rest-logo {
+    height: 4rem;
   }
 
-  .studio-affordance-cluster {
-    bottom: calc(-2.4rem + 5.6rem * var(--hero-collapse, 0));
-    gap: 0.4rem;
+  .title-with-badge h1 {
+    font-size: clamp(1.3rem, 6vw, 1.8rem);
   }
 
-  .cluster-logo-stack {
-    min-height: calc(4rem - 2.6rem * var(--hero-collapse, 0));
+  .rest-action span {
+    display: none;
   }
 
-  .studio-logo-overlay {
-    height: calc(4rem - 2.6rem * var(--hero-collapse, 0));
+  .rest-action {
+    padding: 0.5rem;
   }
 
-  .hero-collapsed-title {
-    max-width: 8rem;
-    font-size: 0.68rem;
+  .header-logo {
+    height: 1.9rem;
+    max-width: 6.5rem;
   }
 
-  .hero-cluster-play {
-    padding: calc(0.34rem - 0.08rem * var(--hero-collapse, 0))
-      calc(0.7rem - 0.2rem * var(--hero-collapse, 0));
-    font-size: calc(0.78rem - 0.12rem * var(--hero-collapse, 0));
+  .header-title {
+    max-width: 7rem;
+    font-size: 0.66rem;
+  }
+
+  .header-action {
+    width: 1.9rem;
+    height: 1.9rem;
   }
 }
 
 // A phone in landscape is wide enough to miss the max-width breakpoint
-// above but still has very little vertical room -- shrink the logo and
-// banner there too, keyed off height rather than width.
+// above but still has very little vertical room -- shrink the banner and
+// rest-state logo there too, keyed off height rather than width.
 @media (orientation: landscape) and (max-height: 500px) {
-  .studio-logo-overlay {
-    height: calc(2.6rem - 1.2rem * var(--hero-collapse, 0));
-  }
-
   .hero-banner {
     height: calc(8rem - 4.5rem * var(--hero-collapse, 0));
+  }
+
+  .rest-logo {
+    height: 3.2rem;
   }
 }
