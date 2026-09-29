@@ -131,7 +131,11 @@ p {
 .hero-cluster-name {
   position: absolute;
   left: calc(50% - (50% - 1rem) * var(--hero-collapse, 0));
-  bottom: calc(3rem - 1.4rem * var(--hero-collapse, 0));
+  // Rest position clears the portrait card's own bottom edge (card sits
+  // ~3.8rem above the banner's bottom edge at rest) with a gap, instead
+  // of overlapping onto the photo -- it previously sat higher than the
+  // card's bottom edge and rendered on top of the image.
+  bottom: calc(0.9rem + 0.7rem * var(--hero-collapse, 0));
   transform: translateX(calc(-50% * (1 - var(--hero-collapse, 0))));
   z-index: 3;
   width: max-content;
@@ -154,7 +158,7 @@ p {
 .cluster-favorite {
   position: absolute;
   right: calc(0.8rem + env(safe-area-inset-right, 0px));
-  bottom: calc(3rem - 1.4rem * var(--hero-collapse, 0));
+  bottom: calc(0.9rem + 0.7rem * var(--hero-collapse, 0));
   z-index: 4;
   width: calc(2.6rem - 0.5rem * var(--hero-collapse, 0));
   height: calc(2.6rem - 0.5rem * var(--hero-collapse, 0));
@@ -396,12 +400,12 @@ main > button {
   }
 
   .hero-cluster-name {
-    bottom: calc(2.3rem - 0.9rem * var(--hero-collapse, 0));
+    bottom: calc(1rem + 0.4rem * var(--hero-collapse, 0));
     font-size: calc(1.7rem - 0.5rem * var(--hero-collapse, 0));
   }
 
   .cluster-favorite {
-    bottom: calc(2.3rem - 0.9rem * var(--hero-collapse, 0));
+    bottom: calc(1rem + 0.4rem * var(--hero-collapse, 0));
     width: calc(2.3rem - 0.4rem * var(--hero-collapse, 0));
     height: calc(2.3rem - 0.4rem * var(--hero-collapse, 0));
   }

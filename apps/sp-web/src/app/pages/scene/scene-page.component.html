@@ -23,11 +23,7 @@
     <div class="hero-banner-wrap" [style.--hero-collapse]="heroCollapseProgress()">
       <div class="hero-banner">
         @if (scene.imageUrl) {
-          <div
-            class="hero-backdrop"
-            [style.background-image]="'url(' + scene.imageUrl + ')'"
-            aria-hidden="true"
-          ></div>
+          <img class="hero-backdrop" [src]="scene.imageUrl" alt="" aria-hidden="true" />
         }
         <div class="hero-banner-fade" aria-hidden="true"></div>
       </div>
@@ -71,29 +67,31 @@
         </div>
       }
 
-      <!-- Small icon-only duplicate of the real button below (.rest-action,
-           now in the date/duration row) -- invisible at rest, fades in
-           once the logo has mostly finished traveling, same gating as
-           .header-title. -->
+      <!-- A single real button, same travel technique as .hero-cluster: it
+           starts flush against the right edge, hanging below the banner,
+           and rises/shrinks into the top-right corner as the banner
+           collapses. -->
       @if (hasStashCopy(scene)) {
         <button
           type="button"
-          class="header-action"
+          class="cluster-action"
           aria-label="Play"
           title="Play"
           (click)="playSelectedStashCopy(scene)"
         >
           <i class="pi pi-play" aria-hidden="true"></i>
+          <span>Play</span>
         </button>
       } @else if (canRequestScene(scene)) {
         <button
           type="button"
-          class="header-action is-request"
+          class="cluster-action is-request"
           aria-label="Request in Whisparr"
           title="Request in Whisparr"
           (click)="openRequestPanel(scene)"
         >
           <i class="pi pi-download" aria-hidden="true"></i>
+          <span>Request</span>
         </button>
       }
 
@@ -109,30 +107,6 @@
           <div class="date-duration-row">
             @if (scene.releaseDate) {
               <span class="date-pill">{{ scene.releaseDate }}</span>
-            }
-
-            @if (hasStashCopy(scene)) {
-              <button
-                type="button"
-                class="rest-action"
-                aria-label="Play"
-                title="Play"
-                (click)="playSelectedStashCopy(scene)"
-              >
-                <i class="pi pi-play" aria-hidden="true"></i>
-                <span>Play</span>
-              </button>
-            } @else if (canRequestScene(scene)) {
-              <button
-                type="button"
-                class="rest-action is-request"
-                aria-label="Request in Whisparr"
-                title="Request in Whisparr"
-                (click)="openRequestPanel(scene)"
-              >
-                <i class="pi pi-download" aria-hidden="true"></i>
-                <span>Request</span>
-              </button>
             }
           </div>
 

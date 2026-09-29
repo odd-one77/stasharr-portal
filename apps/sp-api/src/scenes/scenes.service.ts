@@ -358,13 +358,18 @@ export class ScenesService {
   // "similar scenes" endpoint to lean on (same situation as favorited
   // performers -- see getFavoritePerformerScenesFeed above), so this
   // fetches each cast member's own recent scenes, dedupes, and keeps only
-  // the ones already resolved as AVAILABLE.
+  // the ones already resolved as AVAILABLE. Only female cast members are
+  // used to seed the search -- a scene's male/other performers tend to
+  // recur across a much wider, less genre-consistent swath of the
+  // catalog, so keying off them made results feel unrelated.
   async getSimilarScenes(
     stashId: string,
     limit = ScenesService.SIMILAR_SCENES_DEFAULT_LIMIT,
   ): Promise<SimilarScenesResponseDto> {
     const scene = await this.getSceneById(stashId);
-    const performerIds = scene.performers.map((performer) => performer.id);
+    const performerIds = scene.performers
+      .filter((performer) => performer.gender === 'FEMALE')
+      .map((performer) => performer.id);
     if (performerIds.length === 0) {
       return { items: [] };
     }

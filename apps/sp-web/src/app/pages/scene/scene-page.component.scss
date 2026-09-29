@@ -31,14 +31,13 @@ p {
 // media server's "cinematic" hero), full-bleed across the viewport. The
 // wrapper is sticky from the top of the page; --hero-collapse (scroll
 // position, set in the component) drives the banner's own height/blur.
-// The logo is a SINGLE real element that physically travels from its
-// rest position (mostly below the image, only slightly overlapping it)
-// up into the header's top-left corner as the banner collapses. The
-// title and play/request button are each a duplicate instead: the real
-// ones live below in .hero-layout (title as the page's actual <h1>, the
-// button in .date-duration-row), and small header-only copies
-// (.header-title/.header-action) are invisible at rest, fading in only
-// once the logo's travel is mostly finished.
+// The logo (.hero-cluster) and play/request button (.cluster-action) are
+// each a SINGLE real element that physically travels from its rest
+// position -- logo mostly below the image on the left, button flush
+// right -- up into the header's top corners as the banner collapses. The
+// title is the one duplicate: the real one lives below in .hero-layout
+// as the page's actual <h1>, and .header-title is invisible at rest,
+// fading in only once the logo's travel is mostly finished.
 .hero-banner-wrap {
   position: sticky;
   top: 0;
@@ -51,19 +50,28 @@ p {
 .hero-banner {
   position: relative;
   overflow: hidden;
-  // Taller than before -- the banner is full-bleed now, so on wide
-  // viewports a short box needs a lot of vertical crop to fill that width.
-  // A taller box needs less.
-  height: calc(19rem - 14.5rem * var(--hero-collapse, 0));
-  transition: height 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+  // max-height, not height: the image sets its own height (full width,
+  // no crop at all -- see .hero-backdrop). The 200rem rest cap is only
+  // there so the value has something finite to transition from; no real
+  // image at any viewport width actually reaches it, so it's effectively
+  // uncapped until scrolling starts collapsing it down to a compact
+  // header. Same final collapsed height on every breakpoint, so mobile
+  // doesn't need its own override -- only the landscape-phone one below
+  // does, for an even smaller collapsed target.
+  max-height: calc(200rem - 195.5rem * var(--hero-collapse, 0));
+  min-height: 4.5rem;
+  transition: max-height 0.32s cubic-bezier(0.22, 1, 0.36, 1);
   background: var(--media-detail-hero-background);
 }
 
+// A real <img>, not a background-image: width:100%/height:auto scales
+// the image up or down to exactly fill the banner's width and never
+// crops it, unlike background-size:cover. .hero-banner's max-height
+// only clips it once significantly collapsed.
 .hero-backdrop {
-  position: absolute;
-  inset: 0;
-  background-size: cover;
-  background-position: center 30%;
+  display: block;
+  width: 100%;
+  height: auto;
   filter: blur(calc(3px * var(--hero-collapse, 0)));
   transition: filter 0.32s ease;
 }
@@ -135,30 +143,34 @@ p {
   transition: opacity 0.24s ease;
 }
 
-// The real play/request button lives in .date-duration-row now (see
-// .rest-action below) -- this is just a small icon-only duplicate for the
-// collapsed header, invisible at rest and fading in once the logo has
-// mostly finished traveling (same gate as .header-title).
-.header-action {
+// Same travel technique as .hero-cluster, mirrored to the right edge:
+// already flush right at rest, so only the vertical offset and size
+// interpolate as it rises into the top-right corner on collapse.
+.cluster-action {
   position: absolute;
-  top: calc(0.7rem + env(safe-area-inset-top, 0px));
   right: calc(0.8rem + env(safe-area-inset-right, 0px));
+  bottom: calc(-3.6rem + 5.6rem * var(--hero-collapse, 0));
   z-index: 4;
-  width: 2.6rem;
-  height: 2.6rem;
-  display: grid;
-  place-items: center;
-  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.42rem;
+  padding: 0.56rem 1.2rem;
   border: 1px solid var(--media-detail-action-border);
   border-radius: 999px;
   background: var(--media-detail-action-background);
   color: var(--media-detail-action-text);
-  font-size: 1.1rem;
+  font-size: 1rem;
+  font-weight: 700;
+  white-space: nowrap;
   cursor: pointer;
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
-  opacity: max(0, (var(--hero-collapse, 0) - 0.6) * 2.5);
-  transition: opacity 0.24s ease;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 14%);
+  transform-origin: right center;
+  transform: scale(calc(1 - 0.36 * var(--hero-collapse, 0)));
+  transition: all 0.34s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.cluster-action i {
+  font-size: 0.85em;
 }
 
 // A duplicate of the title, positioned to sit under the logo's final
@@ -259,37 +271,12 @@ p {
   padding: 0.2rem 0.64rem;
 }
 
-// The real play/request action -- sits opposite the date, in its own
-// spacious row rather than crowded against the logo, so it can afford to
-// be a bit bigger than it was there.
-.rest-action {
-  flex-shrink: 0;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.42rem;
-  padding: 0.56rem 1.2rem;
-  border: 1px solid var(--media-detail-action-border);
-  border-radius: 999px;
-  background: var(--media-detail-action-background);
-  color: var(--media-detail-action-text);
-  font-size: 1rem;
-  font-weight: 700;
-  white-space: nowrap;
-  cursor: pointer;
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 14%);
-}
-
-.rest-action i {
-  font-size: 0.85em;
-}
-
-.header-action.is-request,
-.rest-action.is-request {
+.cluster-action.is-request {
   border-color: color-mix(in srgb, var(--focus-ring) 40%, var(--border-strong));
   background: color-mix(in srgb, var(--media-detail-action-background) 78%, var(--focus-ring) 22%);
 }
 
-.rest-action:focus-visible,
+.cluster-action:focus-visible,
 .tag-link:focus-visible,
 .performer-favorite:focus-visible,
 :host ::ng-deep .hero-actions .p-button:focus-visible {
@@ -297,7 +284,7 @@ p {
   outline-offset: 2px;
 }
 
-.rest-action:hover {
+.cluster-action:hover {
   border-color: color-mix(in srgb, var(--focus-ring) 55%, var(--border-strong));
 }
 
@@ -550,7 +537,7 @@ button {
 
 @media (max-width: 880px) {
   .hero-banner {
-    height: calc(13.5rem - 9rem * var(--hero-collapse, 0));
+    max-height: calc(13.5rem - 9rem * var(--hero-collapse, 0));
   }
 
   .hero-layout {
@@ -569,7 +556,8 @@ button {
     font-size: clamp(1.3rem, 6vw, 1.8rem);
   }
 
-  .rest-action {
+  .cluster-action {
+    bottom: calc(-2.55rem + 4.15rem * var(--hero-collapse, 0));
     padding: 0.48rem 0.95rem;
     font-size: 0.88rem;
   }
@@ -581,12 +569,6 @@ button {
   .header-title {
     max-width: 10.5rem;
     font-size: 0.72rem;
-  }
-
-  .header-action {
-    width: 2.3rem;
-    height: 2.3rem;
-    font-size: 1rem;
   }
 }
 
@@ -604,7 +586,7 @@ button {
 // logo there too, keyed off height rather than width.
 @media (orientation: landscape) and (max-height: 500px) {
   .hero-banner {
-    height: calc(8rem - 4.5rem * var(--hero-collapse, 0));
+    max-height: calc(8rem - 4.5rem * var(--hero-collapse, 0));
   }
 
   .cluster-logo {

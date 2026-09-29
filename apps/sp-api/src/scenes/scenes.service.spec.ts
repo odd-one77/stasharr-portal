@@ -1004,13 +1004,39 @@ describe('ScenesService', () => {
       expect(result).toEqual({ items: [] });
     });
 
+    it('only seeds the search from female cast members', async () => {
+      catalogAdapter.getSceneById = jest.fn().mockResolvedValue({
+        ...sceneDetails,
+        performers: [
+          { id: 'performer-1', name: 'A', gender: 'FEMALE', isFavorite: false, imageUrl: null },
+          { id: 'performer-2', name: 'B', gender: 'MALE', isFavorite: false, imageUrl: null },
+          { id: 'performer-3', name: 'C', gender: null, isFavorite: false, imageUrl: null },
+        ],
+      });
+      catalogAdapter.getScenesForPerformer = jest.fn().mockResolvedValue({
+        total: 1,
+        scenes: [buildCandidate({ id: 'female-cast-scene' })],
+      });
+      sceneStatusService.resolveForScenes = jest
+        .fn()
+        .mockResolvedValue(new Map([['female-cast-scene', { state: 'AVAILABLE' }]]));
+
+      const result = await service.getSimilarScenes('stashdb-scene-1');
+
+      expect(catalogAdapter.getScenesForPerformer).toHaveBeenCalledTimes(1);
+      expect(catalogAdapter.getScenesForPerformer).toHaveBeenCalledWith(
+        expect.objectContaining({ performerId: 'performer-1' }),
+      );
+      expect(result.items.map((item) => item.id)).toEqual(['female-cast-scene']);
+    });
+
     it('aggregates each cast member scenes, dedupes, excludes the current scene, and keeps only library scenes', async () => {
       catalogAdapter.getSceneById = jest.fn().mockResolvedValue({
         ...sceneDetails,
         id: 'current-scene',
         performers: [
-          { id: 'performer-1', name: 'A', gender: null, isFavorite: false, imageUrl: null },
-          { id: 'performer-2', name: 'B', gender: null, isFavorite: false, imageUrl: null },
+          { id: 'performer-1', name: 'A', gender: 'FEMALE', isFavorite: false, imageUrl: null },
+          { id: 'performer-2', name: 'B', gender: 'FEMALE', isFavorite: false, imageUrl: null },
         ],
       });
       catalogAdapter.getScenesForPerformer = jest
@@ -1052,8 +1078,8 @@ describe('ScenesService', () => {
       catalogAdapter.getSceneById = jest.fn().mockResolvedValue({
         ...sceneDetails,
         performers: [
-          { id: 'performer-1', name: 'A', gender: null, isFavorite: false, imageUrl: null },
-          { id: 'performer-2', name: 'B', gender: null, isFavorite: false, imageUrl: null },
+          { id: 'performer-1', name: 'A', gender: 'FEMALE', isFavorite: false, imageUrl: null },
+          { id: 'performer-2', name: 'B', gender: 'FEMALE', isFavorite: false, imageUrl: null },
         ],
       });
       catalogAdapter.getScenesForPerformer = jest
@@ -1080,7 +1106,7 @@ describe('ScenesService', () => {
       catalogAdapter.getSceneById = jest.fn().mockResolvedValue({
         ...sceneDetails,
         performers: [
-          { id: 'performer-1', name: 'A', gender: null, isFavorite: false, imageUrl: null },
+          { id: 'performer-1', name: 'A', gender: 'FEMALE', isFavorite: false, imageUrl: null },
         ],
       });
       const scenes = Array.from({ length: 5 }, (_, index) =>
