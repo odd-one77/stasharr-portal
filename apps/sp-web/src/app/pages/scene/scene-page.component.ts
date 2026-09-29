@@ -251,7 +251,10 @@ export class ScenePageComponent implements OnInit, OnDestroy {
       return null;
     }
 
-    return gender;
+    return gender
+      .split('_')
+      .map((token) => token.charAt(0) + token.slice(1).toLowerCase())
+      .join(' ');
   }
 
   protected lifecycleSummary(scene: SceneDetails): string {

@@ -287,7 +287,7 @@ describe('TpdbAdapter', () => {
       {
         id: 'performer-uuid-1',
         name: 'Performer One',
-        gender: 'Female',
+        gender: 'FEMALE',
         isFavorite: false,
         imageUrl: 'http://cdn.local/performer.jpg',
       },
@@ -383,7 +383,7 @@ describe('TpdbAdapter', () => {
       {
         id: 'parent-performer-uuid',
         name: 'Cassandra Cruz',
-        gender: 'Female',
+        gender: 'FEMALE',
         isFavorite: false,
         imageUrl: 'http://cdn.local/parent-performer.jpg',
       },

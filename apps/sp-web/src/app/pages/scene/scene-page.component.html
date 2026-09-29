@@ -26,11 +26,11 @@
           <img class="hero-backdrop" [src]="scene.imageUrl" alt="" aria-hidden="true" />
         }
         <div class="hero-banner-fade" aria-hidden="true"></div>
-      </div>
 
-      @if (formattedDuration(scene.duration); as duration) {
-        <span class="banner-duration">{{ duration }}</span>
-      }
+        @if (formattedDuration(scene.duration); as duration) {
+          <span class="banner-duration">{{ duration }}</span>
+        }
+      </div>
 
       <!-- A single real logo element travels from a mostly-below-the-image
            rest position up into the top-left corner as the banner

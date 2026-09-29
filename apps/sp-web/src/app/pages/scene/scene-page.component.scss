@@ -85,8 +85,8 @@ p {
   inset: 0;
   background: linear-gradient(
     180deg,
-    transparent 40%,
-    color-mix(in srgb, var(--app-bg) 65%, transparent) 78%,
+    transparent 74%,
+    color-mix(in srgb, var(--app-bg) 55%, transparent) 91%,
     var(--app-bg) 100%
   );
 }
@@ -103,10 +103,10 @@ p {
 .hero-cluster {
   position: absolute;
   left: calc(50% - (50% - 1rem) * var(--hero-collapse, 0));
-  // Sits entirely below the image at rest (a small gap, no overlap) so it
-  // never covers any of the photo, however short the photo ends up being
-  // now that it's never cropped.
-  bottom: calc(-5rem + 7rem * var(--hero-collapse, 0));
+  // A small slice of the logo's own height overlaps the bottom of the
+  // image at rest (rather than sitting entirely below it) -- a fully
+  // detached logo read as disconnected from the banner above it.
+  bottom: calc(0.6rem + 1.4rem * var(--hero-collapse, 0));
   transform: translateX(calc(-50% * (1 - var(--hero-collapse, 0))));
   z-index: 3;
   transition: all 0.34s cubic-bezier(0.22, 1, 0.36, 1);
@@ -555,7 +555,7 @@ button {
   }
 
   .hero-cluster {
-    bottom: calc(-3.6rem + 5.2rem * var(--hero-collapse, 0));
+    bottom: calc(0.4rem + 1.2rem * var(--hero-collapse, 0));
   }
 
   .cluster-logo {

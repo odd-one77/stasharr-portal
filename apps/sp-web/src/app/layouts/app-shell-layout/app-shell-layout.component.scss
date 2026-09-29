@@ -218,10 +218,15 @@
   min-width: 0;
   display: grid;
   align-content: start;
+  // Clears a device's notch/camera-bump when installed as a standalone web
+  // app: the sidebar already accounts for this on desktop, but the content
+  // column itself had no top padding at all, letting page headers render
+  // right under the physical cutout. env() resolves to 0 on devices
+  // without one, so this is a no-op there.
+  padding-top: calc(0.6rem + env(safe-area-inset-top, 0px));
 }
 
 .layout.mobile-shell .content {
-  padding-top: env(safe-area-inset-top, 0px);
   padding-bottom: calc(var(--shell-mobile-nav-offset) + 1rem);
 }
 

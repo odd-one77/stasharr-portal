@@ -438,7 +438,7 @@ export class TpdbAdapter implements CatalogAdapter {
           return {
             id: performerId,
             name: performerName,
-            gender: this.readString(extra?.gender),
+            gender: this.normalizeGender(this.readString(extra?.gender)),
             isFavorite: false,
             imageUrl:
               this.readString(parent?.image) ??

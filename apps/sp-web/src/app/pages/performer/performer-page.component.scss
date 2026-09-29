@@ -87,10 +87,13 @@ p {
 // fixed 3:4 cover tile did. It doesn't shrink on collapse -- an opacity
 // fade left it lingering semi-transparent for too much of the scroll,
 // overlapping (ghosting over) the info content scrolling up underneath
-// this sticky banner. A clip-path wipe instead cuts it away hard from the
-// bottom edge upward -- as if the info section below is wiping up over
-// it -- and finishes by the halfway point of the collapse instead of
-// dragging out the whole way.
+// this sticky banner. A soft mask wipes it away from the bottom edge
+// upward instead, as if the info section below is wiping up over it --
+// --wipe-band is a gradient (not a hard cutoff), and a matching blur
+// ramps in alongside it so the edge reads as a fade, not a hard line.
+// Both track --hero-collapse 1:1 across the whole 0..1 range, so the
+// wipe finishes exactly as the rest of the header finishes collapsing --
+// the same rate as the info content scrolling up beneath it.
 .portrait-card {
   position: absolute;
   top: 1rem;
@@ -104,8 +107,21 @@ p {
   border: 1px solid var(--media-detail-card-border);
   box-shadow: var(--media-detail-card-shadow);
   background: var(--media-detail-card-background);
-  clip-path: inset(0 0 calc(var(--hero-collapse, 0) * 200%) 0);
-  transition: clip-path 0.28s ease;
+  --wipe-band: 18%;
+  --wipe-start: calc(var(--hero-collapse, 0) * 100% - var(--wipe-band));
+  mask-image: linear-gradient(
+    to top,
+    transparent 0%,
+    transparent var(--wipe-start),
+    #000 calc(var(--wipe-start) + var(--wipe-band))
+  );
+  -webkit-mask-image: linear-gradient(
+    to top,
+    transparent 0%,
+    transparent var(--wipe-start),
+    #000 calc(var(--wipe-start) + var(--wipe-band))
+  );
+  filter: blur(calc(var(--hero-collapse, 0) * 7px));
 }
 
 .portrait-card img {
