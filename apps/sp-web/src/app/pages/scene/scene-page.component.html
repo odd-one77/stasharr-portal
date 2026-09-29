@@ -96,23 +96,20 @@
 
     <section class="hero-layout">
       <div class="hero-info">
-          <div class="title-action-row">
-            <div class="title-with-badge">
-              <h1>{{ scene.title }}</h1>
-              <app-scene-status-badge [status]="scene.status" />
-              @if (scene.releaseDate) {
-                <span class="date-pill">{{ scene.releaseDate }}</span>
-              }
-            </div>
-          </div>
+          <h1>{{ scene.title }}</h1>
 
-          <hr class="hero-divider" />
+          <app-scene-status-badge [status]="scene.status" />
 
-          <div class="meta-row">
+          <div class="date-duration-row">
+            @if (scene.releaseDate) {
+              <span class="date-pill">{{ scene.releaseDate }}</span>
+            }
             @if (formattedDuration(scene.duration); as duration) {
               <span class="meta-chip">{{ duration }}</span>
             }
           </div>
+
+          <hr class="hero-divider" />
 
           @if (scene.tags.length > 0) {
             <div class="hero-tags">

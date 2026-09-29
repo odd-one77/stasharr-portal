@@ -52,7 +52,7 @@ p {
 .hero-banner {
   position: relative;
   overflow: hidden;
-  height: calc(19rem - 14.5rem * var(--hero-collapse, 0));
+  height: calc(30rem - 25.5rem * var(--hero-collapse, 0));
   transition: height 0.32s cubic-bezier(0.22, 1, 0.36, 1);
   background: var(--media-detail-hero-background);
 }
@@ -89,11 +89,11 @@ p {
 // is compact.
 .portrait-card {
   position: absolute;
-  top: 1.2rem;
+  top: 1rem;
   left: 50%;
   transform: translateX(-50%);
   z-index: 2;
-  height: 13rem;
+  width: min(70%, 18rem);
   aspect-ratio: 3 / 4.2;
   border-radius: 14px;
   overflow: hidden;
@@ -127,12 +127,12 @@ p {
 .hero-cluster-name {
   position: absolute;
   left: calc(50% - (50% - 1rem) * var(--hero-collapse, 0));
-  bottom: calc(4rem - 2rem * var(--hero-collapse, 0));
+  bottom: calc(3rem - 1.4rem * var(--hero-collapse, 0));
   transform: translateX(calc(-50% * (1 - var(--hero-collapse, 0))));
   z-index: 3;
   width: max-content;
   max-width: min(80vw, 22rem);
-  font-size: calc(2.2rem - 1.15rem * var(--hero-collapse, 0));
+  font-size: calc(2.2rem - 0.75rem * var(--hero-collapse, 0));
   font-weight: 700;
   line-height: 1.1;
   color: var(--text-on-media);
@@ -150,7 +150,7 @@ p {
 .cluster-favorite {
   position: absolute;
   right: calc(0.8rem + env(safe-area-inset-right, 0px));
-  bottom: calc(4rem - 2rem * var(--hero-collapse, 0));
+  bottom: calc(3rem - 1.4rem * var(--hero-collapse, 0));
   z-index: 4;
   width: calc(2.6rem - 0.5rem * var(--hero-collapse, 0));
   height: calc(2.6rem - 0.5rem * var(--hero-collapse, 0));
@@ -384,20 +384,20 @@ main > button {
 
 @media (max-width: 880px) {
   .hero-banner {
-    height: calc(15rem - 10.5rem * var(--hero-collapse, 0));
+    height: calc(27rem - 22.5rem * var(--hero-collapse, 0));
   }
 
   .portrait-card {
-    height: 10rem;
+    top: 0.8rem;
   }
 
   .hero-cluster-name {
-    bottom: calc(3.2rem - 1.6rem * var(--hero-collapse, 0));
-    font-size: calc(1.7rem - 0.94rem * var(--hero-collapse, 0));
+    bottom: calc(2.3rem - 0.9rem * var(--hero-collapse, 0));
+    font-size: calc(1.7rem - 0.5rem * var(--hero-collapse, 0));
   }
 
   .cluster-favorite {
-    bottom: calc(3.2rem - 1.6rem * var(--hero-collapse, 0));
+    bottom: calc(2.3rem - 0.9rem * var(--hero-collapse, 0));
     width: calc(2.3rem - 0.4rem * var(--hero-collapse, 0));
     height: calc(2.3rem - 0.4rem * var(--hero-collapse, 0));
   }
@@ -414,12 +414,12 @@ main > button {
 
 @media (orientation: landscape) and (max-height: 500px) {
   .hero-banner {
-    height: calc(9rem - 4.5rem * var(--hero-collapse, 0));
+    height: calc(14rem - 9.5rem * var(--hero-collapse, 0));
   }
 
   .portrait-card {
-    height: 6.5rem;
-    top: 0.6rem;
+    top: 0.5rem;
+    width: min(50%, 9rem);
   }
 }
 

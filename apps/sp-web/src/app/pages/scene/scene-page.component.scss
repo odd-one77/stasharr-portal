@@ -94,7 +94,7 @@ p {
 .hero-cluster {
   position: absolute;
   left: calc(50% - (50% - 1rem) * var(--hero-collapse, 0));
-  bottom: calc(-4.1rem + 6.1rem * var(--hero-collapse, 0));
+  bottom: calc(-3.6rem + 5.6rem * var(--hero-collapse, 0));
   transform: translateX(calc(-50% * (1 - var(--hero-collapse, 0))));
   z-index: 3;
   transition:
@@ -105,7 +105,7 @@ p {
 
 .cluster-logo {
   display: inline-flex;
-  height: calc(5.5rem - 3.7rem * var(--hero-collapse, 0));
+  height: calc(4.8rem - 3.2rem * var(--hero-collapse, 0));
   text-decoration: none;
   transition: height 0.34s cubic-bezier(0.22, 1, 0.36, 1);
 }
@@ -173,20 +173,25 @@ a.cluster-logo:focus-visible {
 // (collapsed) spot. It doesn't travel itself -- it's invisible until the
 // logo/button travel is mostly done, then fades in over the remaining
 // distance (the max(0, (t - 0.6) * 2.5) gate holds it at 0 until
-// --hero-collapse passes 0.6, then ramps 0->1 over the rest). No
-// nowrap/ellipsis: long titles wrap instead of being cut off.
+// --hero-collapse passes 0.6, then ramps 0->1 over the rest). Single line
+// only -- a long title truncates with an ellipsis well before the play
+// button rather than wrapping (wrapping pushed a second line up into the
+// logo above it).
 .header-title {
   position: absolute;
   left: calc(0.8rem + env(safe-area-inset-left, 0px));
   bottom: calc(0.7rem + env(safe-area-inset-bottom, 0px));
   z-index: 3;
-  max-width: min(60vw, 16rem);
+  max-width: min(48vw, 13rem);
   margin: 0;
   font-size: 0.82rem;
   font-weight: 700;
-  line-height: 1.25;
+  line-height: 1.2;
   color: var(--text-on-media);
   text-shadow: 0 1px 3px rgb(0 0 0 / 55%);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   opacity: max(0, (var(--hero-collapse, 0) - 0.6) * 2.5);
 }
 
@@ -222,35 +227,31 @@ a.cluster-logo:focus-visible {
 }
 
 .hero-layout {
-  // Top padding clears the logo, which hangs 4.1rem below the banner's
+  // Top padding clears the logo, which hangs 3.6rem below the banner's
   // bottom edge at rest (see .hero-cluster).
   position: relative;
-  padding: 4.7rem 0.3rem 0;
+  padding: 4.2rem 0.3rem 0;
   color: var(--media-detail-text);
 }
 
 .hero-info {
   max-width: 760px;
   display: grid;
-  gap: 0.65rem;
+  gap: 0.55rem;
 }
 
-.title-action-row {
-  display: flex;
-  align-items: center;
-}
-
-.title-with-badge {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.6rem;
-}
-
-.title-with-badge h1 {
+.hero-info h1 {
   font-size: clamp(1.5rem, 4.4vw, 2.3rem);
   line-height: 1.08;
   text-wrap: balance;
+}
+
+// Date and duration share a row, spread to opposite ends.
+.date-duration-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
 }
 
 .date-pill {
@@ -272,12 +273,6 @@ a.cluster-logo:focus-visible {
   margin: 0;
   border: 0;
   background: var(--border-subtle);
-}
-
-.meta-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.45rem;
 }
 
 .meta-chip {
@@ -502,32 +497,29 @@ button {
   }
 
   .hero-layout {
-    padding-top: 3.6rem;
+    padding-top: 3.15rem;
   }
 
   .hero-cluster {
-    bottom: calc(-3rem + 4.6rem * var(--hero-collapse, 0));
+    bottom: calc(-2.55rem + 4.15rem * var(--hero-collapse, 0));
   }
 
   .cluster-logo {
-    height: calc(4rem - 2.4rem * var(--hero-collapse, 0));
+    height: calc(3.4rem - 1.8rem * var(--hero-collapse, 0));
   }
 
-  .title-with-badge h1 {
+  .hero-info h1 {
     font-size: clamp(1.3rem, 6vw, 1.8rem);
   }
 
   .cluster-action {
-    bottom: calc(-2.2rem + 3.9rem * var(--hero-collapse, 0));
-    padding: 0.44rem 0.8rem;
-  }
-
-  .cluster-action span {
-    display: none;
+    bottom: calc(-1.9rem + 3.6rem * var(--hero-collapse, 0));
+    padding: 0.4rem 0.7rem;
+    font-size: 0.82rem;
   }
 
   .header-title {
-    max-width: 9rem;
+    max-width: 8rem;
     font-size: 0.72rem;
   }
 }
