@@ -45,9 +45,11 @@ p {
 }
 
 .hero-banner {
+  // No border-radius: this sits directly under the viewport's top edge
+  // once stuck, and rounded top corners there just let scrolled-past
+  // content show through the corner cutouts.
   position: relative;
   overflow: hidden;
-  border-radius: 16px 16px 0 0;
   height: calc(15rem - 9.5rem * var(--hero-collapse, 0));
   transition: height 0.32s cubic-bezier(0.22, 1, 0.36, 1);
   background: var(--media-detail-hero-background);
@@ -75,16 +77,33 @@ p {
   );
 }
 
+// At rest this sits mostly below the banner's bottom edge (so it covers
+// less of the photo), centered via the classic left:50% + translateX(-50%)
+// trick. On collapse it slides up and left to settle in the top-left
+// corner of the now-compact header bar: `left` is interpolated from 50%
+// down to a fixed inset, while the translateX offset that centers it is
+// interpolated down to 0 in lockstep, so the two together trace a smooth
+// path from "centered" to "flush left" without ever mixing units badly.
 .studio-affordance-cluster {
   position: absolute;
-  left: 50%;
-  bottom: calc(-1.3rem + 4.6rem * var(--hero-collapse, 0));
-  transform: translateX(-50%);
+  left: calc(50% - (50% - 1rem) * var(--hero-collapse, 0));
+  bottom: calc(-3.6rem + 7.3rem * var(--hero-collapse, 0));
+  transform: translateX(calc(-50% * (1 - var(--hero-collapse, 0))));
   z-index: 3;
   display: inline-flex;
-  align-items: center;
+  align-items: flex-end;
   gap: 0.5rem;
-  transition: bottom 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+  transition:
+    left 0.32s cubic-bezier(0.22, 1, 0.36, 1),
+    bottom 0.32s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.cluster-logo-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.15rem;
 }
 
 .studio-logo-overlay {
@@ -118,26 +137,55 @@ a.studio-logo-overlay:focus-visible {
   filter: drop-shadow(0 1px 1px rgb(0 0 0 / 25%));
 }
 
+// A small copy of the scene title, hidden (zero opacity/height) at rest
+// and revealed only as the header collapses, so it reads as the title
+// "sliding" in underneath the logo once it settles into the header bar.
+.hero-collapsed-title {
+  max-width: 11rem;
+  font-size: 0.74rem;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--text-on-media);
+  text-shadow: 0 1px 3px rgb(0 0 0 / 55%);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  opacity: var(--hero-collapse, 0);
+  max-height: calc(1.1rem * var(--hero-collapse, 0));
+  transition:
+    opacity 0.28s ease,
+    max-height 0.28s ease;
+}
+
 .hero-cluster-play {
-  width: calc(2.9rem - 1.1rem * var(--hero-collapse, 0));
-  height: calc(2.9rem - 1.1rem * var(--hero-collapse, 0));
-  display: grid;
-  place-items: center;
-  padding: 0;
-  border: 1px solid var(--media-detail-subtle-action-border);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: calc(0.42rem - 0.14rem * var(--hero-collapse, 0))
+    calc(0.9rem - 0.32rem * var(--hero-collapse, 0));
+  border: 1px solid var(--media-detail-action-border);
   border-radius: 999px;
-  background: var(--media-detail-subtle-action-background);
+  background: var(--media-detail-action-background);
   color: var(--media-detail-action-text);
+  font-size: calc(0.86rem - 0.16rem * var(--hero-collapse, 0));
+  font-weight: 700;
+  white-space: nowrap;
   cursor: pointer;
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 14%);
   transition:
-    width 0.32s cubic-bezier(0.22, 1, 0.36, 1),
-    height 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+    padding 0.32s cubic-bezier(0.22, 1, 0.36, 1),
+    font-size 0.32s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .hero-cluster-play i {
-  font-size: calc(1.1rem - 0.35rem * var(--hero-collapse, 0));
+  font-size: 0.85em;
+}
+
+.hero-cluster-play.is-request {
+  border-color: color-mix(in srgb, var(--focus-ring) 40%, var(--border-strong));
+  background: color-mix(in srgb, var(--media-detail-action-background) 78%, var(--focus-ring) 22%);
 }
 
 .hero-cluster-play:focus-visible {
@@ -181,8 +229,10 @@ a.studio-logo-overlay:focus-visible {
 }
 
 .hero-layout {
+  // Top padding clears the logo cluster, which hangs 3.6rem below the
+  // banner's bottom edge at rest (see .studio-affordance-cluster).
   position: relative;
-  padding: 2.1rem 0.3rem 0;
+  padding: 4.2rem 0.3rem 0;
   color: var(--media-detail-text);
 }
 
@@ -302,24 +352,6 @@ a.studio-logo-overlay:focus-visible {
   font-size: 0.9em;
   font-weight: 700;
   opacity: 0.9;
-}
-
-:host ::ng-deep .hero-actions .p-button.play-action {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  border-color: color-mix(in srgb, var(--focus-ring) 55%, var(--border-strong));
-  background: color-mix(in srgb, var(--media-detail-action-background) 68%, var(--focus-ring) 32%);
-}
-
-:host ::ng-deep .hero-actions .p-button.play-action:not(:disabled):hover {
-  border-color: var(--focus-ring);
-  background: color-mix(in srgb, var(--media-detail-action-background) 58%, var(--focus-ring) 42%);
-}
-
-:host ::ng-deep .hero-actions .p-button.play-action:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
 }
 
 .stash-copy-selector {
@@ -470,11 +502,12 @@ button {
   }
 
   .hero-layout {
-    padding: 1.7rem 0.1rem 0;
+    padding: 3rem 0.1rem 0;
   }
 
   .studio-affordance-cluster {
-    bottom: calc(-1rem + 3.2rem * var(--hero-collapse, 0));
+    left: calc(50% - (50% - 0.7rem) * var(--hero-collapse, 0));
+    bottom: calc(-2.4rem + 5.6rem * var(--hero-collapse, 0));
     gap: 0.4rem;
   }
 
@@ -482,9 +515,14 @@ button {
     height: calc(4rem - 2.6rem * var(--hero-collapse, 0));
   }
 
+  .hero-collapsed-title {
+    max-width: 8rem;
+    font-size: 0.68rem;
+  }
+
   .hero-cluster-play {
-    width: calc(2.4rem - 0.8rem * var(--hero-collapse, 0));
-    height: calc(2.4rem - 0.8rem * var(--hero-collapse, 0));
+    padding: calc(0.34rem - 0.1rem * var(--hero-collapse, 0)) calc(0.7rem - 0.24rem * var(--hero-collapse, 0));
+    font-size: calc(0.78rem - 0.14rem * var(--hero-collapse, 0));
   }
 }
 

@@ -32,34 +32,38 @@
         <div class="hero-banner-fade" aria-hidden="true"></div>
       </div>
 
-      @if (scene.studioImageUrl || hasStashCopy(scene)) {
+      @if (scene.studioImageUrl || hasStashCopy(scene) || canRequestScene(scene)) {
         <div class="studio-affordance-cluster">
-          @if (scene.studioImageUrl) {
-            @if (scene.studioId) {
-              <a
-                class="studio-logo-overlay"
-                [routerLink]="['/studio', scene.studioId]"
-                [queryParams]="{ returnTo: currentRouteUrl() }"
-                [attr.aria-label]="studioLogoAriaLabel(scene)"
-              >
-                <img [src]="scene.studioImageUrl" alt="" />
-              </a>
-            } @else if (scene.studioUrl) {
-              <a
-                class="studio-logo-overlay"
-                [href]="scene.studioUrl"
-                target="_blank"
-                rel="noopener noreferrer"
-                [attr.aria-label]="studioLogoAriaLabel(scene)"
-              >
-                <img [src]="scene.studioImageUrl" alt="" />
-              </a>
-            } @else {
-              <div class="studio-logo-overlay" aria-hidden="true">
-                <img [src]="scene.studioImageUrl" alt="" />
-              </div>
+          <div class="cluster-logo-stack">
+            @if (scene.studioImageUrl) {
+              @if (scene.studioId) {
+                <a
+                  class="studio-logo-overlay"
+                  [routerLink]="['/studio', scene.studioId]"
+                  [queryParams]="{ returnTo: currentRouteUrl() }"
+                  [attr.aria-label]="studioLogoAriaLabel(scene)"
+                >
+                  <img [src]="scene.studioImageUrl" alt="" />
+                </a>
+              } @else if (scene.studioUrl) {
+                <a
+                  class="studio-logo-overlay"
+                  [href]="scene.studioUrl"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  [attr.aria-label]="studioLogoAriaLabel(scene)"
+                >
+                  <img [src]="scene.studioImageUrl" alt="" />
+                </a>
+              } @else {
+                <div class="studio-logo-overlay" aria-hidden="true">
+                  <img [src]="scene.studioImageUrl" alt="" />
+                </div>
+              }
             }
-          }
+
+            <p class="hero-collapsed-title" aria-hidden="true">{{ scene.title }}</p>
+          </div>
 
           @if (hasStashCopy(scene)) {
             <button
@@ -70,6 +74,18 @@
               (click)="playSelectedStashCopy(scene)"
             >
               <i class="pi pi-play" aria-hidden="true"></i>
+              <span>Play</span>
+            </button>
+          } @else if (canRequestScene(scene)) {
+            <button
+              type="button"
+              class="hero-cluster-play is-request"
+              aria-label="Request in Whisparr"
+              title="Request in Whisparr"
+              (click)="openRequestPanel(scene)"
+            >
+              <i class="pi pi-download" aria-hidden="true"></i>
+              <span>Request</span>
             </button>
           }
         </div>
@@ -129,20 +145,6 @@
                   </label>
 
                   @if (selectedStashViewUrl(scene); as selectedViewUrl) {
-                    <button
-                      pButton
-                      type="button"
-                      class="hero-action-button play-action"
-                      [attr.aria-label]="'Play ' + selectedStashLabel(scene)"
-                      [attr.title]="'Play ' + selectedStashLabel(scene)"
-                      (click)="playSelectedStashCopy(scene)"
-                    >
-                      <span class="external-action-label">
-                        Play ({{ selectedStashLabel(scene) }})
-                      </span>
-                      <i class="pi pi-play external-action-icon" aria-hidden="true"></i>
-                    </button>
-
                     <a
                       pButton
                       class="hero-action-button external-action"
@@ -163,18 +165,6 @@
                     </a>
                   }
                 } @else if (scene.stash!.copies[0]; as singleCopy) {
-                  <button
-                    pButton
-                    type="button"
-                    class="hero-action-button play-action"
-                    aria-label="Play"
-                    title="Play"
-                    (click)="playSelectedStashCopy(scene)"
-                  >
-                    <span class="external-action-label">Play</span>
-                    <i class="pi pi-play external-action-icon" aria-hidden="true"></i>
-                  </button>
-
                   <a
                     pButton
                     class="hero-action-button external-action"
@@ -226,24 +216,26 @@
     </section>
 
     <div class="content-shell app-section-stack">
-      <section class="section lifecycle-section app-section-panel">
-        <h2>Lifecycle</h2>
-        <p class="overview-text">{{ lifecycleSummary(scene) }}</p>
+      @if (scene.status.state !== 'AVAILABLE') {
+        <section class="section lifecycle-section app-section-panel">
+          <h2>Lifecycle</h2>
+          <p class="overview-text">{{ lifecycleSummary(scene) }}</p>
 
-        <div class="lifecycle-grid">
-          @for (step of lifecycleSteps(scene); track step.system) {
-            <article class="lifecycle-card">
-              <p class="overview-text">
-                <strong>{{ step.system }}</strong>
-              </p>
-              <p>
-                <strong>{{ step.title }}</strong>
-              </p>
-              <p class="overview-text">{{ step.detail }}</p>
-            </article>
-          }
-        </div>
-      </section>
+          <div class="lifecycle-grid">
+            @for (step of lifecycleSteps(scene); track step.system) {
+              <article class="lifecycle-card">
+                <p class="overview-text">
+                  <strong>{{ step.system }}</strong>
+                </p>
+                <p>
+                  <strong>{{ step.title }}</strong>
+                </p>
+                <p class="overview-text">{{ step.detail }}</p>
+              </article>
+            }
+          </div>
+        </section>
+      }
 
       @if (displayedDescription(scene.description); as description) {
         <section class="section overview-section app-section-panel">

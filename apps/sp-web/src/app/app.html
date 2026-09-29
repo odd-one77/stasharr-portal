@@ -1,8 +1,9 @@
 <div class="app-shell">
-  <div class="global-controls">
-    <app-theme-toggle class="global-theme-toggle" />
-    <app-image-obscuration-toggle class="global-image-obscuration-toggle" />
-  </div>
+  @if (isHomeRoute()) {
+    <div class="global-controls">
+      <app-theme-toggle class="global-theme-toggle" />
+    </div>
+  }
   <router-outlet></router-outlet>
   <app-video-player-overlay />
   <p-toast

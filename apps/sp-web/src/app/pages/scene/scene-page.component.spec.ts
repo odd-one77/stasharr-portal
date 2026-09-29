@@ -175,7 +175,7 @@ describe('ScenePageComponent', () => {
     const { fixture, playerService } = await renderScene(scene);
 
     const playButton = fixture.nativeElement.querySelector(
-      'button.play-action',
+      'button.hero-cluster-play',
     ) as HTMLButtonElement;
     expect(playButton).not.toBeNull();
 
