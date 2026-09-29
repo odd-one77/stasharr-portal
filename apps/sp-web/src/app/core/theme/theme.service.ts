@@ -10,7 +10,7 @@ export class ThemeService {
   private static readonly STORAGE_KEY = 'sp-theme';
 
   private readonly document = inject(DOCUMENT);
-  private readonly themeState = signal<ThemeMode>('light');
+  private readonly themeState = signal<ThemeMode>('dark');
 
   readonly theme: Signal<ThemeMode> = this.themeState.asReadonly();
 
@@ -30,19 +30,9 @@ export class ThemeService {
 
   private initializeTheme(): void {
     const stored = this.readStoredTheme();
-    const initialTheme = stored ?? this.detectSystemTheme();
+    const initialTheme = stored ?? 'dark';
     this.themeState.set(initialTheme);
     this.applyTheme(initialTheme);
-  }
-
-  private detectSystemTheme(): ThemeMode {
-    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
-      return 'light';
-    }
-
-    return window.matchMedia('(prefers-color-scheme: dark)').matches
-      ? 'dark'
-      : 'light';
   }
 
   private applyTheme(theme: ThemeMode): void {

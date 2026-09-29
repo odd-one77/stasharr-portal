@@ -37,6 +37,23 @@
           </div>
         }
       </div>
+
+      <button
+        type="button"
+        class="hero-header-favorite"
+        [style.--hero-collapse]="heroCollapseProgress()"
+        [class.active]="studio.isFavorite"
+        [disabled]="!canToggleFavoriteStudio(studio)"
+        [attr.aria-busy]="favoritingStudio()"
+        [attr.aria-label]="studioFavoriteLabel(studio)"
+        [title]="studioFavoriteLabel(studio)"
+        (click)="toggleFavoriteStudio(studio)"
+      >
+        <i
+          [class]="studio.isFavorite ? 'pi pi-star-fill' : 'pi pi-star'"
+          aria-hidden="true"
+        ></i>
+      </button>
     </div>
 
     <div class="hero-info">

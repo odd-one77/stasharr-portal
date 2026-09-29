@@ -34,10 +34,10 @@ p {
 // The scene backdrop: a wide, mostly-uncropped landscape banner (like a
 // media server's "cinematic" hero). The whole wrapper is sticky from the
 // top of the page, and --hero-collapse (scroll position, set in the
-// component) drives the banner's own height, the logo cluster's size, and
-// the cluster's vertical offset -- all with different coefficients, so as
-// the user scrolls the logo appears to slide up and settle into a compact
-// header bar at a different rate than the image collapsing behind it.
+// component) drives the banner's own height and the logo cluster's size
+// and vertical offset -- at different rates, so the logo appears to rise
+// and settle into a compact header bar as the image collapses behind it.
+// The cluster stays horizontally centered throughout.
 .hero-banner-wrap {
   position: sticky;
   top: 0;
@@ -77,51 +77,57 @@ p {
   );
 }
 
-// At rest this sits mostly below the banner's bottom edge (so it covers
-// less of the photo), centered via the classic left:50% + translateX(-50%)
-// trick. On collapse it slides up and left to settle in the top-left
-// corner of the now-compact header bar: `left` is interpolated from 50%
-// down to a fixed inset, while the translateX offset that centers it is
-// interpolated down to 0 in lockstep, so the two together trace a smooth
-// path from "centered" to "flush left" without ever mixing units badly.
+// Stays horizontally centered at every scroll position -- only its
+// vertical offset and size animate. At rest it sits mostly below the
+// banner's bottom edge (so it covers less of the photo); on collapse it
+// rises to settle inside the now-compact header bar, logo and play
+// button shrinking together in place.
 .studio-affordance-cluster {
   position: absolute;
-  left: calc(50% - (50% - 1rem) * var(--hero-collapse, 0));
+  left: 50%;
   bottom: calc(-3.6rem + 7.3rem * var(--hero-collapse, 0));
-  transform: translateX(calc(-50% * (1 - var(--hero-collapse, 0))));
+  transform: translateX(-50%);
   z-index: 3;
   display: inline-flex;
-  align-items: flex-end;
+  align-items: center;
   gap: 0.5rem;
-  transition:
-    left 0.32s cubic-bezier(0.22, 1, 0.36, 1),
-    bottom 0.32s cubic-bezier(0.22, 1, 0.36, 1),
-    transform 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+  transition: bottom 0.32s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
+// Reserves the same vertical space the logo image would occupy even when
+// a scene has no studio logo to show, so the collapsed title/button don't
+// drift to a different vertical position depending on whether a logo
+// happens to be present.
 .cluster-logo-stack {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
+  justify-content: flex-end;
   gap: 0.15rem;
+  min-height: calc(6.5rem - 4.7rem * var(--hero-collapse, 0));
 }
 
 .studio-logo-overlay {
   // Intrinsic width: the plaque shrink-wraps to whatever width the logo
   // actually renders at for this height, instead of showing a bar wider
-  // than the logo it holds.
+  // than the logo it holds. The dark blurred plaque behind it only
+  // appears once collapsing starts -- at rest, against the full-size
+  // banner, it's just the raw logo with no box behind it.
   height: calc(6.5rem - 4.7rem * var(--hero-collapse, 0));
   max-width: 15rem;
   border-radius: 1rem;
   padding: 0.38rem 0.75rem;
-  background: rgb(0 0 0 / 22%);
+  background: rgb(0 0 0 / calc(22% * var(--hero-collapse, 0)));
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(calc(6px * var(--hero-collapse, 0)));
+  -webkit-backdrop-filter: blur(calc(6px * var(--hero-collapse, 0)));
   text-decoration: none;
-  transition: height 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+  transition:
+    height 0.32s cubic-bezier(0.22, 1, 0.36, 1),
+    background 0.28s ease,
+    backdrop-filter 0.28s ease;
 }
 
 a.studio-logo-overlay:focus-visible {
@@ -137,9 +143,17 @@ a.studio-logo-overlay:focus-visible {
   filter: drop-shadow(0 1px 1px rgb(0 0 0 / 25%));
 }
 
-// A small copy of the scene title, hidden (zero opacity/height) at rest
-// and revealed only as the header collapses, so it reads as the title
-// "sliding" in underneath the logo once it settles into the header bar.
+// A small copy of the scene title, clipped to zero height at rest so it
+// takes no space until the header starts collapsing. The clip window
+// grows as .hero-collapsed-title itself both fades in AND slides upward
+// inside it, so it genuinely moves into place under the logo rather than
+// just appearing.
+.cluster-title-clip {
+  overflow: hidden;
+  height: calc(1.05rem * var(--hero-collapse, 0));
+  transition: height 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
 .hero-collapsed-title {
   max-width: 11rem;
   font-size: 0.74rem;
@@ -151,23 +165,27 @@ a.studio-logo-overlay:focus-visible {
   overflow: hidden;
   text-overflow: ellipsis;
   opacity: var(--hero-collapse, 0);
-  max-height: calc(1.1rem * var(--hero-collapse, 0));
+  transform: translateY(calc(0.45rem * (1 - var(--hero-collapse, 0))));
   transition:
     opacity 0.28s ease,
-    max-height 0.28s ease;
+    transform 0.28s ease;
 }
 
+// Sits to the right of the (always-centered) logo and rides along with
+// it as the cluster rises into the collapsed header, shrinking in step
+// so it still looks proportional once settled at its final, smaller
+// size next to the collapsed logo.
 .hero-cluster-play {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  padding: calc(0.42rem - 0.14rem * var(--hero-collapse, 0))
-    calc(0.9rem - 0.32rem * var(--hero-collapse, 0));
+  padding: calc(0.42rem - 0.1rem * var(--hero-collapse, 0))
+    calc(0.9rem - 0.26rem * var(--hero-collapse, 0));
   border: 1px solid var(--media-detail-action-border);
   border-radius: 999px;
   background: var(--media-detail-action-background);
   color: var(--media-detail-action-text);
-  font-size: calc(0.86rem - 0.16rem * var(--hero-collapse, 0));
+  font-size: calc(0.86rem - 0.14rem * var(--hero-collapse, 0));
   font-weight: 700;
   white-space: nowrap;
   cursor: pointer;
@@ -506,9 +524,12 @@ button {
   }
 
   .studio-affordance-cluster {
-    left: calc(50% - (50% - 0.7rem) * var(--hero-collapse, 0));
     bottom: calc(-2.4rem + 5.6rem * var(--hero-collapse, 0));
     gap: 0.4rem;
+  }
+
+  .cluster-logo-stack {
+    min-height: calc(4rem - 2.6rem * var(--hero-collapse, 0));
   }
 
   .studio-logo-overlay {
@@ -521,8 +542,9 @@ button {
   }
 
   .hero-cluster-play {
-    padding: calc(0.34rem - 0.1rem * var(--hero-collapse, 0)) calc(0.7rem - 0.24rem * var(--hero-collapse, 0));
-    font-size: calc(0.78rem - 0.14rem * var(--hero-collapse, 0));
+    padding: calc(0.34rem - 0.08rem * var(--hero-collapse, 0))
+      calc(0.7rem - 0.2rem * var(--hero-collapse, 0));
+    font-size: calc(0.78rem - 0.12rem * var(--hero-collapse, 0));
   }
 }
 

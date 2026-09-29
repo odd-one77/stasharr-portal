@@ -78,6 +78,39 @@ ul {
   }
 }
 
+// A second copy of the favorite star, invisible at rest and fading in as
+// the header collapses, positioned where the global theme/blur icons used
+// to sit (top-right of the viewport) now that those are gone from this
+// page. The original star in .hero-info stays for immediate use before
+// any scrolling -- this one takes over once that's scrolled out of view,
+// giving the impression of the same button riding up with the logo.
+.hero-header-favorite {
+  position: absolute;
+  top: calc(0.7rem + env(safe-area-inset-top, 0px));
+  right: calc(0.8rem + env(safe-area-inset-right, 0px));
+  width: 2.1rem;
+  height: 2.1rem;
+  border-radius: 999px;
+  border: 1px solid var(--border-strong);
+  background: var(--surface-elevated);
+  color: var(--text-muted);
+  display: grid;
+  place-items: center;
+  padding: 0;
+  cursor: pointer;
+  opacity: var(--hero-collapse, 0);
+  transition: opacity 0.28s ease;
+}
+
+.hero-header-favorite.active {
+  color: #ffcf4a;
+}
+
+.hero-header-favorite:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
 .hero-logo img {
   height: 100%;
   width: auto;
