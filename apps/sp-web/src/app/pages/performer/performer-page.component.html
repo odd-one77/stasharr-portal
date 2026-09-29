@@ -28,22 +28,29 @@
             [style.background-image]="'url(' + mainImage + ')'"
             aria-hidden="true"
           ></div>
-          <img class="hero-portrait" [src]="mainImage" [alt]="performer.name" />
-        } @else {
-          <div class="hero-portrait-placeholder" aria-hidden="true">
-            {{ performerInitial(performer.name) }}
-          </div>
         }
         <div class="hero-banner-fade" aria-hidden="true"></div>
       </div>
 
-      <div class="header-name-slot">
-        <p class="header-name" aria-hidden="true">{{ performer.name }}</p>
-      </div>
+      @if (performer.imageUrl; as mainImage) {
+        <div class="portrait-card">
+          <img [src]="mainImage" [alt]="performer.name" />
+        </div>
+      } @else {
+        <div class="portrait-card placeholder" aria-hidden="true">
+          {{ performerInitial(performer.name) }}
+        </div>
+      }
+
+      <!-- Single real name element: travels from centered-below-the-card
+           at rest up into the top-left corner as the banner collapses
+           (same technique as the scene page's studio logo), instead of
+           a crossfade between two copies. -->
+      <h1 class="hero-cluster-name">{{ performer.name }}</h1>
 
       <button
         type="button"
-        class="header-action"
+        class="cluster-favorite"
         [class.active]="performer.isFavorite"
         [disabled]="!canToggleFavoritePerformer(performer)"
         [attr.aria-busy]="favoritingPerformer()"
@@ -57,25 +64,7 @@
       </button>
     </div>
 
-    <div class="hero-below-banner">
-      <div class="name-row">
-        <h1>{{ performer.name }}</h1>
-        <button
-          type="button"
-          class="favorite-indicator"
-          [class.active]="performer.isFavorite"
-          [disabled]="!canToggleFavoritePerformer(performer)"
-          [attr.aria-busy]="favoritingPerformer()"
-          [attr.aria-label]="performer.isFavorite ? 'Unfavorite performer' : 'Favorite performer'"
-          (click)="toggleFavoritePerformer(performer)"
-        >
-          <i
-            [class]="performer.isFavorite ? 'pi pi-star-fill' : 'pi pi-star'"
-            aria-hidden="true"
-          ></i>
-        </button>
-      </div>
-
+    <div class="hero-info">
       @if (hasCarouselImages()) {
         <div class="carousel-controls">
           <button type="button" class="set-main-image" (click)="openMainImagePicker()">
@@ -83,9 +72,7 @@
           </button>
         </div>
       }
-    </div>
 
-    <div class="hero-info">
       @if (performer.disambiguation) {
         <p class="subheading">{{ performer.disambiguation }}</p>
       }
