@@ -1,7 +1,16 @@
-import { Component, HostListener, OnDestroy, OnInit, inject, signal } from '@angular/core';
+import {
+  Component,
+  ElementRef,
+  HostListener,
+  OnDestroy,
+  OnInit,
+  ViewChild,
+  inject,
+  signal,
+} from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Params, Router, RouterLink } from '@angular/router';
-import { Subscription, combineLatest, finalize } from 'rxjs';
+import { Subscription, catchError, combineLatest, finalize, of } from 'rxjs';
 import { ButtonDirective } from 'primeng/button';
 import { Message } from 'primeng/message';
 import { ProgressSpinner } from 'primeng/progressspinner';
@@ -13,9 +22,11 @@ import { SceneQuickRequestService } from '../../core/requests/scene-quick-reques
 import {
   SceneDetails,
   ScenePerformer,
+  SceneExplorerItem,
   SceneRequestContext,
   isSceneStatusRequestable,
 } from '../../core/api/discover.types';
+import { SceneCardComponent } from '../../shared/scene-card/scene-card.component';
 import { SceneRequestModalComponent } from '../../shared/scene-request-modal/scene-request-modal.component';
 import { SceneStatusBadgeComponent } from '../../shared/scene-status-badge/scene-status-badge.component';
 import { PlayerService } from '../../core/player/player.service';
@@ -37,6 +48,7 @@ interface SceneLifecycleStep {
     Select,
     ButtonDirective,
     SceneStatusBadgeComponent,
+    SceneCardComponent,
     SceneRequestModalComponent,
   ],
   templateUrl: './scene-page.component.html',
@@ -54,6 +66,9 @@ export class ScenePageComponent implements OnInit, OnDestroy {
   private previousFocusedElement: HTMLElement | null = null;
   private routeSubscription: Subscription | null = null;
 
+  @ViewChild('similarRailViewport')
+  private similarRailViewport?: ElementRef<HTMLDivElement>;
+
   protected readonly loading = signal(true);
   protected readonly error = signal<string | null>(null);
   protected readonly scene = signal<SceneDetails | null>(null);
@@ -67,6 +82,7 @@ export class ScenePageComponent implements OnInit, OnDestroy {
   protected readonly backLinkQueryParams = signal<Params>({});
   protected readonly backLinkLabel = signal('Back to Scenes');
   protected readonly heroCollapseProgress = signal(0);
+  protected readonly similarScenes = signal<SceneExplorerItem[]>([]);
 
   @HostListener('window:scroll')
   protected onWindowScroll(): void {
@@ -277,6 +293,39 @@ export class ScenePageComponent implements OnInit, OnDestroy {
     return isSceneStatusRequestable(scene.status);
   }
 
+  protected isSimilarSceneRequestable(item: SceneExplorerItem): boolean {
+    return item.requestable && isSceneStatusRequestable(item.status);
+  }
+
+  protected openSimilarSceneRequestModal(item: SceneRequestContext): void {
+    this.sceneQuickRequestService.tryQuickRequest(item.id).subscribe(({ submitted }) => {
+      if (submitted) {
+        this.similarScenes.update((current) =>
+          current.map((scene) =>
+            scene.id === item.id
+              ? { ...scene, requestable: false, status: { state: 'REQUESTED' } }
+              : scene,
+          ),
+        );
+        return;
+      }
+
+      this.previousFocusedElement = document.activeElement as HTMLElement | null;
+      this.requestContext.set(item);
+      this.requestModalOpen.set(true);
+    });
+  }
+
+  protected scrollSimilarRail(direction: 'prev' | 'next'): void {
+    const viewport = this.similarRailViewport?.nativeElement;
+    if (!viewport) {
+      return;
+    }
+
+    const delta = Math.max(viewport.clientWidth * 0.82, 320);
+    viewport.scrollBy({ left: direction === 'next' ? delta : -delta, behavior: 'smooth' });
+  }
+
   protected failedRemediationVisible(scene: SceneDetails): boolean {
     return scene.status.state === 'FAILED';
   }
@@ -432,8 +481,25 @@ export class ScenePageComponent implements OnInit, OnDestroy {
     }, 0);
   }
 
+  // The request modal is shared between the page's own scene and the
+  // Similar rail below -- a submission for the current scene reloads the
+  // whole page's state (status badge, actions, etc. all depend on it), but
+  // a submission for a similar-rail item must only patch that one card in
+  // place, or it would blow away the current scene and load the rail
+  // item's details into the hero instead.
   protected onRequestSubmitted(stashId: string): void {
-    this.loadScene(stashId);
+    if (stashId === this.scene()?.id) {
+      this.loadScene(stashId);
+      return;
+    }
+
+    this.similarScenes.update((current) =>
+      current.map((scene) =>
+        scene.id === stashId
+          ? { ...scene, requestable: false, status: { state: 'REQUESTED' } }
+          : scene,
+      ),
+    );
   }
 
   protected currentRouteUrl(): string {
@@ -458,6 +524,7 @@ export class ScenePageComponent implements OnInit, OnDestroy {
     this.selectedStashCopyUrl.set(null);
     this.requestModalOpen.set(false);
     this.performerFavoriteInFlightById.set({});
+    this.similarScenes.set([]);
 
     this.discoverService
       .getSceneDetails(stashIdParam)
@@ -475,10 +542,20 @@ export class ScenePageComponent implements OnInit, OnDestroy {
             title: scene.title,
             imageUrl: scene.imageUrl,
           });
+          this.loadSimilarScenes(scene.id);
         },
         error: () => {
           this.error.set('Failed to load scene details from the API.');
         },
+      });
+  }
+
+  private loadSimilarScenes(stashId: string): void {
+    this.discoverService
+      .getSimilarScenes(stashId)
+      .pipe(catchError(() => of({ items: [] as SceneExplorerItem[] })))
+      .subscribe((response) => {
+        this.similarScenes.set(response.items);
       });
   }
 

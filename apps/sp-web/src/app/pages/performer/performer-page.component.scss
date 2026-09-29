@@ -84,9 +84,13 @@ p {
 // The sharp portrait: a distinct rounded card over the blurred backdrop,
 // not stretched to fill the banner. A taller-than-3:4 ratio plus a
 // top-biased object-position crops much less aggressively than the old
-// fixed 3:4 cover tile did. It doesn't shrink on collapse -- it just
-// fades out, since there's no room for a card this size once the header
-// is compact.
+// fixed 3:4 cover tile did. It doesn't shrink on collapse -- an opacity
+// fade left it lingering semi-transparent for too much of the scroll,
+// overlapping (ghosting over) the info content scrolling up underneath
+// this sticky banner. A clip-path wipe instead cuts it away hard from the
+// bottom edge upward -- as if the info section below is wiping up over
+// it -- and finishes by the halfway point of the collapse instead of
+// dragging out the whole way.
 .portrait-card {
   position: absolute;
   top: 1rem;
@@ -100,8 +104,8 @@ p {
   border: 1px solid var(--media-detail-card-border);
   box-shadow: var(--media-detail-card-shadow);
   background: var(--media-detail-card-background);
-  opacity: max(0, 1 - var(--hero-collapse, 0) * 1.8);
-  transition: opacity 0.28s ease;
+  clip-path: inset(0 0 calc(var(--hero-collapse, 0) * 200%) 0);
+  transition: clip-path 0.28s ease;
 }
 
 .portrait-card img {

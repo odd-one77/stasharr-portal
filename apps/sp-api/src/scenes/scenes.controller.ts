@@ -1,9 +1,13 @@
 import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
 import { SceneTagOptionDto } from './dto/scene-tag-option.dto';
 import { SceneDetailsDto } from './dto/scene-details.dto';
-import { ScenesFeedResponseDto } from './dto/scenes-feed.dto';
+import {
+  ScenesFeedResponseDto,
+  SimilarScenesResponseDto,
+} from './dto/scenes-feed.dto';
 import { ScenesQueryDto } from './dto/scenes-query.dto';
 import { ScenesTagsQueryDto } from './dto/scenes-tags-query.dto';
+import { SimilarScenesQueryDto } from './dto/similar-scenes-query.dto';
 import { ToggleFavoriteDto } from './dto/toggle-favorite.dto';
 import { ScenesService } from './scenes.service';
 
@@ -46,6 +50,14 @@ export class ScenesController {
   @Get(':stashId')
   getSceneById(@Param('stashId') stashId: string): Promise<SceneDetailsDto> {
     return this.scenesService.getSceneById(stashId);
+  }
+
+  @Get(':stashId/similar')
+  getSimilarScenes(
+    @Param('stashId') stashId: string,
+    @Query() query: SimilarScenesQueryDto,
+  ): Promise<SimilarScenesResponseDto> {
+    return this.scenesService.getSimilarScenes(stashId, query.limit);
   }
 
   @Get(':stashId/stream')

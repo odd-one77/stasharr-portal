@@ -21,6 +21,7 @@ import {
   SceneDetails,
   SceneRequestOptions,
   ScenesFeedResponse,
+  SimilarScenesResponse,
   SubmitSceneRequestPayload,
   SubmitSceneRequestResponse,
   StudioDetails,
@@ -77,6 +78,18 @@ export class DiscoverService {
 
   getSceneDetails(stashId: string): Observable<SceneDetails> {
     return this.http.get<SceneDetails>(`/api/scenes/${encodeURIComponent(stashId)}`);
+  }
+
+  getSimilarScenes(stashId: string, limit?: number): Observable<SimilarScenesResponse> {
+    let params = new HttpParams();
+    if (limit) {
+      params = params.set('limit', limit.toString());
+    }
+
+    return this.http.get<SimilarScenesResponse>(
+      `/api/scenes/${encodeURIComponent(stashId)}/similar`,
+      { params },
+    );
   }
 
   getSceneStreamUrl(stashId: string, copyId?: string): Observable<ScenePlaybackSource> {

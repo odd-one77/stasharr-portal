@@ -32,6 +32,10 @@
         <div class="hero-banner-fade" aria-hidden="true"></div>
       </div>
 
+      @if (formattedDuration(scene.duration); as duration) {
+        <span class="banner-duration">{{ duration }}</span>
+      }
+
       <!-- A single real logo element travels from a mostly-below-the-image
            rest position up into the top-left corner as the banner
            collapses (no separate rest-state copy). The play/request
@@ -67,27 +71,29 @@
         </div>
       }
 
+      <!-- Small icon-only duplicate of the real button below (.rest-action,
+           now in the date/duration row) -- invisible at rest, fades in
+           once the logo has mostly finished traveling, same gating as
+           .header-title. -->
       @if (hasStashCopy(scene)) {
         <button
           type="button"
-          class="cluster-action"
+          class="header-action"
           aria-label="Play"
           title="Play"
           (click)="playSelectedStashCopy(scene)"
         >
           <i class="pi pi-play" aria-hidden="true"></i>
-          <span>Play</span>
         </button>
       } @else if (canRequestScene(scene)) {
         <button
           type="button"
-          class="cluster-action is-request"
+          class="header-action is-request"
           aria-label="Request in Whisparr"
           title="Request in Whisparr"
           (click)="openRequestPanel(scene)"
         >
           <i class="pi pi-download" aria-hidden="true"></i>
-          <span>Request</span>
         </button>
       }
 
@@ -104,29 +110,33 @@
             @if (scene.releaseDate) {
               <span class="date-pill">{{ scene.releaseDate }}</span>
             }
-            @if (formattedDuration(scene.duration); as duration) {
-              <span class="meta-chip">{{ duration }}</span>
+
+            @if (hasStashCopy(scene)) {
+              <button
+                type="button"
+                class="rest-action"
+                aria-label="Play"
+                title="Play"
+                (click)="playSelectedStashCopy(scene)"
+              >
+                <i class="pi pi-play" aria-hidden="true"></i>
+                <span>Play</span>
+              </button>
+            } @else if (canRequestScene(scene)) {
+              <button
+                type="button"
+                class="rest-action is-request"
+                aria-label="Request in Whisparr"
+                title="Request in Whisparr"
+                (click)="openRequestPanel(scene)"
+              >
+                <i class="pi pi-download" aria-hidden="true"></i>
+                <span>Request</span>
+              </button>
             }
           </div>
 
           <hr class="hero-divider" />
-
-          @if (scene.tags.length > 0) {
-            <div class="hero-tags">
-              @for (tag of scene.tags; track tag.id; let idx = $index) {
-                @if (idx < 4) {
-                  <a
-                    class="meta-chip tag-link"
-                    [routerLink]="['/scenes']"
-                    [queryParams]="{ tags: tag.id, tagNames: tag.name }"
-                    [attr.aria-label]="'Open scenes tagged ' + tag.name"
-                  >
-                    {{ tag.name }}
-                  </a>
-                }
-              }
-            </div>
-          }
 
           @if (hasStashCopy(scene) || hasWhisparrLink(scene)) {
             <div class="hero-actions app-action-row">
@@ -289,6 +299,47 @@
                 </div>
               </article>
             }
+          </div>
+        </section>
+      }
+
+      @if (similarScenes().length > 0) {
+        <section class="section similar-section">
+          <div class="similar-head">
+            <h2>Similar</h2>
+            <div class="similar-actions app-action-row">
+              <button
+                type="button"
+                class="scroll-button"
+                (click)="scrollSimilarRail('prev')"
+                aria-label="Scroll similar scenes left"
+              >
+                <i class="pi pi-angle-left" aria-hidden="true"></i>
+              </button>
+              <button
+                type="button"
+                class="scroll-button"
+                (click)="scrollSimilarRail('next')"
+                aria-label="Scroll similar scenes right"
+              >
+                <i class="pi pi-angle-right" aria-hidden="true"></i>
+              </button>
+            </div>
+          </div>
+
+          <div class="similar-viewport" #similarRailViewport>
+            <div class="similar-track">
+              @for (item of similarScenes(); track item.id) {
+                <app-scene-card
+                  class="similar-card"
+                  [item]="item"
+                  variant="rail"
+                  [requestable]="isSimilarSceneRequestable(item)"
+                  [sceneQueryParams]="{ returnTo: currentRouteUrl() }"
+                  (request)="openSimilarSceneRequestModal($event)"
+                />
+              }
+            </div>
           </div>
         </section>
       }

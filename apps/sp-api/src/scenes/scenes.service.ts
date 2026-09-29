@@ -22,7 +22,10 @@ import {
   SceneStashAvailabilityDto,
   SceneWhisparrAvailabilityDto,
 } from './dto/scene-details.dto';
-import { ScenesFeedResponseDto } from './dto/scenes-feed.dto';
+import {
+  ScenesFeedResponseDto,
+  SimilarScenesResponseDto,
+} from './dto/scenes-feed.dto';
 import {
   SceneFavoritesFilter,
   SceneFeedSort,
@@ -38,6 +41,13 @@ export class ScenesService {
   // Bounded by favorited-performer count, not catalog size -- see
   // getFavoritePerformerScenesFeed.
   private static readonly FAVORITE_PERFORMER_SCENES_PER_PERFORMER_CAP = 60;
+
+  // Same per-performer cap and reasoning as the favorites feed above --
+  // bounded by the current scene's own cast size, not catalog size. Newest
+  // scenes only per performer, so a library scene older than a cast
+  // member's most recent 60 releases won't surface here.
+  private static readonly SIMILAR_SCENES_PER_PERFORMER_CAP = 60;
+  private static readonly SIMILAR_SCENES_DEFAULT_LIMIT = 12;
 
   constructor(
     private readonly integrationsService: IntegrationsService,
@@ -340,6 +350,78 @@ export class ScenesService {
       status,
       stash,
       whisparr,
+    };
+  }
+
+  // "Similar" is defined narrowly as: already in the local library, and
+  // shares at least one performer with this scene. There's no provider
+  // "similar scenes" endpoint to lean on (same situation as favorited
+  // performers -- see getFavoritePerformerScenesFeed above), so this
+  // fetches each cast member's own recent scenes, dedupes, and keeps only
+  // the ones already resolved as AVAILABLE.
+  async getSimilarScenes(
+    stashId: string,
+    limit = ScenesService.SIMILAR_SCENES_DEFAULT_LIMIT,
+  ): Promise<SimilarScenesResponseDto> {
+    const scene = await this.getSceneById(stashId);
+    const performerIds = scene.performers.map((performer) => performer.id);
+    if (performerIds.length === 0) {
+      return { items: [] };
+    }
+
+    const catalogProvider =
+      await this.catalogProviderService.getConfiguredCatalogProvider();
+    const catalogAdapter =
+      await this.catalogProviderService.getConfiguredCatalogAdapter();
+
+    const perPerformerScenes = await Promise.all(
+      performerIds.map(async (performerId): Promise<StashdbScene[]> => {
+        try {
+          const result = await catalogAdapter.getScenesForPerformer({
+            baseUrl: catalogProvider.baseUrl,
+            apiKey: catalogProvider.apiKey,
+            performerId,
+            page: 1,
+            perPage: ScenesService.SIMILAR_SCENES_PER_PERFORMER_CAP,
+            sort: 'DATE',
+            direction: 'DESC',
+          });
+          return result.scenes;
+        } catch {
+          // Deleted/merged upstream, or this performer has no scenes --
+          // drop it rather than fail the whole rail.
+          return [];
+        }
+      }),
+    );
+
+    const dedupedScenes = new Map<string, StashdbScene>();
+    for (const candidate of perPerformerScenes.flat()) {
+      if (candidate.id !== scene.id && !dedupedScenes.has(candidate.id)) {
+        dedupedScenes.set(candidate.id, candidate);
+      }
+    }
+
+    const candidates = [...dedupedScenes.values()];
+    const statuses = await this.sceneStatusService.resolveForScenes(
+      candidates.map((candidate) => candidate.id),
+    );
+    const libraryScenes = candidates.filter(
+      (candidate) => statuses.get(candidate.id)?.state === 'AVAILABLE',
+    );
+
+    const sorted = this.sortScenesLocally(libraryScenes, 'DATE', 'DESC');
+
+    return {
+      items: sorted.slice(0, limit).map((candidate) => {
+        const status = statuses.get(candidate.id) ?? { state: 'NOT_REQUESTED' };
+        return this.toScenesFeedItem(
+          candidate,
+          catalogProvider.integrationType,
+          status,
+          isSceneStatusRequestable(status),
+        );
+      }),
     };
   }
 

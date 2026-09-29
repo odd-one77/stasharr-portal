@@ -974,6 +974,135 @@ describe('ScenesService', () => {
     );
   });
 
+  describe('getSimilarScenes', () => {
+    function buildCandidate(overrides: Partial<Record<string, unknown>> = {}) {
+      return {
+        id: 'candidate-1',
+        title: 'Candidate Scene',
+        details: null,
+        imageUrl: null,
+        studioId: 'studio-1',
+        studioName: 'Studio',
+        studioImageUrl: null,
+        date: '2026-01-01',
+        releaseDate: '2026-01-01',
+        productionDate: null,
+        duration: 300,
+        isFromExcludedNetwork: false,
+        ...overrides,
+      };
+    }
+
+    it('returns an empty rail without calling the provider when the scene has no performers', async () => {
+      catalogAdapter.getSceneById = jest
+        .fn()
+        .mockResolvedValue({ ...sceneDetails, performers: [] });
+
+      const result = await service.getSimilarScenes('stashdb-scene-1');
+
+      expect(catalogAdapter.getScenesForPerformer).not.toHaveBeenCalled();
+      expect(result).toEqual({ items: [] });
+    });
+
+    it('aggregates each cast member scenes, dedupes, excludes the current scene, and keeps only library scenes', async () => {
+      catalogAdapter.getSceneById = jest.fn().mockResolvedValue({
+        ...sceneDetails,
+        id: 'current-scene',
+        performers: [
+          { id: 'performer-1', name: 'A', gender: null, isFavorite: false, imageUrl: null },
+          { id: 'performer-2', name: 'B', gender: null, isFavorite: false, imageUrl: null },
+        ],
+      });
+      catalogAdapter.getScenesForPerformer = jest
+        .fn()
+        .mockImplementation((config: { performerId: string }) => {
+          if (config.performerId === 'performer-1') {
+            return Promise.resolve({
+              total: 2,
+              scenes: [
+                buildCandidate({ id: 'shared-scene' }),
+                buildCandidate({ id: 'current-scene' }),
+              ],
+            });
+          }
+
+          return Promise.resolve({
+            total: 2,
+            scenes: [
+              buildCandidate({ id: 'shared-scene' }),
+              buildCandidate({ id: 'not-in-library' }),
+            ],
+          });
+        });
+      sceneStatusService.resolveForScenes = jest.fn().mockResolvedValue(
+        new Map([
+          ['shared-scene', { state: 'AVAILABLE' }],
+          ['current-scene', { state: 'AVAILABLE' }],
+          ['not-in-library', { state: 'NOT_REQUESTED' }],
+        ]),
+      );
+
+      const result = await service.getSimilarScenes('current-scene');
+
+      expect(catalogAdapter.getScenesForPerformer).toHaveBeenCalledTimes(2);
+      expect(result.items.map((item) => item.id)).toEqual(['shared-scene']);
+    });
+
+    it('drops a performer whose scenes fail to load instead of failing the whole rail', async () => {
+      catalogAdapter.getSceneById = jest.fn().mockResolvedValue({
+        ...sceneDetails,
+        performers: [
+          { id: 'performer-1', name: 'A', gender: null, isFavorite: false, imageUrl: null },
+          { id: 'performer-2', name: 'B', gender: null, isFavorite: false, imageUrl: null },
+        ],
+      });
+      catalogAdapter.getScenesForPerformer = jest
+        .fn()
+        .mockImplementation((config: { performerId: string }) => {
+          if (config.performerId === 'performer-2') {
+            return Promise.reject(new Error('not found'));
+          }
+          return Promise.resolve({
+            total: 1,
+            scenes: [buildCandidate({ id: 'surviving-scene' })],
+          });
+        });
+      sceneStatusService.resolveForScenes = jest
+        .fn()
+        .mockResolvedValue(new Map([['surviving-scene', { state: 'AVAILABLE' }]]));
+
+      const result = await service.getSimilarScenes('stashdb-scene-1');
+
+      expect(result.items.map((item) => item.id)).toEqual(['surviving-scene']);
+    });
+
+    it('caps the rail at the requested limit', async () => {
+      catalogAdapter.getSceneById = jest.fn().mockResolvedValue({
+        ...sceneDetails,
+        performers: [
+          { id: 'performer-1', name: 'A', gender: null, isFavorite: false, imageUrl: null },
+        ],
+      });
+      const scenes = Array.from({ length: 5 }, (_, index) =>
+        buildCandidate({ id: `scene-${index}`, releaseDate: `2026-01-0${index + 1}` }),
+      );
+      catalogAdapter.getScenesForPerformer = jest
+        .fn()
+        .mockResolvedValue({ total: scenes.length, scenes });
+      sceneStatusService.resolveForScenes = jest
+        .fn()
+        .mockResolvedValue(
+          new Map(scenes.map((scene) => [scene.id, { state: 'AVAILABLE' }])),
+        );
+
+      const result = await service.getSimilarScenes('stashdb-scene-1', 2);
+
+      expect(result.items).toHaveLength(2);
+      // Newest first.
+      expect(result.items.map((item) => item.id)).toEqual(['scene-4', 'scene-3']);
+    });
+  });
+
   describe('getSceneStreamUrl', () => {
     const copies = [
       {

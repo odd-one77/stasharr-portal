@@ -52,6 +52,10 @@ export interface ScenesFeedResponse {
   items: SceneExplorerItem[];
 }
 
+export interface SimilarScenesResponse {
+  items: SceneExplorerItem[];
+}
+
 export type SceneFeedSort = 'DATE' | 'TRENDING' | 'TITLE' | 'CREATED_AT' | 'UPDATED_AT';
 export type SortDirection = 'ASC' | 'DESC';
 

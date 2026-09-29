@@ -45,6 +45,7 @@ describe('ScenePageComponent', () => {
           duration: 600,
         }),
       ),
+      getSimilarScenes: vi.fn().mockReturnValue(of({ items: [] })),
     };
     const activatedRoute = {
       paramMap: of(convertToParamMap({ stashId: scene.id })),
@@ -142,7 +143,7 @@ describe('ScenePageComponent', () => {
     expect(discoverService.getSceneDetails).toHaveBeenCalledWith('scene-1');
     expect(text).toContain('Resolve or retry this download in Whisparr.');
     expect(text).not.toContain('Retry in Whisparr');
-    expect(fixture.nativeElement.querySelector('.cluster-action.is-request')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.rest-action.is-request')).toBeNull();
     expect(
       fixture.nativeElement.querySelector('a[href="http://whisparr.local/movie/scene-1"]')
         ?.textContent,
@@ -153,7 +154,7 @@ describe('ScenePageComponent', () => {
     const { fixture } = await renderScene(buildScene());
 
     const requestButton = fixture.nativeElement.querySelector(
-      '.cluster-action.is-request',
+      '.rest-action.is-request',
     ) as HTMLButtonElement | null;
     expect(requestButton?.getAttribute('aria-label')).toBe('Request in Whisparr');
   });
@@ -178,7 +179,7 @@ describe('ScenePageComponent', () => {
     const { fixture, playerService } = await renderScene(scene);
 
     const playButton = fixture.nativeElement.querySelector(
-      'button.cluster-action',
+      'button.rest-action',
     ) as HTMLButtonElement;
     expect(playButton).not.toBeNull();
 

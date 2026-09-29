@@ -35,12 +35,14 @@ p {
 // media server's "cinematic" hero), full-bleed across the viewport. The
 // wrapper is sticky from the top of the page; --hero-collapse (scroll
 // position, set in the component) drives the banner's own height/blur.
-// The logo and play/request button are each a SINGLE real element that
-// physically travels from its rest position (mostly below the image,
-// only slightly overlapping it) up into the header's top corners as the
-// banner collapses -- not a crossfade between two copies. The title is
-// the one duplicate: invisible at rest, and its opacity ramp is gated to
-// only start once the travel is mostly finished (see .header-title).
+// The logo is a SINGLE real element that physically travels from its
+// rest position (mostly below the image, only slightly overlapping it)
+// up into the header's top-left corner as the banner collapses. The
+// title and play/request button are each a duplicate instead: the real
+// ones live below in .hero-layout (title as the page's actual <h1>, the
+// button in .date-duration-row), and small header-only copies
+// (.header-title/.header-action) are invisible at rest, fading in only
+// once the logo's travel is mostly finished.
 .hero-banner-wrap {
   position: sticky;
   top: 0;
@@ -53,7 +55,10 @@ p {
 .hero-banner {
   position: relative;
   overflow: hidden;
-  height: calc(16rem - 11.5rem * var(--hero-collapse, 0));
+  // Taller than before -- the banner is full-bleed now, so on wide
+  // viewports a short box needs a lot of vertical crop to fill that width.
+  // A taller box needs less.
+  height: calc(19rem - 14.5rem * var(--hero-collapse, 0));
   transition: height 0.32s cubic-bezier(0.22, 1, 0.36, 1);
   background: var(--media-detail-hero-background);
 }
@@ -123,50 +128,59 @@ a.cluster-logo:focus-visible {
   filter: drop-shadow(0 1px 3px rgb(0 0 0 / 35%));
 }
 
-// Same travel technique as .hero-cluster but mirrored to the right edge,
-// and only the vertical offset needs to interpolate since it's already
-// flush right at rest.
-.cluster-action {
+// A small video-style duration badge over the top-right of the banner.
+// Fades out as the header collapses -- there's no room for it once the
+// banner is a thin strip, and the header already has its own icon button
+// there by then.
+.banner-duration {
   position: absolute;
+  top: calc(0.8rem + env(safe-area-inset-top, 0px));
   right: calc(0.8rem + env(safe-area-inset-right, 0px));
-  bottom: calc(-3rem + 5rem * var(--hero-collapse, 0));
+  z-index: 2;
+  padding: 0.2rem 0.56rem;
+  border-radius: 999px;
+  background: rgb(0 0 0 / 55%);
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 700;
+  opacity: max(0, 1 - var(--hero-collapse, 0) * 2.2);
+  transition: opacity 0.24s ease;
+}
+
+// The real play/request button lives in .date-duration-row now (see
+// .rest-action below) -- this is just a small icon-only duplicate for the
+// collapsed header, invisible at rest and fading in once the logo has
+// mostly finished traveling (same gate as .header-title).
+.header-action {
+  position: absolute;
+  top: calc(0.7rem + env(safe-area-inset-top, 0px));
+  right: calc(0.8rem + env(safe-area-inset-right, 0px));
   z-index: 4;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  padding: 0.5rem 1.05rem;
+  width: 2.6rem;
+  height: 2.6rem;
+  display: grid;
+  place-items: center;
+  padding: 0;
   border: 1px solid var(--media-detail-action-border);
   border-radius: 999px;
   background: var(--media-detail-action-background);
   color: var(--media-detail-action-text);
-  font-size: 0.95rem;
-  font-weight: 700;
-  white-space: nowrap;
+  font-size: 1.1rem;
   cursor: pointer;
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 14%);
-  transform-origin: right center;
-  transform: scale(calc(1 - 0.32 * var(--hero-collapse, 0)));
-  transition:
-    bottom 0.34s cubic-bezier(0.22, 1, 0.36, 1),
-    transform 0.34s cubic-bezier(0.22, 1, 0.36, 1);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  opacity: max(0, (var(--hero-collapse, 0) - 0.6) * 2.5);
+  transition: opacity 0.24s ease;
 }
 
-.cluster-action i {
-  font-size: 0.85em;
-}
-
-.cluster-action.is-request {
+.header-action.is-request {
   border-color: color-mix(in srgb, var(--focus-ring) 40%, var(--border-strong));
   background: color-mix(in srgb, var(--media-detail-action-background) 78%, var(--focus-ring) 22%);
 }
 
-.cluster-action:focus-visible {
+.header-action:focus-visible {
   outline: 2px solid var(--focus-ring);
   outline-offset: 2px;
-}
-
-.cluster-action:hover {
-  border-color: color-mix(in srgb, var(--focus-ring) 55%, var(--border-strong));
 }
 
 // A duplicate of the title, positioned to sit under the logo's final
@@ -182,7 +196,7 @@ a.cluster-logo:focus-visible {
   left: calc(0.8rem + env(safe-area-inset-left, 0px));
   bottom: calc(0.7rem + env(safe-area-inset-bottom, 0px));
   z-index: 3;
-  max-width: min(48vw, 13rem);
+  max-width: min(56vw, 17rem);
   margin: 0;
   font-size: 0.82rem;
   font-weight: 700;
@@ -227,10 +241,11 @@ a.cluster-logo:focus-visible {
 }
 
 .hero-layout {
-  // Top padding clears the logo, which hangs 3.6rem below the banner's
-  // bottom edge at rest (see .hero-cluster).
+  // Top padding clears the logo (which hangs 3.6rem below the banner's
+  // bottom edge at rest -- see .hero-cluster) plus extra breathing room
+  // between the logo and the title below it.
   position: relative;
-  padding: 4.2rem 0.3rem 0;
+  padding: 5.4rem 0.3rem 0;
   color: var(--media-detail-text);
 }
 
@@ -267,6 +282,44 @@ a.cluster-logo:focus-visible {
   padding: 0.2rem 0.64rem;
 }
 
+// The real play/request action -- sits opposite the date, in its own
+// spacious row rather than crowded against the logo, so it can afford to
+// be a bit bigger than it was there.
+.rest-action {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.42rem;
+  padding: 0.56rem 1.2rem;
+  border: 1px solid var(--media-detail-action-border);
+  border-radius: 999px;
+  background: var(--media-detail-action-background);
+  color: var(--media-detail-action-text);
+  font-size: 1rem;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 14%);
+}
+
+.rest-action i {
+  font-size: 0.85em;
+}
+
+.rest-action.is-request {
+  border-color: color-mix(in srgb, var(--focus-ring) 40%, var(--border-strong));
+  background: color-mix(in srgb, var(--media-detail-action-background) 78%, var(--focus-ring) 22%);
+}
+
+.rest-action:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.rest-action:hover {
+  border-color: color-mix(in srgb, var(--focus-ring) 55%, var(--border-strong));
+}
+
 .hero-divider {
   width: 100%;
   height: 1px;
@@ -297,12 +350,6 @@ a.cluster-logo:focus-visible {
 .tag-link:focus-visible {
   outline: 2px solid var(--focus-ring);
   outline-offset: 2px;
-}
-
-.hero-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem;
 }
 
 .hero-actions {
@@ -426,6 +473,67 @@ button {
   line-height: 1.58;
 }
 
+// Horizontally-scrolling rail, same pattern as the Home page's rails.
+.similar-section {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.similar-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+}
+
+.similar-actions {
+  gap: 0.55rem;
+}
+
+.scroll-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.4rem;
+  min-width: 2.4rem;
+  height: 2.4rem;
+  padding: 0;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--border-strong) 74%, transparent);
+  background: var(--surface-hero-button-background);
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.similar-viewport {
+  overflow-x: auto;
+  padding-bottom: 0.35rem;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x proximity;
+  scrollbar-width: thin;
+}
+
+.similar-track {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: clamp(220px, 42vw, 300px);
+  gap: 0.7rem;
+}
+
+.similar-track > .similar-card {
+  scroll-snap-align: start;
+}
+
+@media (max-width: 720px) {
+  .similar-track {
+    grid-auto-columns: minmax(76vw, 76vw);
+  }
+
+  .scroll-button {
+    display: none;
+  }
+}
+
 .performer-grid {
   display: grid;
   gap: 0.75rem;
@@ -493,11 +601,11 @@ button {
 
 @media (max-width: 880px) {
   .hero-banner {
-    height: calc(11rem - 6.5rem * var(--hero-collapse, 0));
+    height: calc(13.5rem - 9rem * var(--hero-collapse, 0));
   }
 
   .hero-layout {
-    padding-top: 3.15rem;
+    padding-top: 4.2rem;
   }
 
   .hero-cluster {
@@ -512,15 +620,24 @@ button {
     font-size: clamp(1.3rem, 6vw, 1.8rem);
   }
 
-  .cluster-action {
-    bottom: calc(-1.9rem + 3.6rem * var(--hero-collapse, 0));
-    padding: 0.4rem 0.7rem;
-    font-size: 0.82rem;
+  .rest-action {
+    padding: 0.48rem 0.95rem;
+    font-size: 0.88rem;
+  }
+
+  .banner-duration {
+    font-size: 0.72rem;
   }
 
   .header-title {
-    max-width: 8rem;
+    max-width: 10.5rem;
     font-size: 0.72rem;
+  }
+
+  .header-action {
+    width: 2.3rem;
+    height: 2.3rem;
+    font-size: 1rem;
   }
 }
 

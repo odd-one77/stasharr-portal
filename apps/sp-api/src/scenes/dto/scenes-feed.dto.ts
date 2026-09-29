@@ -25,3 +25,7 @@ export class ScenesFeedResponseDto {
   hasMore!: boolean;
   items!: ScenesFeedItemDto[];
 }
+
+export class SimilarScenesResponseDto {
+  items!: ScenesFeedItemDto[];
+}
