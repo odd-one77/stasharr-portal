@@ -20,7 +20,7 @@
     <p-message severity="error" styleClass="app-page-message">{{ error() }}</p-message>
     <button pButton type="button" (click)="retry()">Retry</button>
   } @else if (scene(); as scene) {
-    <div class="hero-banner-wrap">
+    <div class="hero-banner-wrap" [style.--hero-collapse]="heroCollapseProgress()">
       <div class="hero-banner">
         @if (scene.imageUrl) {
           <div
@@ -32,7 +32,7 @@
         <div class="hero-banner-fade" aria-hidden="true"></div>
       </div>
 
-      @if (scene.studioImageUrl || scene.studioId) {
+      @if (scene.studioImageUrl || hasStashCopy(scene)) {
         <div class="studio-affordance-cluster">
           @if (scene.studioImageUrl) {
             @if (scene.studioId) {
@@ -61,21 +61,15 @@
             }
           }
 
-          @if (scene.studioId) {
+          @if (hasStashCopy(scene)) {
             <button
               type="button"
-              class="studio-favorite-indicator"
-              [class.active]="scene.studioIsFavorite"
-              [disabled]="!canToggleFavoriteStudio(scene)"
-              [attr.aria-busy]="favoritingStudio()"
-              [attr.aria-label]="studioFavoriteAriaLabel(scene)"
-              [attr.title]="studioFavoriteTitle(scene)"
-              (click)="toggleFavoriteStudio(scene)"
+              class="hero-cluster-play"
+              aria-label="Play"
+              title="Play"
+              (click)="playSelectedStashCopy(scene)"
             >
-              <i
-                [class]="scene.studioIsFavorite ? 'pi pi-star-fill' : 'pi pi-star'"
-                aria-hidden="true"
-              ></i>
+              <i class="pi pi-play" aria-hidden="true"></i>
             </button>
           }
         </div>
@@ -83,14 +77,6 @@
     </div>
 
     <section class="hero-layout">
-      <div class="poster-card">
-        @if (posterImageUrl(scene); as posterUrl) {
-          <img class="poster-image" [src]="posterUrl" [alt]="scene.title" />
-        } @else {
-          <div class="poster-image placeholder" aria-hidden="true"></div>
-        }
-      </div>
-
       <div class="hero-info">
           <div class="title-row">
             <h1>{{ scene.title }}</h1>

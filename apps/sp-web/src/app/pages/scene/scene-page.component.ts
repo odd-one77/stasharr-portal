@@ -1,4 +1,13 @@
-import { Component, ElementRef, OnDestroy, OnInit, ViewChild, inject, signal } from '@angular/core';
+import {
+  Component,
+  ElementRef,
+  HostListener,
+  OnDestroy,
+  OnInit,
+  ViewChild,
+  inject,
+  signal,
+} from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Params, Router, RouterLink } from '@angular/router';
 import { Subscription, combineLatest, finalize } from 'rxjs';
@@ -43,6 +52,8 @@ interface SceneLifecycleStep {
   styleUrl: './scene-page.component.scss',
 })
 export class ScenePageComponent implements OnInit, OnDestroy {
+  private static readonly HERO_COLLAPSE_DISTANCE = 240;
+
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly discoverService = inject(DiscoverService);
@@ -67,8 +78,19 @@ export class ScenePageComponent implements OnInit, OnDestroy {
   protected readonly backLinkPath = signal('/scenes');
   protected readonly backLinkQueryParams = signal<Params>({});
   protected readonly backLinkLabel = signal('Back to Scenes');
+  protected readonly heroCollapseProgress = signal(0);
+
+  @HostListener('window:scroll')
+  protected onWindowScroll(): void {
+    const progress = Math.min(
+      1,
+      Math.max(0, window.scrollY / ScenePageComponent.HERO_COLLAPSE_DISTANCE),
+    );
+    this.heroCollapseProgress.set(progress);
+  }
 
   ngOnInit(): void {
+    this.onWindowScroll();
     this.routeSubscription = combineLatest([
       this.route.paramMap,
       this.route.queryParamMap,
