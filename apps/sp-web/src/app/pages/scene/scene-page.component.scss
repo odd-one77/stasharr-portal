@@ -40,7 +40,11 @@ p {
 // fading in only once the logo's travel is mostly finished.
 .hero-banner-wrap {
   position: sticky;
-  top: 0;
+  // Not plain 0: once scrolling pins this, `top: 0` would tuck it right
+  // under a device's notch/status bar in standalone web-app mode. Pinning
+  // to the safe-area inset instead keeps it clear at every scroll
+  // position, not just before the first scroll.
+  top: env(safe-area-inset-top, 0px);
   z-index: 20;
   // Full-bleed breakout: cancels <main>'s own side padding without using
   // 100vw (which can overlap the app's persistent sidebar).
@@ -103,10 +107,9 @@ p {
 .hero-cluster {
   position: absolute;
   left: calc(50% - (50% - 1rem) * var(--hero-collapse, 0));
-  // A small slice of the logo's own height overlaps the bottom of the
-  // image at rest (rather than sitting entirely below it) -- a fully
-  // detached logo read as disconnected from the banner above it.
-  bottom: calc(0.6rem + 1.4rem * var(--hero-collapse, 0));
+  // Roughly a quarter of the logo's own height overlaps the bottom of
+  // the image at rest, the rest hanging below it.
+  bottom: calc(-3.6rem + 5.6rem * var(--hero-collapse, 0));
   transform: translateX(calc(-50% * (1 - var(--hero-collapse, 0))));
   z-index: 3;
   transition: all 0.34s cubic-bezier(0.22, 1, 0.36, 1);
@@ -555,7 +558,7 @@ button {
   }
 
   .hero-cluster {
-    bottom: calc(0.4rem + 1.2rem * var(--hero-collapse, 0));
+    bottom: calc(-2.6rem + 4.2rem * var(--hero-collapse, 0));
   }
 
   .cluster-logo {

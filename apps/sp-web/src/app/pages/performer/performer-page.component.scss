@@ -44,7 +44,9 @@ p {
 // corner, mirroring the scene page's play/request button.
 .hero-banner-wrap {
   position: sticky;
-  top: 0;
+  // Not plain 0: once scrolling pins this, `top: 0` would tuck it right
+  // under a device's notch/status bar in standalone web-app mode.
+  top: env(safe-area-inset-top, 0px);
   z-index: 20;
   margin-inline: -1rem;
 }
