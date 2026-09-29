@@ -23,10 +23,6 @@ p {
   margin: 0;
 }
 
-.error {
-  color: var(--danger);
-}
-
 .back-link {
   margin-bottom: 0.95rem;
 }
@@ -102,10 +98,7 @@ p {
   bottom: calc(-3.6rem + 5.6rem * var(--hero-collapse, 0));
   transform: translateX(calc(-50% * (1 - var(--hero-collapse, 0))));
   z-index: 3;
-  transition:
-    left 0.34s cubic-bezier(0.22, 1, 0.36, 1),
-    bottom 0.34s cubic-bezier(0.22, 1, 0.36, 1),
-    transform 0.34s cubic-bezier(0.22, 1, 0.36, 1);
+  transition: all 0.34s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .cluster-logo {
@@ -113,11 +106,6 @@ p {
   height: calc(4.8rem - 3.2rem * var(--hero-collapse, 0));
   text-decoration: none;
   transition: height 0.34s cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-a.cluster-logo:focus-visible {
-  outline: 2px solid var(--focus-ring);
-  outline-offset: 2px;
 }
 
 .cluster-logo img {
@@ -173,16 +161,6 @@ a.cluster-logo:focus-visible {
   transition: opacity 0.24s ease;
 }
 
-.header-action.is-request {
-  border-color: color-mix(in srgb, var(--focus-ring) 40%, var(--border-strong));
-  background: color-mix(in srgb, var(--media-detail-action-background) 78%, var(--focus-ring) 22%);
-}
-
-.header-action:focus-visible {
-  outline: 2px solid var(--focus-ring);
-  outline-offset: 2px;
-}
-
 // A duplicate of the title, positioned to sit under the logo's final
 // (collapsed) spot. It doesn't travel itself -- it's invisible until the
 // logo/button travel is mostly done, then fades in over the remaining
@@ -210,6 +188,10 @@ a.cluster-logo:focus-visible {
 }
 
 .performer-favorite {
+  position: absolute;
+  top: 0.45rem;
+  right: 0.5rem;
+  z-index: 1;
   width: 1.7rem;
   height: 1.7rem;
   display: grid;
@@ -228,11 +210,6 @@ a.cluster-logo:focus-visible {
 
 .performer-favorite.is-favorite {
   color: var(--media-gold);
-}
-
-.performer-favorite:focus-visible {
-  outline: 2px solid var(--focus-ring);
-  outline-offset: 2px;
 }
 
 .performer-favorite:disabled {
@@ -306,12 +283,16 @@ a.cluster-logo:focus-visible {
   font-size: 0.85em;
 }
 
+.header-action.is-request,
 .rest-action.is-request {
   border-color: color-mix(in srgb, var(--focus-ring) 40%, var(--border-strong));
   background: color-mix(in srgb, var(--media-detail-action-background) 78%, var(--focus-ring) 22%);
 }
 
-.rest-action:focus-visible {
+.rest-action:focus-visible,
+.tag-link:focus-visible,
+.performer-favorite:focus-visible,
+:host ::ng-deep .hero-actions .p-button:focus-visible {
   outline: 2px solid var(--focus-ring);
   outline-offset: 2px;
 }
@@ -328,16 +309,6 @@ a.cluster-logo:focus-visible {
   background: var(--border-subtle);
 }
 
-.meta-chip {
-  border-radius: 999px;
-  border: 1px solid var(--media-detail-chip-border);
-  background: var(--media-detail-chip-background);
-  color: var(--media-detail-chip-text);
-  font-size: 0.8rem;
-  font-weight: 600;
-  padding: 0.18rem 0.56rem;
-}
-
 .tag-link {
   color: inherit;
   text-decoration: none;
@@ -345,11 +316,6 @@ a.cluster-logo:focus-visible {
 
 .tag-link:hover {
   border-color: color-mix(in srgb, var(--focus-ring) 62%, var(--media-detail-chip-border));
-}
-
-.tag-link:focus-visible {
-  outline: 2px solid var(--focus-ring);
-  outline-offset: 2px;
 }
 
 .hero-actions {
@@ -377,22 +343,12 @@ a.cluster-logo:focus-visible {
   background: color-mix(in srgb, var(--media-detail-action-background) 82%, var(--focus-ring) 18%);
 }
 
-:host ::ng-deep .hero-actions .p-button:focus-visible {
-  outline: 2px solid var(--focus-ring);
-  outline-offset: 2px;
-}
-
 :host ::ng-deep .hero-actions .p-button.external-action {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
   border-color: color-mix(in srgb, var(--focus-ring) 30%, var(--border-strong));
   background: color-mix(in srgb, var(--media-detail-action-background) 88%, var(--focus-ring) 12%);
-}
-
-:host ::ng-deep .hero-actions .p-button.external-action:not(:disabled):hover {
-  border-color: color-mix(in srgb, var(--focus-ring) 72%, var(--border-strong));
-  background: color-mix(in srgb, var(--media-detail-action-background) 78%, var(--focus-ring) 22%);
 }
 
 .external-action-icon {
@@ -559,13 +515,6 @@ button {
 .performer-link-stretch:focus-visible {
   outline: 2px solid var(--focus-ring);
   outline-offset: -2px;
-}
-
-.performer-favorite {
-  position: absolute;
-  top: 0.45rem;
-  right: 0.5rem;
-  z-index: 1;
 }
 
 .performer-image {

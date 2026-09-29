@@ -45,6 +45,7 @@ import {
   StudioDetails,
   isSceneStatusRequestable,
 } from '../../core/api/discover.types';
+import { computeHeroCollapseProgress } from '../../shared/scroll/hero-collapse.util';
 import { SceneCardComponent } from '../../shared/scene-card/scene-card.component';
 import { SceneRequestModalComponent } from '../../shared/scene-request-modal/scene-request-modal.component';
 
@@ -188,12 +189,11 @@ export class StudioPageComponent implements OnInit, AfterViewInit, OnDestroy {
   protected readonly heroCollapseProgress = signal(0);
 
   @HostListener('window:scroll')
+  @HostListener('window:resize')
   protected onWindowScroll(): void {
-    const progress = Math.min(
-      1,
-      Math.max(0, window.scrollY / StudioPageComponent.HERO_COLLAPSE_DISTANCE),
+    this.heroCollapseProgress.set(
+      computeHeroCollapseProgress(StudioPageComponent.HERO_COLLAPSE_DISTANCE),
     );
-    this.heroCollapseProgress.set(progress);
   }
 
   protected readonly backLinkPath = signal('/studios');
