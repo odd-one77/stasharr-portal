@@ -103,7 +103,10 @@ p {
 .hero-cluster {
   position: absolute;
   left: calc(50% - (50% - 1rem) * var(--hero-collapse, 0));
-  bottom: calc(-3.6rem + 5.6rem * var(--hero-collapse, 0));
+  // Sits entirely below the image at rest (a small gap, no overlap) so it
+  // never covers any of the photo, however short the photo ends up being
+  // now that it's never cropped.
+  bottom: calc(-5rem + 7rem * var(--hero-collapse, 0));
   transform: translateX(calc(-50% * (1 - var(--hero-collapse, 0))));
   z-index: 3;
   transition: all 0.34s cubic-bezier(0.22, 1, 0.36, 1);
@@ -149,7 +152,11 @@ p {
 .cluster-action {
   position: absolute;
   right: calc(0.8rem + env(safe-area-inset-right, 0px));
-  bottom: calc(-3.6rem + 5.6rem * var(--hero-collapse, 0));
+  // Rest position hangs down to sit alongside the status badge/date row
+  // in .hero-info below (not next to the logo), so it reads as part of
+  // that row rather than crowding the banner -- it still lands in the
+  // same top-right corner as the logo's top-left once collapsed.
+  bottom: calc(-9rem + 11rem * var(--hero-collapse, 0));
   z-index: 4;
   display: inline-flex;
   align-items: center;
@@ -230,11 +237,14 @@ p {
 }
 
 .hero-layout {
-  // Top padding clears the logo (which hangs 3.6rem below the banner's
+  // Top padding clears the logo (which hangs 5rem below the banner's
   // bottom edge at rest -- see .hero-cluster) plus extra breathing room
-  // between the logo and the title below it.
+  // between the logo and the title below it. The play/request button
+  // hangs much deeper (see .cluster-action) and is meant to visually
+  // land on the status/date rows here, so it doesn't need its own
+  // clearance -- it overlays them on purpose.
   position: relative;
-  padding: 5.4rem 0.3rem 0;
+  padding: 6.8rem 0.3rem 0;
   color: var(--media-detail-text);
 }
 
@@ -541,11 +551,11 @@ button {
   }
 
   .hero-layout {
-    padding-top: 4.2rem;
+    padding-top: 4.8rem;
   }
 
   .hero-cluster {
-    bottom: calc(-2.55rem + 4.15rem * var(--hero-collapse, 0));
+    bottom: calc(-3.6rem + 5.2rem * var(--hero-collapse, 0));
   }
 
   .cluster-logo {
@@ -557,7 +567,7 @@ button {
   }
 
   .cluster-action {
-    bottom: calc(-2.55rem + 4.15rem * var(--hero-collapse, 0));
+    bottom: calc(-8.5rem + 10rem * var(--hero-collapse, 0));
     padding: 0.48rem 0.95rem;
     font-size: 0.88rem;
   }
