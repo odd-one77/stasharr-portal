@@ -32,25 +32,28 @@ p {
 }
 
 // The scene backdrop: a wide, mostly-uncropped landscape banner (like a
-// media server's "cinematic" hero). The wrapper is sticky from the top of
-// the page; --hero-collapse (scroll position, set in the component)
-// drives the banner's own height/blur and crossfades the collapsed
-// header content (.header-logo-slot/.header-action, both fixed-size and
-// absolutely positioned) in as the equivalent rest-state elements below
-// scroll out of view underneath it.
+// media server's "cinematic" hero), full-bleed across the viewport. The
+// wrapper is sticky from the top of the page; --hero-collapse (scroll
+// position, set in the component) drives the banner's own height/blur.
+// The logo and play/request button are each a SINGLE real element that
+// physically travels from its rest position (mostly below the image,
+// only slightly overlapping it) up into the header's top corners as the
+// banner collapses -- not a crossfade between two copies. The title is
+// the one duplicate: invisible at rest, and its opacity ramp is gated to
+// only start once the travel is mostly finished (see .header-title).
 .hero-banner-wrap {
   position: sticky;
   top: 0;
   z-index: 20;
+  // Full-bleed breakout: cancels <main>'s own side padding without using
+  // 100vw (which can overlap the app's persistent sidebar).
+  margin-inline: -1rem;
 }
 
 .hero-banner {
-  // No border-radius: this sits directly under the viewport's top edge
-  // once stuck, and rounded top corners there just let scrolled-past
-  // content show through the corner cutouts.
   position: relative;
   overflow: hidden;
-  height: calc(15rem - 9.5rem * var(--hero-collapse, 0));
+  height: calc(16rem - 11.5rem * var(--hero-collapse, 0));
   transition: height 0.32s cubic-bezier(0.22, 1, 0.36, 1);
   background: var(--media-detail-hero-background);
 }
@@ -79,177 +82,112 @@ p {
   );
 }
 
-.header-logo-slot {
+// Travels from centered (left: 50% + translateX(-50%)) to flush against
+// the left edge: `left` interpolates from 50% down to a fixed inset while
+// the translateX that centers it interpolates down to 0 in lockstep, so
+// the two together trace one smooth path instead of mixing units badly.
+// Vertically it sits mostly below the banner at rest (only ~1/4 of its
+// own height overlaps the photo) and rises to sit just under the top
+// edge once collapsed. No background/blur plaque at rest -- it's just
+// the raw logo over the photo; the collapsed header's only backdrop is
+// the blurred banner image itself.
+.hero-cluster {
   position: absolute;
-  top: calc(0.7rem + env(safe-area-inset-top, 0px));
-  left: calc(0.8rem + env(safe-area-inset-left, 0px));
+  left: calc(50% - (50% - 1rem) * var(--hero-collapse, 0));
+  bottom: calc(-4.1rem + 6.1rem * var(--hero-collapse, 0));
+  transform: translateX(calc(-50% * (1 - var(--hero-collapse, 0))));
   z-index: 3;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 0.1rem;
-  opacity: var(--hero-collapse, 0);
-  transition: opacity 0.24s ease;
+  transition:
+    left 0.34s cubic-bezier(0.22, 1, 0.36, 1),
+    bottom 0.34s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.34s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.header-logo {
-  height: 2.2rem;
-  max-width: 9rem;
-  border-radius: 0.6rem;
-  padding: 0.28rem 0.55rem;
-  background: rgb(0 0 0 / 24%);
+.cluster-logo {
   display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
+  height: calc(5.5rem - 3.7rem * var(--hero-collapse, 0));
   text-decoration: none;
+  transition: height 0.34s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-a.header-logo:focus-visible {
+a.cluster-logo:focus-visible {
   outline: 2px solid var(--focus-ring);
   outline-offset: 2px;
 }
 
-.header-logo img {
+.cluster-logo img {
   height: 100%;
   width: auto;
-  max-width: 100%;
+  max-width: min(70vw, 20rem);
   object-fit: contain;
-  filter: drop-shadow(0 1px 1px rgb(0 0 0 / 25%));
+  filter: drop-shadow(0 1px 3px rgb(0 0 0 / 35%));
 }
 
-.header-title {
-  max-width: 11rem;
-  margin: 0;
-  font-size: 0.72rem;
-  font-weight: 700;
-  line-height: 1.2;
-  color: var(--text-on-media);
-  text-shadow: 0 1px 3px rgb(0 0 0 / 55%);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.header-action {
+// Same travel technique as .hero-cluster but mirrored to the right edge,
+// and only the vertical offset needs to interpolate since it's already
+// flush right at rest.
+.cluster-action {
   position: absolute;
-  top: calc(0.7rem + env(safe-area-inset-top, 0px));
   right: calc(0.8rem + env(safe-area-inset-right, 0px));
+  bottom: calc(-3rem + 5rem * var(--hero-collapse, 0));
   z-index: 4;
-  width: 2.1rem;
-  height: 2.1rem;
-  display: grid;
-  place-items: center;
-  padding: 0;
-  border: 1px solid var(--media-detail-action-border);
-  border-radius: 999px;
-  background: var(--media-detail-action-background);
-  color: var(--media-detail-action-text);
-  cursor: pointer;
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
-  opacity: var(--hero-collapse, 0);
-  transition: opacity 0.24s ease;
-}
-
-.header-action.is-request {
-  border-color: color-mix(in srgb, var(--focus-ring) 40%, var(--border-strong));
-  background: color-mix(in srgb, var(--media-detail-action-background) 78%, var(--focus-ring) 22%);
-}
-
-.header-action:focus-visible {
-  outline: 2px solid var(--focus-ring);
-  outline-offset: 2px;
-}
-
-// Rest-state content: normal document flow, directly below the banner
-// (not overlapping it). Scrolls away on its own -- the header content
-// above takes over once this is out of view.
-.hero-below-banner {
-  padding: 1.3rem 0.3rem 0;
-  display: grid;
-  gap: 0.85rem;
-}
-
-.rest-logo-wrap {
-  display: flex;
-  justify-content: center;
-}
-
-.rest-logo {
-  display: inline-flex;
-  height: 5.5rem;
-  text-decoration: none;
-}
-
-a.rest-logo:focus-visible {
-  outline: 2px solid var(--focus-ring);
-  outline-offset: 2px;
-  border-radius: 0.4rem;
-}
-
-.rest-logo img {
-  height: 100%;
-  width: auto;
-  max-width: min(80vw, 22rem);
-  object-fit: contain;
-}
-
-.title-action-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.8rem;
-}
-
-.title-with-badge {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.6rem;
-  min-width: 0;
-}
-
-.title-with-badge h1 {
-  font-size: clamp(1.5rem, 4.4vw, 2.3rem);
-  line-height: 1.08;
-  text-wrap: balance;
-}
-
-.rest-action {
-  flex-shrink: 0;
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  padding: 0.42rem 0.9rem;
+  padding: 0.5rem 1.05rem;
   border: 1px solid var(--media-detail-action-border);
   border-radius: 999px;
   background: var(--media-detail-action-background);
   color: var(--media-detail-action-text);
-  font-size: 0.86rem;
+  font-size: 0.95rem;
   font-weight: 700;
   white-space: nowrap;
   cursor: pointer;
   box-shadow: inset 0 1px 0 rgb(255 255 255 / 14%);
+  transform-origin: right center;
+  transform: scale(calc(1 - 0.32 * var(--hero-collapse, 0)));
+  transition:
+    bottom 0.34s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.34s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.rest-action i {
+.cluster-action i {
   font-size: 0.85em;
 }
 
-.rest-action.is-request {
+.cluster-action.is-request {
   border-color: color-mix(in srgb, var(--focus-ring) 40%, var(--border-strong));
   background: color-mix(in srgb, var(--media-detail-action-background) 78%, var(--focus-ring) 22%);
 }
 
-.rest-action:focus-visible {
+.cluster-action:focus-visible {
   outline: 2px solid var(--focus-ring);
   outline-offset: 2px;
 }
 
-.rest-action:hover {
+.cluster-action:hover {
   border-color: color-mix(in srgb, var(--focus-ring) 55%, var(--border-strong));
+}
+
+// A duplicate of the title, positioned to sit under the logo's final
+// (collapsed) spot. It doesn't travel itself -- it's invisible until the
+// logo/button travel is mostly done, then fades in over the remaining
+// distance (the max(0, (t - 0.6) * 2.5) gate holds it at 0 until
+// --hero-collapse passes 0.6, then ramps 0->1 over the rest). No
+// nowrap/ellipsis: long titles wrap instead of being cut off.
+.header-title {
+  position: absolute;
+  left: calc(0.8rem + env(safe-area-inset-left, 0px));
+  bottom: calc(0.7rem + env(safe-area-inset-bottom, 0px));
+  z-index: 3;
+  max-width: min(60vw, 16rem);
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--text-on-media);
+  text-shadow: 0 1px 3px rgb(0 0 0 / 55%);
+  opacity: max(0, (var(--hero-collapse, 0) - 0.6) * 2.5);
 }
 
 .performer-favorite {
@@ -284,18 +222,38 @@ a.rest-logo:focus-visible {
 }
 
 .hero-layout {
+  // Top padding clears the logo, which hangs 4.1rem below the banner's
+  // bottom edge at rest (see .hero-cluster).
   position: relative;
-  padding: 1.4rem 0.3rem 0;
+  padding: 4.7rem 0.3rem 0;
   color: var(--media-detail-text);
 }
 
 .hero-info {
   max-width: 760px;
   display: grid;
-  gap: 0.7rem;
+  gap: 0.65rem;
 }
 
-.release-subheading {
+.title-action-row {
+  display: flex;
+  align-items: center;
+}
+
+.title-with-badge {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.title-with-badge h1 {
+  font-size: clamp(1.5rem, 4.4vw, 2.3rem);
+  line-height: 1.08;
+  text-wrap: balance;
+}
+
+.date-pill {
   width: fit-content;
   font-size: 0.86rem;
   font-weight: 700;
@@ -306,6 +264,14 @@ a.rest-logo:focus-visible {
   border: 1px solid var(--media-detail-kicker-border);
   border-radius: 999px;
   padding: 0.2rem 0.64rem;
+}
+
+.hero-divider {
+  width: 100%;
+  height: 1px;
+  margin: 0;
+  border: 0;
+  background: var(--border-subtle);
 }
 
 .meta-row {
@@ -535,47 +501,55 @@ button {
     height: calc(11rem - 6.5rem * var(--hero-collapse, 0));
   }
 
-  .rest-logo {
-    height: 4rem;
+  .hero-layout {
+    padding-top: 3.6rem;
+  }
+
+  .hero-cluster {
+    bottom: calc(-3rem + 4.6rem * var(--hero-collapse, 0));
+  }
+
+  .cluster-logo {
+    height: calc(4rem - 2.4rem * var(--hero-collapse, 0));
   }
 
   .title-with-badge h1 {
     font-size: clamp(1.3rem, 6vw, 1.8rem);
   }
 
-  .rest-action span {
+  .cluster-action {
+    bottom: calc(-2.2rem + 3.9rem * var(--hero-collapse, 0));
+    padding: 0.44rem 0.8rem;
+  }
+
+  .cluster-action span {
     display: none;
   }
 
-  .rest-action {
-    padding: 0.5rem;
-  }
-
-  .header-logo {
-    height: 1.9rem;
-    max-width: 6.5rem;
-  }
-
   .header-title {
-    max-width: 7rem;
-    font-size: 0.66rem;
+    max-width: 9rem;
+    font-size: 0.72rem;
   }
+}
 
-  .header-action {
-    width: 1.9rem;
-    height: 1.9rem;
+// .app-page-shell's own side padding shrinks from 1rem to 0.85rem below
+// this breakpoint -- match it so the full-bleed breakout doesn't overshoot
+// the viewport edge.
+@media (max-width: 640px) {
+  .hero-banner-wrap {
+    margin-inline: -0.85rem;
   }
 }
 
 // A phone in landscape is wide enough to miss the max-width breakpoint
 // above but still has very little vertical room -- shrink the banner and
-// rest-state logo there too, keyed off height rather than width.
+// logo there too, keyed off height rather than width.
 @media (orientation: landscape) and (max-height: 500px) {
   .hero-banner {
     height: calc(8rem - 4.5rem * var(--hero-collapse, 0));
   }
 
-  .rest-logo {
-    height: 3.2rem;
+  .cluster-logo {
+    height: calc(3.2rem - 1.6rem * var(--hero-collapse, 0));
   }
 }

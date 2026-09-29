@@ -32,71 +32,17 @@
         <div class="hero-banner-fade" aria-hidden="true"></div>
       </div>
 
-      <!-- Collapsed header content: invisible at rest, fades in as the
-           banner shrinks. The rest-state logo/title/action below live in
-           normal document flow and simply scroll away underneath this. -->
-      @if (scene.studioImageUrl || scene.title) {
-        <div class="header-logo-slot">
-          @if (scene.studioImageUrl) {
-            @if (scene.studioId) {
-              <a
-                class="header-logo"
-                [routerLink]="['/studio', scene.studioId]"
-                [queryParams]="{ returnTo: currentRouteUrl() }"
-                [attr.aria-label]="studioLogoAriaLabel(scene)"
-              >
-                <img [src]="scene.studioImageUrl" alt="" />
-              </a>
-            } @else if (scene.studioUrl) {
-              <a
-                class="header-logo"
-                [href]="scene.studioUrl"
-                target="_blank"
-                rel="noopener noreferrer"
-                [attr.aria-label]="studioLogoAriaLabel(scene)"
-              >
-                <img [src]="scene.studioImageUrl" alt="" />
-              </a>
-            } @else {
-              <div class="header-logo" aria-hidden="true">
-                <img [src]="scene.studioImageUrl" alt="" />
-              </div>
-            }
-          }
-
-          <p class="header-title" aria-hidden="true">{{ scene.title }}</p>
-        </div>
-      }
-
-      @if (hasStashCopy(scene)) {
-        <button
-          type="button"
-          class="header-action"
-          aria-label="Play"
-          title="Play"
-          (click)="playSelectedStashCopy(scene)"
-        >
-          <i class="pi pi-play" aria-hidden="true"></i>
-        </button>
-      } @else if (canRequestScene(scene)) {
-        <button
-          type="button"
-          class="header-action is-request"
-          aria-label="Request in Whisparr"
-          title="Request in Whisparr"
-          (click)="openRequestPanel(scene)"
-        >
-          <i class="pi pi-download" aria-hidden="true"></i>
-        </button>
-      }
-    </div>
-
-    <div class="hero-below-banner">
+      <!-- A single real logo element travels from a mostly-below-the-image
+           rest position up into the top-left corner as the banner
+           collapses (no separate rest-state copy). The play/request
+           button travels the same way into the top-right corner. The
+           title is a duplicate, invisible at rest, that only starts
+           fading in once the travel is mostly done. -->
       @if (scene.studioImageUrl) {
-        <div class="rest-logo-wrap">
+        <div class="hero-cluster">
           @if (scene.studioId) {
             <a
-              class="rest-logo"
+              class="cluster-logo"
               [routerLink]="['/studio', scene.studioId]"
               [queryParams]="{ returnTo: currentRouteUrl() }"
               [attr.aria-label]="studioLogoAriaLabel(scene)"
@@ -105,7 +51,7 @@
             </a>
           } @else if (scene.studioUrl) {
             <a
-              class="rest-logo"
+              class="cluster-logo"
               [href]="scene.studioUrl"
               target="_blank"
               rel="noopener noreferrer"
@@ -114,50 +60,53 @@
               <img [src]="scene.studioImageUrl" alt="" />
             </a>
           } @else {
-            <div class="rest-logo" aria-hidden="true">
+            <div class="cluster-logo" aria-hidden="true">
               <img [src]="scene.studioImageUrl" alt="" />
             </div>
           }
         </div>
       }
 
-      <div class="title-action-row">
-        <div class="title-with-badge">
-          <h1>{{ scene.title }}</h1>
-          <app-scene-status-badge [status]="scene.status" />
-        </div>
+      @if (hasStashCopy(scene)) {
+        <button
+          type="button"
+          class="cluster-action"
+          aria-label="Play"
+          title="Play"
+          (click)="playSelectedStashCopy(scene)"
+        >
+          <i class="pi pi-play" aria-hidden="true"></i>
+          <span>Play</span>
+        </button>
+      } @else if (canRequestScene(scene)) {
+        <button
+          type="button"
+          class="cluster-action is-request"
+          aria-label="Request in Whisparr"
+          title="Request in Whisparr"
+          (click)="openRequestPanel(scene)"
+        >
+          <i class="pi pi-download" aria-hidden="true"></i>
+          <span>Request</span>
+        </button>
+      }
 
-        @if (hasStashCopy(scene)) {
-          <button
-            type="button"
-            class="rest-action"
-            aria-label="Play"
-            title="Play"
-            (click)="playSelectedStashCopy(scene)"
-          >
-            <i class="pi pi-play" aria-hidden="true"></i>
-            <span>Play</span>
-          </button>
-        } @else if (canRequestScene(scene)) {
-          <button
-            type="button"
-            class="rest-action is-request"
-            aria-label="Request in Whisparr"
-            title="Request in Whisparr"
-            (click)="openRequestPanel(scene)"
-          >
-            <i class="pi pi-download" aria-hidden="true"></i>
-            <span>Request</span>
-          </button>
-        }
-      </div>
+      <p class="header-title" aria-hidden="true">{{ scene.title }}</p>
     </div>
 
     <section class="hero-layout">
       <div class="hero-info">
-          @if (scene.releaseDate) {
-            <p class="release-subheading">{{ scene.releaseDate }}</p>
-          }
+          <div class="title-action-row">
+            <div class="title-with-badge">
+              <h1>{{ scene.title }}</h1>
+              <app-scene-status-badge [status]="scene.status" />
+              @if (scene.releaseDate) {
+                <span class="date-pill">{{ scene.releaseDate }}</span>
+              }
+            </div>
+          </div>
+
+          <hr class="hero-divider" />
 
           <div class="meta-row">
             @if (formattedDuration(scene.duration); as duration) {
