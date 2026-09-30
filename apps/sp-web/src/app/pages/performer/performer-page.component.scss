@@ -44,11 +44,16 @@ p {
 // corner, mirroring the scene page's play/request button.
 .hero-banner-wrap {
   position: sticky;
-  // Not plain 0: once scrolling pins this, `top: 0` would tuck it right
-  // under a device's notch/status bar in standalone web-app mode.
-  top: env(safe-area-inset-top, 0px);
+  top: 0;
   z-index: 20;
   margin-inline: -1rem;
+  // A device's notch/status bar sits over y:0..safe-area-inset-top. Using
+  // that as `top` instead of padding would leave that strip fully
+  // transparent once this is stuck, showing whatever's scrolled past
+  // underneath it. Padding-top (plus a background matching .hero-banner's
+  // own) keeps this element's own opaque box covering that strip instead.
+  padding-top: env(safe-area-inset-top, 0px);
+  background: var(--media-detail-hero-background);
 }
 
 .hero-banner {
@@ -159,11 +164,12 @@ p {
 .hero-cluster-name {
   position: absolute;
   left: calc(50% - (50% - 1rem) * var(--hero-collapse, 0));
-  // Rest position clears the portrait card's own bottom edge (card sits
-  // ~3.8rem above the banner's bottom edge at rest) with a gap, instead
-  // of overlapping onto the photo -- it previously sat higher than the
-  // card's bottom edge and rendered on top of the image.
-  bottom: calc(0.9rem + 0.7rem * var(--hero-collapse, 0));
+  // The banner's blurred backdrop fills the entire .hero-banner box, not
+  // just the area behind the portrait card -- clearing the card alone
+  // (a small positive `bottom`) still left the name sitting inside that
+  // backdrop, i.e. still visually "on the image". A negative `bottom`
+  // instead hangs it below the banner's own bottom edge entirely.
+  bottom: calc(-2.8rem + 4.4rem * var(--hero-collapse, 0));
   transform: translateX(calc(-50% * (1 - var(--hero-collapse, 0))));
   z-index: 3;
   width: max-content;
@@ -314,7 +320,11 @@ main > button {
 
 .hero-info {
   max-width: 760px;
-  padding: 1.4rem 0.3rem 0;
+  // Clears .hero-cluster-name, which now hangs below the banner at rest
+  // (see its own comment) instead of sitting inside it -- this needs to
+  // be at least that far down plus a gap, or the name and this section's
+  // own first row would overlap.
+  padding: 3.3rem 0.3rem 0;
   display: grid;
   gap: 0.6rem;
 }
@@ -428,8 +438,12 @@ main > button {
   }
 
   .hero-cluster-name {
-    bottom: calc(1rem + 0.4rem * var(--hero-collapse, 0));
+    bottom: calc(-2.2rem + 3.6rem * var(--hero-collapse, 0));
     font-size: calc(1.7rem - 0.5rem * var(--hero-collapse, 0));
+  }
+
+  .hero-info {
+    padding-top: 2.7rem;
   }
 
   .cluster-favorite {

@@ -40,15 +40,21 @@ p {
 // fading in only once the logo's travel is mostly finished.
 .hero-banner-wrap {
   position: sticky;
-  // Not plain 0: once scrolling pins this, `top: 0` would tuck it right
-  // under a device's notch/status bar in standalone web-app mode. Pinning
-  // to the safe-area inset instead keeps it clear at every scroll
-  // position, not just before the first scroll.
-  top: env(safe-area-inset-top, 0px);
+  top: 0;
   z-index: 20;
   // Full-bleed breakout: cancels <main>'s own side padding without using
   // 100vw (which can overlap the app's persistent sidebar).
   margin-inline: -1rem;
+  // A device's notch/status bar sits over y:0..safe-area-inset-top. Using
+  // that as `top` instead of padding would leave that strip fully
+  // transparent once this is stuck, showing whatever's scrolled past
+  // underneath it. Padding-top (plus a background matching .hero-banner's
+  // own, so the strip is a seamless continuation of it) keeps this
+  // element's own opaque box covering that strip instead, and pushes the
+  // banner/logo/button content down inside it without touching any of
+  // their own bottom-anchored offsets.
+  padding-top: env(safe-area-inset-top, 0px);
+  background: var(--media-detail-hero-background);
 }
 
 .hero-banner {

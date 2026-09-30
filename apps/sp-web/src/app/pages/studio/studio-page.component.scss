@@ -36,12 +36,20 @@ ul {
 // app's sidebar.
 .hero-header-bar {
   position: sticky;
-  // Not plain 0: once scrolling pins this, `top: 0` would tuck it right
-  // under a device's notch/status bar in standalone web-app mode.
-  top: env(safe-area-inset-top, 0px);
+  top: 0;
   z-index: 20;
   margin-inline: -1rem;
   padding-inline: 1rem;
+  // A device's notch/status bar sits over y:0..safe-area-inset-top. Using
+  // that as `top` instead of padding left that whole strip fully
+  // uncovered by .hero-header-bar-backdrop below once stuck (it only
+  // covers this element's own padding box), showing scrolled content
+  // through it -- and it double-counted the inset against
+  // .hero-header-favorite's own top offset, which already assumed this
+  // bar sticks flush at 0. Padding-top keeps a single, consistent
+  // accounting: the backdrop's `inset: 0` now reaches into the padding
+  // area too, and .hero-header-favorite's offset is no longer doubled.
+  padding-top: env(safe-area-inset-top, 0px);
   display: flex;
   align-items: center;
 }
@@ -58,7 +66,14 @@ ul {
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   box-shadow: 0 1px 0 color-mix(in srgb, var(--border-subtle) 70%, transparent);
-  opacity: var(--hero-collapse, 0);
+  // This bar sticks (and starts covering scrolled content) almost
+  // immediately -- right after the short back-link above it scrolls out
+  // -- well before --hero-collapse (which ramps across the whole
+  // HERO_COLLAPSE_DISTANCE) gets anywhere close to 1. Reaching full
+  // opacity 4x faster than the logo's own shrink keeps that window
+  // small instead of leaving a mostly-transparent bar sitting over
+  // scrolled content for most of the scroll range.
+  opacity: min(1, var(--hero-collapse, 0) * 4);
   transition: opacity 0.28s ease;
   pointer-events: none;
 }
