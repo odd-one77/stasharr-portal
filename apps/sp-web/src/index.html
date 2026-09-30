@@ -10,7 +10,15 @@
     <link rel="manifest" href="manifest.webmanifest" />
 
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <!--
+      "black-translucent" deliberately makes the status bar transparent so
+      page content renders behind/through it (Apple's own documented
+      behavior for that value) -- that's the actual cause of content
+      appearing to overlap or slide behind the top of the screen in
+      standalone web-app mode, app-wide, regardless of any per-page CSS.
+      "black" draws a solid opaque status bar instead.
+    -->
+    <meta name="apple-mobile-web-app-status-bar-style" content="black" />
     <meta name="apple-mobile-web-app-title" content="Stasharr" />
     <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
   </head>
