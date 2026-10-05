@@ -2,7 +2,7 @@ import {
   AfterViewInit,
   Component,
   ElementRef,
-  HostListener,
+  NgZone,
   OnDestroy,
   OnInit,
   ViewChild,
@@ -47,7 +47,7 @@ import {
   SceneTagOption,
   isSceneStatusRequestable,
 } from '../../core/api/discover.types';
-import { computeHeroCollapse, measureHeroStartOffset } from '../../shared/scroll/hero-collapse.util';
+import { observeHeroCollapse } from '../../shared/scroll/hero-collapse.util';
 import { SceneCardComponent } from '../../shared/scene-card/scene-card.component';
 import { SceneRequestModalComponent } from '../../shared/scene-request-modal/scene-request-modal.component';
 
@@ -85,9 +85,6 @@ interface MultiSelectGroup {
   styleUrl: './performer-page.component.scss',
 })
 export class PerformerPageComponent implements OnInit, AfterViewInit, OnDestroy {
-  // Matches the scene/studio pages' own collapse distance so all three
-  // hero headers shrink at the same rate.
-  private static readonly HERO_COLLAPSE_DISTANCE = 240;
   private static readonly SCENES_PAGE_SIZE = 24;
   private static readonly SEARCH_DEBOUNCE_MS = 250;
   private static readonly DEFAULT_SORT: SceneFeedSort = 'DATE';
@@ -112,6 +109,7 @@ export class PerformerPageComponent implements OnInit, AfterViewInit, OnDestroy 
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
+  private readonly zone = inject(NgZone);
 
   private readonly studioSearchTerms = new Subject<string>();
   private readonly tagSearchTerms = new Subject<string>();
@@ -195,21 +193,13 @@ export class PerformerPageComponent implements OnInit, AfterViewInit, OnDestroy 
   protected readonly backLinkQueryParams = signal<Params>({});
   protected readonly backLinkLabel = signal('Back to Performers');
   protected readonly heroCollapseProgress = signal(0);
-  protected readonly heroCollapseOffset = signal(0);
 
-  @HostListener('window:scroll')
-  @HostListener('window:resize')
-  protected onWindowScroll(): void {
-    const collapse = computeHeroCollapse(
-      PerformerPageComponent.HERO_COLLAPSE_DISTANCE,
-      measureHeroStartOffset(this.host.nativeElement),
-    );
-    this.heroCollapseProgress.set(collapse.progress);
-    this.heroCollapseOffset.set(collapse.offsetPx);
-  }
+  private stopHeroCollapse: (() => void) | null = null;
 
   ngOnInit(): void {
-    this.onWindowScroll();
+    this.stopHeroCollapse = observeHeroCollapse(this.host.nativeElement, this.zone, (progress) =>
+      this.heroCollapseProgress.set(progress),
+    );
     this.setupStudioSearch();
     this.setupTagSearch();
     this.routeSubscription = combineLatest([
@@ -251,6 +241,7 @@ export class PerformerPageComponent implements OnInit, AfterViewInit, OnDestroy 
   }
 
   ngOnDestroy(): void {
+    this.stopHeroCollapse?.();
     this.routeSubscription?.unsubscribe();
     this.studioSearchSubscription?.unsubscribe();
     this.tagSearchSubscription?.unsubscribe();

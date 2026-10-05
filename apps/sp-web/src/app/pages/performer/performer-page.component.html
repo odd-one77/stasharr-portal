@@ -23,6 +23,7 @@
     <div class="hero-sentinel" aria-hidden="true"></div>
 
     <div class="hero-banner-wrap" [style.--hero-collapse]="heroCollapseProgress()">
+      <div class="hero-shrink-probe" aria-hidden="true"></div>
       <div class="hero-banner">
         @if (performer.imageUrl; as mainImage) {
           <div
@@ -82,7 +83,7 @@
       </button>
     </div>
 
-    <div class="hero-content" [style.--hero-comp]="heroCollapseOffset() + 'px'">
+    <div class="hero-content">
       <div class="hero-info">
         @if (hasCarouselImages()) {
           <div class="carousel-controls">

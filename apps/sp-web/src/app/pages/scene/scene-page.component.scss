@@ -39,66 +39,70 @@ p {
 // as the page's actual <h1>, and .header-title is invisible at rest,
 // fading in only once the logo's travel is mostly finished.
 .hero-banner-wrap {
+  // --hero-rest is the image's rendered height in px (set by the component
+  // once it loads); capped per breakpoint, and --hero-final is the collapsed
+  // bar height. --hero-shrink is how far the header shrinks in total.
+  --hero-rest-cap: 200rem;
+  --hero-final: 4.5rem;
+  --hero-rest-eff: min(var(--hero-rest, 14rem), var(--hero-rest-cap));
+  --hero-shrink: calc(var(--hero-rest-eff) - var(--hero-final));
   position: sticky;
   top: 0;
   z-index: 20;
   // Full-bleed breakout: cancels <main>'s own side padding without using
   // 100vw (which can overlap the app's persistent sidebar).
   margin-inline: -1rem;
-  // A device's notch/status bar sits over y:0..safe-area-inset-top. Using
-  // that as `top` instead of padding would leave that strip fully
-  // transparent once this is stuck, showing whatever's scrolled past
-  // underneath it. Padding-top (plus a background matching .hero-banner's
-  // own, so the strip is a seamless continuation of it) keeps this
-  // element's own opaque box covering that strip instead, and pushes the
-  // banner/logo/button content down inside it without touching any of
-  // their own bottom-anchored offsets.
+  // The header shrinks by --hero-shrink as you scroll; this spacer grows by
+  // the same amount, so the total flow height never changes and the content
+  // below scrolls natively (attached to the bar's bottom edge while it
+  // collapses, then under the finished bar) with nothing script-driven
+  // moving it.
+  margin-bottom: calc(var(--hero-shrink) * var(--hero-collapse, 0));
+  // A device's notch/status bar sits over y:0..safe-area-inset-top. Padding
+  // (plus a background matching .hero-banner's own) keeps this element's
+  // opaque box covering that strip once stuck instead of leaving it
+  // transparent, without touching any bottom-anchored child offsets.
   padding-top: env(safe-area-inset-top, 0px);
   background: var(--media-detail-hero-background);
 }
 
-// Page content below the sticky header. `top` pushes it back down by exactly
-// how far the page has scrolled during the header's collapse, so it stays
-// attached to the header's bottom edge (moving up only as the header
-// shrinks) instead of sliding under the bar; once collapsed the offset
-// stops growing and the content scrolls under the finished bar as normal.
-// The bottom padding (= HERO_COLLAPSE_DISTANCE) keeps the last rows
-// reachable, since `top` doesn't change the scrollable height.
+// Page content below the sticky header. Tall enough that scrolling to the
+// bottom always finishes the header's collapse, even on short pages.
 .hero-content {
-  position: relative;
-  top: var(--hero-comp, 0px);
-  padding-bottom: 240px;
+  min-height: calc(100dvh - 3rem);
+}
+
+// Resolves --hero-shrink to pixels for the component's scroll math (rem
+// values and breakpoint overrides included).
+.hero-shrink-probe {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: var(--hero-shrink);
+  visibility: hidden;
+  pointer-events: none;
 }
 
 .hero-banner {
   position: relative;
   overflow: hidden;
-  // max-height, not height: the image sets its own height (full width,
-  // no crop at all -- see .hero-backdrop). The 200rem rest cap is only
-  // there so the value has something finite to transition from; no real
-  // image at any viewport width actually reaches it, so it's effectively
-  // uncapped until scrolling starts collapsing it down to a compact
-  // header. Same final collapsed height on every breakpoint, so mobile
-  // doesn't need its own override -- only the landscape-phone one below
-  // does, for an even smaller collapsed target.
-  max-height: calc(200rem - 195.5rem * var(--hero-collapse, 0));
-  min-height: 4.5rem;
-  transition: max-height 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+  // Explicit height (not max-height): the image keeps its own full-width,
+  // no-crop height inside, and this just clips it from the bottom as the
+  // header shrinks. No transition -- it's driven directly by scroll, and a
+  // transition on top just lags/judders behind it.
+  height: calc(var(--hero-rest-eff) - var(--hero-shrink) * var(--hero-collapse, 0));
   background: var(--media-detail-hero-background);
 }
 
 // A real <img>, not a background-image: width:100%/height:auto scales
 // the image up or down to exactly fill the banner's width and never
-// crops it, unlike background-size:cover. .hero-banner's max-height
-// only clips it once significantly collapsed.
+// crops it, unlike background-size:cover. .hero-banner clips it as it
+// collapses.
 .hero-backdrop {
   display: block;
   width: 100%;
   height: auto;
-  filter: blur(calc(3px * var(--hero-collapse, 0)));
-  // 0.28s ease matches every other fade/blur across the scene, performer,
-  // and studio hero headers, so the collapse reads the same everywhere.
-  transition: filter 0.28s ease;
 }
 
 // Fades the bottom of the banner into the page background instead of a
@@ -133,14 +137,12 @@ p {
   bottom: calc(-3.6rem + 5.6rem * var(--hero-collapse, 0));
   transform: translateX(calc(-50% * (1 - var(--hero-collapse, 0))));
   z-index: 3;
-  transition: all 0.34s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .cluster-logo {
   display: inline-flex;
   height: calc(4.8rem - 3.2rem * var(--hero-collapse, 0));
   text-decoration: none;
-  transition: height 0.34s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .cluster-logo img {
@@ -167,7 +169,6 @@ p {
   font-size: 0.8rem;
   font-weight: 700;
   opacity: max(0, 1 - var(--hero-collapse, 0) * 2.2);
-  transition: opacity 0.28s ease;
 }
 
 // Same travel technique as .hero-cluster, mirrored to the right edge:
@@ -200,7 +201,6 @@ p {
   box-shadow: inset 0 1px 0 rgb(255 255 255 / 14%);
   transform-origin: right center;
   transform: scale(calc(1 - 0.36 * var(--hero-collapse, 0)));
-  transition: all 0.34s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .cluster-action i {
@@ -231,7 +231,6 @@ p {
   overflow: hidden;
   text-overflow: ellipsis;
   opacity: max(0, (var(--hero-collapse, 0) - 0.6) * 2.5);
-  transition: opacity 0.28s ease;
 }
 
 .performer-favorite {
@@ -584,8 +583,8 @@ button {
 }
 
 @media (max-width: 880px) {
-  .hero-banner {
-    max-height: calc(13.5rem - 9rem * var(--hero-collapse, 0));
+  .hero-banner-wrap {
+    --hero-rest-cap: 13.5rem;
   }
 
   .hero-layout {
@@ -633,8 +632,9 @@ button {
 // above but still has very little vertical room -- shrink the banner and
 // logo there too, keyed off height rather than width.
 @media (orientation: landscape) and (max-height: 500px) {
-  .hero-banner {
-    max-height: calc(8rem - 4.5rem * var(--hero-collapse, 0));
+  .hero-banner-wrap {
+    --hero-rest-cap: 8rem;
+    --hero-final: 3.5rem;
   }
 
   .cluster-logo {

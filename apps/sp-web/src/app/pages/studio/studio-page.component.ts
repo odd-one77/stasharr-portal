@@ -2,7 +2,7 @@ import {
   AfterViewInit,
   Component,
   ElementRef,
-  HostListener,
+  NgZone,
   OnDestroy,
   OnInit,
   ViewChild,
@@ -45,7 +45,7 @@ import {
   StudioDetails,
   isSceneStatusRequestable,
 } from '../../core/api/discover.types';
-import { computeHeroCollapse, measureHeroStartOffset } from '../../shared/scroll/hero-collapse.util';
+import { observeHeroCollapse } from '../../shared/scroll/hero-collapse.util';
 import { SceneCardComponent } from '../../shared/scene-card/scene-card.component';
 import { SceneRequestModalComponent } from '../../shared/scene-request-modal/scene-request-modal.component';
 
@@ -76,9 +76,6 @@ interface MultiSelectOption {
 export class StudioPageComponent implements OnInit, AfterViewInit, OnDestroy {
   private static readonly SCENES_PAGE_SIZE = 24;
   private static readonly SEARCH_DEBOUNCE_MS = 250;
-  // Matches the scene/performer pages' own collapse distance so all
-  // three hero headers shrink at the same rate.
-  private static readonly HERO_COLLAPSE_DISTANCE = 240;
   private static readonly DEFAULT_SCENE_SORT: SceneFeedSort = 'DATE';
   private static readonly DEFAULT_SCENE_DIRECTION: SortDirection = 'DESC';
   private static readonly DEFAULT_FAVORITES: FavoritesFilterOption = 'NONE';
@@ -116,6 +113,7 @@ export class StudioPageComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
+  private readonly zone = inject(NgZone);
   private readonly discoverService = inject(DiscoverService);
   private readonly sceneQuickRequestService = inject(SceneQuickRequestService);
   private readonly setupStatusStore = inject(SetupStatusStore);
@@ -188,18 +186,8 @@ export class StudioPageComponent implements OnInit, AfterViewInit, OnDestroy {
   protected readonly requestContext = signal<SceneRequestContext | null>(null);
   protected readonly filtersExpanded = signal(false);
   protected readonly heroCollapseProgress = signal(0);
-  protected readonly heroCollapseOffset = signal(0);
 
-  @HostListener('window:scroll')
-  @HostListener('window:resize')
-  protected onWindowScroll(): void {
-    const collapse = computeHeroCollapse(
-      StudioPageComponent.HERO_COLLAPSE_DISTANCE,
-      measureHeroStartOffset(this.host.nativeElement),
-    );
-    this.heroCollapseProgress.set(collapse.progress);
-    this.heroCollapseOffset.set(collapse.offsetPx);
-  }
+  private stopHeroCollapse: (() => void) | null = null;
 
   protected readonly backLinkPath = signal('/studios');
   protected readonly backLinkQueryParams = signal<Params>({});
@@ -210,7 +198,9 @@ export class StudioPageComponent implements OnInit, AfterViewInit, OnDestroy {
   protected readonly tagMatchOptions = StudioPageComponent.TAG_MATCH_OPTIONS;
 
   ngOnInit(): void {
-    this.onWindowScroll();
+    this.stopHeroCollapse = observeHeroCollapse(this.host.nativeElement, this.zone, (progress) =>
+      this.heroCollapseProgress.set(progress),
+    );
     this.setupTagSearch();
     this.routeSubscription = combineLatest([
       this.route.paramMap,
@@ -251,6 +241,7 @@ export class StudioPageComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.stopHeroCollapse?.();
     this.routeSubscription?.unsubscribe();
     this.tagSearchSubscription?.unsubscribe();
     if (this.observer && this.sentinelElement) {

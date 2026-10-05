@@ -24,13 +24,13 @@
 
     <div class="hero-sentinel" aria-hidden="true"></div>
 
-    <div class="hero-header-bar">
+    <div class="hero-header-bar" [style.--hero-collapse]="heroCollapseProgress()">
+      <div class="hero-shrink-probe" aria-hidden="true"></div>
       <div
         class="hero-header-bar-backdrop"
-        [style.--hero-collapse]="heroCollapseProgress()"
         aria-hidden="true"
       ></div>
-      <div class="hero-logo" [style.--hero-collapse]="heroCollapseProgress()">
+      <div class="hero-logo">
         @if (activeStudioImageUrl(); as logoImage) {
           <img [src]="logoImage" [alt]="studio.name" />
         } @else {
@@ -43,7 +43,6 @@
       <button
         type="button"
         class="hero-header-favorite"
-        [style.--hero-collapse]="heroCollapseProgress()"
         [class.active]="studio.isFavorite"
         [disabled]="!canToggleFavoriteStudio(studio)"
         [attr.aria-busy]="favoritingStudio()"
@@ -58,7 +57,7 @@
       </button>
     </div>
 
-    <div class="hero-content" [style.--hero-comp]="heroCollapseOffset() + 'px'">
+    <div class="hero-content">
       <div class="hero-info">
         <div class="title-row">
           <button

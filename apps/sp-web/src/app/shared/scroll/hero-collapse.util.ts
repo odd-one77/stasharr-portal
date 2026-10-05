@@ -1,39 +1,77 @@
+import { NgZone } from '@angular/core';
+
 // Scroll-driven "collapsing hero" pages (scene/performer/studio) drive a
 // --hero-collapse CSS variable (0..1) from how far the page has scrolled
 // past the point where the sticky header pins to the top.
 //
-// While the header collapses, the page content must stay attached to the
-// header's bottom edge instead of sliding up underneath it, and only start
-// scrolling under the (finished) bar afterwards. The collapse itself shrinks
-// the header's layout height, and scrolling moves the content up as well --
-// so without correction the content moves at both rates at once and ends up
-// under the bar. `offsetPx` is exactly how far the page has scrolled during
-// the collapse; the content wrapper is pushed back down by that amount
-// (position: relative; top: offsetPx), which cancels the scroll movement and
-// leaves only the header's own shrink moving the content.
-//
-// If the page can't actually scroll that far (short content), the distance
-// is capped to what's available so reaching the bottom still always means
-// "fully collapsed".
-export interface HeroCollapseState {
-  progress: number;
-  offsetPx: number;
-}
-
-export function measureHeroStartOffset(host: HTMLElement): number {
+// The header shrinks by a known amount (the "shrink distance", resolved from
+// CSS via the .hero-shrink-probe element so rem values and breakpoints are
+// honoured), and the page scrolls 1:1 with that shrink: scrolling N px
+// shrinks the header by N px. A spacer (margin-bottom on the sticky header,
+// growing by the same amount the header shrinks) keeps the total flow height
+// constant, so the content below scrolls natively -- attached to the bar's
+// bottom edge during the collapse, and under the finished bar afterwards --
+// with no script-driven content movement to jitter against the scroll.
+export function measureHeroCollapse(host: HTMLElement): number {
   const sentinel = host.querySelector('.hero-sentinel');
-  if (!sentinel) {
+  const probe = host.querySelector<HTMLElement>('.hero-shrink-probe');
+  if (!sentinel || !probe) {
     return 0;
   }
 
-  return sentinel.getBoundingClientRect().top + window.scrollY;
+  const shrinkPx = probe.offsetHeight;
+  if (shrinkPx <= 0) {
+    return 0;
+  }
+
+  const startOffset = sentinel.getBoundingClientRect().top + window.scrollY;
+  return Math.min(1, Math.max(0, (window.scrollY - startOffset) / shrinkPx));
 }
 
-export function computeHeroCollapse(baseDistance: number, startOffset: number): HeroCollapseState {
-  const maxScrollable = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
-  const available = maxScrollable - startOffset;
-  const distance = available > 0 ? Math.min(baseDistance, available) : baseDistance;
-  const offsetPx = Math.min(Math.max(0, window.scrollY - startOffset), distance);
+// Listens for scroll/resize/host-size changes outside Angular, coalesces them
+// to one measurement per animation frame, and only re-enters Angular (once)
+// when the progress value actually changed. Returns a teardown function.
+export function observeHeroCollapse(
+  host: HTMLElement,
+  zone: NgZone,
+  onChange: (progress: number) => void,
+): () => void {
+  let frame = 0;
+  let last = Number.NaN;
 
-  return { progress: distance > 0 ? offsetPx / distance : 0, offsetPx };
+  const update = (): void => {
+    frame = 0;
+    const next = measureHeroCollapse(host);
+    if (next === last) {
+      return;
+    }
+
+    last = next;
+    zone.run(() => onChange(next));
+  };
+
+  const schedule = (): void => {
+    if (frame === 0) {
+      frame = requestAnimationFrame(update);
+    }
+  };
+
+  const resizeObserver =
+    typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(schedule);
+
+  zone.runOutsideAngular(() => {
+    window.addEventListener('scroll', schedule, { passive: true });
+    window.addEventListener('resize', schedule, { passive: true });
+    resizeObserver?.observe(host);
+  });
+  schedule();
+
+  return () => {
+    window.removeEventListener('scroll', schedule);
+    window.removeEventListener('resize', schedule);
+    resizeObserver?.disconnect();
+    if (frame !== 0) {
+      cancelAnimationFrame(frame);
+    }
+  };
 }

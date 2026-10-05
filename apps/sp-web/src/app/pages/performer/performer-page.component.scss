@@ -43,37 +43,50 @@ p {
 // logo -- and the favorite star travels the same way into the top-right
 // corner, mirroring the scene page's play/request button.
 .hero-banner-wrap {
+  --hero-rest: 30rem;
+  --hero-shrink: 25.5rem;
   position: sticky;
   top: 0;
   z-index: 20;
   margin-inline: -1rem;
-  // A device's notch/status bar sits over y:0..safe-area-inset-top. Using
-  // that as `top` instead of padding would leave that strip fully
-  // transparent once this is stuck, showing whatever's scrolled past
-  // underneath it. Padding-top (plus a background matching .hero-banner's
-  // own) keeps this element's own opaque box covering that strip instead.
+  // The header shrinks by --hero-shrink as you scroll; this spacer grows by
+  // the same amount, so the total flow height never changes and the content
+  // below scrolls natively (attached to the bar's bottom edge while it
+  // collapses, then under the finished bar) with nothing script-driven
+  // moving it.
+  margin-bottom: calc(var(--hero-shrink) * var(--hero-collapse, 0));
+  // A device's notch/status bar sits over y:0..safe-area-inset-top. Padding
+  // (plus a background matching .hero-banner's own) keeps this element's
+  // opaque box covering that strip once stuck instead of leaving it
+  // transparent.
   padding-top: env(safe-area-inset-top, 0px);
   background: var(--media-detail-hero-background);
 }
 
-// Page content below the sticky header. `top` pushes it back down by exactly
-// how far the page has scrolled during the header's collapse, so it stays
-// attached to the header's bottom edge (moving up only as the header
-// shrinks) instead of sliding under the bar; once collapsed the offset
-// stops growing and the content scrolls under the finished bar as normal.
-// The bottom padding (= HERO_COLLAPSE_DISTANCE) keeps the last rows
-// reachable, since `top` doesn't change the scrollable height.
+// Page content below the sticky header. Tall enough that scrolling to the
+// bottom always finishes the header's collapse, even on short pages.
 .hero-content {
-  position: relative;
-  top: var(--hero-comp, 0px);
-  padding-bottom: 240px;
+  min-height: calc(100dvh - 3rem);
+}
+
+// Resolves --hero-shrink to pixels for the component's scroll math (rem
+// values and breakpoint overrides included).
+.hero-shrink-probe {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: var(--hero-shrink);
+  visibility: hidden;
+  pointer-events: none;
 }
 
 .hero-banner {
   position: relative;
   overflow: hidden;
-  height: calc(30rem - 25.5rem * var(--hero-collapse, 0));
-  transition: height 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+  // No transition: it's driven directly by scroll, and a transition on top
+  // just lags/judders behind it.
+  height: calc(var(--hero-rest) - var(--hero-shrink) * var(--hero-collapse, 0));
   background: var(--media-detail-hero-background);
 }
 
@@ -82,11 +95,8 @@ p {
   inset: 0;
   background-size: cover;
   background-position: center 20%;
-  filter: blur(calc(20px + 6px * var(--hero-collapse, 0))) brightness(0.55) saturate(1.1);
+  filter: blur(22px) brightness(0.55) saturate(1.1);
   transform: scale(1.15);
-  // 0.28s ease matches every other fade/blur across the scene, performer,
-  // and studio hero headers, so the collapse reads the same everywhere.
-  transition: filter 0.28s ease;
 }
 
 // Fades the bottom of the banner into the page background instead of a
@@ -150,8 +160,6 @@ p {
     transparent var(--wipe-start),
     #000 calc(var(--wipe-start) + var(--wipe-band))
   );
-  filter: blur(calc(var(--hero-collapse, 0) * 7px));
-  transition: filter 0.28s ease;
 }
 
 .portrait-card img {
@@ -193,11 +201,6 @@ p {
   color: var(--text-on-media);
   text-shadow: 0 1px 3px rgb(0 0 0 / 55%);
   white-space: nowrap;
-  transition:
-    left 0.34s cubic-bezier(0.22, 1, 0.36, 1),
-    bottom 0.34s cubic-bezier(0.22, 1, 0.36, 1),
-    transform 0.34s cubic-bezier(0.22, 1, 0.36, 1),
-    font-size 0.34s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 // Same travel technique as .cluster-action on the scene page: already
@@ -220,10 +223,6 @@ p {
   cursor: pointer;
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
-  transition:
-    bottom 0.34s cubic-bezier(0.22, 1, 0.36, 1),
-    width 0.34s cubic-bezier(0.22, 1, 0.36, 1),
-    height 0.34s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .cluster-monitor {
@@ -231,11 +230,6 @@ p {
   // it in the collapsed top bar (same size, same bottom edge once collapsed).
   right: calc(0.8rem + env(safe-area-inset-right, 0px) + 2.6rem * var(--hero-collapse, 0));
   bottom: calc(4rem - 2.4rem * var(--hero-collapse, 0));
-  transition:
-    right 0.34s cubic-bezier(0.22, 1, 0.36, 1),
-    bottom 0.34s cubic-bezier(0.22, 1, 0.36, 1),
-    width 0.34s cubic-bezier(0.22, 1, 0.36, 1),
-    height 0.34s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .cluster-monitor.active {
@@ -466,8 +460,9 @@ main > button {
 }
 
 @media (max-width: 880px) {
-  .hero-banner {
-    height: calc(27rem - 22.5rem * var(--hero-collapse, 0));
+  .hero-banner-wrap {
+    --hero-rest: 27rem;
+    --hero-shrink: 22.5rem;
   }
 
   .portrait-card {
@@ -507,8 +502,9 @@ main > button {
 }
 
 @media (orientation: landscape) and (max-height: 500px) {
-  .hero-banner {
-    height: calc(14rem - 9.5rem * var(--hero-collapse, 0));
+  .hero-banner-wrap {
+    --hero-rest: 14rem;
+    --hero-shrink: 9.5rem;
   }
 
   .portrait-card {

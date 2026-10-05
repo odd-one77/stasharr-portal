@@ -1,7 +1,7 @@
 import {
   Component,
   ElementRef,
-  HostListener,
+  NgZone,
   OnDestroy,
   OnInit,
   ViewChild,
@@ -27,7 +27,7 @@ import {
   SceneRequestContext,
   isSceneStatusRequestable,
 } from '../../core/api/discover.types';
-import { computeHeroCollapse, measureHeroStartOffset } from '../../shared/scroll/hero-collapse.util';
+import { observeHeroCollapse } from '../../shared/scroll/hero-collapse.util';
 import { SceneCardComponent } from '../../shared/scene-card/scene-card.component';
 import { SceneRequestModalComponent } from '../../shared/scene-request-modal/scene-request-modal.component';
 import { SceneStatusBadgeComponent } from '../../shared/scene-status-badge/scene-status-badge.component';
@@ -57,11 +57,11 @@ interface SceneLifecycleStep {
   styleUrl: './scene-page.component.scss',
 })
 export class ScenePageComponent implements OnInit, OnDestroy {
-  private static readonly HERO_COLLAPSE_DISTANCE = 240;
 
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
+  private readonly zone = inject(NgZone);
   private readonly discoverService = inject(DiscoverService);
   private readonly acquisitionService = inject(AcquisitionService);
   private readonly notifications = inject(AppNotificationsService);
@@ -86,23 +86,17 @@ export class ScenePageComponent implements OnInit, OnDestroy {
   protected readonly backLinkQueryParams = signal<Params>({});
   protected readonly backLinkLabel = signal('Back to Scenes');
   protected readonly heroCollapseProgress = signal(0);
-  protected readonly heroCollapseOffset = signal(0);
+  protected readonly heroRest = signal<string | null>(null);
+  private backdropObserver: ResizeObserver | null = null;
   protected readonly similarScenes = signal<SceneExplorerItem[]>([]);
   protected readonly removingRequest = signal(false);
 
-  @HostListener('window:scroll')
-  @HostListener('window:resize')
-  protected onWindowScroll(): void {
-    const collapse = computeHeroCollapse(
-      ScenePageComponent.HERO_COLLAPSE_DISTANCE,
-      measureHeroStartOffset(this.host.nativeElement),
-    );
-    this.heroCollapseProgress.set(collapse.progress);
-    this.heroCollapseOffset.set(collapse.offsetPx);
-  }
+  private stopHeroCollapse: (() => void) | null = null;
 
   ngOnInit(): void {
-    this.onWindowScroll();
+    this.stopHeroCollapse = observeHeroCollapse(this.host.nativeElement, this.zone, (progress) =>
+      this.heroCollapseProgress.set(progress),
+    );
     this.routeSubscription = combineLatest([
       this.route.paramMap,
       this.route.queryParamMap,
@@ -124,6 +118,8 @@ export class ScenePageComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.stopHeroCollapse?.();
+    this.backdropObserver?.disconnect();
     this.routeSubscription?.unsubscribe();
   }
 
@@ -133,6 +129,23 @@ export class ScenePageComponent implements OnInit, OnDestroy {
 
   protected toggleDescription(): void {
     this.descriptionExpanded.update((value) => !value);
+  }
+
+  // The collapse math needs the banner image's rendered height in px (its
+  // aspect ratio and the container width aren't known to CSS), so track it
+  // for as long as the image is on screen.
+  protected onBackdropLoad(event: Event): void {
+    const image = event.target as HTMLImageElement;
+    const publish = (): void => {
+      this.heroRest.set(image.offsetHeight > 0 ? `${image.offsetHeight}px` : null);
+    };
+
+    this.backdropObserver?.disconnect();
+    publish();
+    if (typeof ResizeObserver !== 'undefined') {
+      this.backdropObserver = new ResizeObserver(publish);
+      this.backdropObserver.observe(image);
+    }
   }
 
   protected hasStashCopy(scene: SceneDetails): boolean {

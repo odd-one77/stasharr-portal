@@ -22,10 +22,21 @@
   } @else if (scene(); as scene) {
     <div class="hero-sentinel" aria-hidden="true"></div>
 
-    <div class="hero-banner-wrap" [style.--hero-collapse]="heroCollapseProgress()">
+    <div
+      class="hero-banner-wrap"
+      [style.--hero-collapse]="heroCollapseProgress()"
+      [style.--hero-rest]="heroRest()"
+    >
+      <div class="hero-shrink-probe" aria-hidden="true"></div>
       <div class="hero-banner">
         @if (scene.imageUrl) {
-          <img class="hero-backdrop" [src]="scene.imageUrl" alt="" aria-hidden="true" />
+          <img
+            class="hero-backdrop"
+            [src]="scene.imageUrl"
+            alt=""
+            aria-hidden="true"
+            (load)="onBackdropLoad($event)"
+          />
         }
         <div class="hero-banner-fade" aria-hidden="true"></div>
 
@@ -113,7 +124,7 @@
       <p class="header-title" aria-hidden="true">{{ scene.title }}</p>
     </div>
 
-    <div class="hero-content" [style.--hero-comp]="heroCollapseOffset() + 'px'">
+    <div class="hero-content">
       <section class="hero-layout">
         <div class="hero-info">
             <h1>{{ scene.title }}</h1>
