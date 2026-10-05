@@ -54,6 +54,19 @@ ul {
   align-items: center;
 }
 
+// Page content below the sticky header. `top` pushes it back down by exactly
+// how far the page has scrolled during the header's collapse, so it stays
+// attached to the header's bottom edge (moving up only as the header
+// shrinks) instead of sliding under the bar; once collapsed the offset
+// stops growing and the content scrolls under the finished bar as normal.
+// The bottom padding (= HERO_COLLAPSE_DISTANCE) keeps the last rows
+// reachable, since `top` doesn't change the scrollable height.
+.hero-content {
+  position: relative;
+  top: var(--hero-comp, 0px);
+  padding-bottom: 240px;
+}
+
 // A separate layer behind the logo for the fading blurred background --
 // opacity on .hero-header-bar itself would visually hide the logo it
 // contains too (opacity applies to descendants, not just the element's own

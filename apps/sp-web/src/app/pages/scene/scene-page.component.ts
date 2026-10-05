@@ -27,7 +27,7 @@ import {
   SceneRequestContext,
   isSceneStatusRequestable,
 } from '../../core/api/discover.types';
-import { computeHeroCollapseProgress } from '../../shared/scroll/hero-collapse.util';
+import { computeHeroCollapse, measureHeroStartOffset } from '../../shared/scroll/hero-collapse.util';
 import { SceneCardComponent } from '../../shared/scene-card/scene-card.component';
 import { SceneRequestModalComponent } from '../../shared/scene-request-modal/scene-request-modal.component';
 import { SceneStatusBadgeComponent } from '../../shared/scene-status-badge/scene-status-badge.component';
@@ -61,6 +61,7 @@ export class ScenePageComponent implements OnInit, OnDestroy {
 
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
   private readonly discoverService = inject(DiscoverService);
   private readonly acquisitionService = inject(AcquisitionService);
   private readonly notifications = inject(AppNotificationsService);
@@ -85,15 +86,19 @@ export class ScenePageComponent implements OnInit, OnDestroy {
   protected readonly backLinkQueryParams = signal<Params>({});
   protected readonly backLinkLabel = signal('Back to Scenes');
   protected readonly heroCollapseProgress = signal(0);
+  protected readonly heroCollapseOffset = signal(0);
   protected readonly similarScenes = signal<SceneExplorerItem[]>([]);
   protected readonly removingRequest = signal(false);
 
   @HostListener('window:scroll')
   @HostListener('window:resize')
   protected onWindowScroll(): void {
-    this.heroCollapseProgress.set(
-      computeHeroCollapseProgress(ScenePageComponent.HERO_COLLAPSE_DISTANCE),
+    const collapse = computeHeroCollapse(
+      ScenePageComponent.HERO_COLLAPSE_DISTANCE,
+      measureHeroStartOffset(this.host.nativeElement),
     );
+    this.heroCollapseProgress.set(collapse.progress);
+    this.heroCollapseOffset.set(collapse.offsetPx);
   }
 
   ngOnInit(): void {

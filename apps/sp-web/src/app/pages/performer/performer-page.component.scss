@@ -56,6 +56,19 @@ p {
   background: var(--media-detail-hero-background);
 }
 
+// Page content below the sticky header. `top` pushes it back down by exactly
+// how far the page has scrolled during the header's collapse, so it stays
+// attached to the header's bottom edge (moving up only as the header
+// shrinks) instead of sliding under the bar; once collapsed the offset
+// stops growing and the content scrolls under the finished bar as normal.
+// The bottom padding (= HERO_COLLAPSE_DISTANCE) keeps the last rows
+// reachable, since `top` doesn't change the scrollable height.
+.hero-content {
+  position: relative;
+  top: var(--hero-comp, 0px);
+  padding-bottom: 240px;
+}
+
 .hero-banner {
   position: relative;
   overflow: hidden;
@@ -189,7 +202,8 @@ p {
 
 // Same travel technique as .cluster-action on the scene page: already
 // flush right at rest, so only the vertical offset and size interpolate.
-.cluster-favorite {
+.cluster-favorite,
+.cluster-monitor {
   position: absolute;
   right: calc(0.8rem + env(safe-area-inset-right, 0px));
   bottom: calc(0.9rem + 0.7rem * var(--hero-collapse, 0));
@@ -212,11 +226,34 @@ p {
     height 0.34s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
+.cluster-monitor {
+  // Rests directly above the favorite star, then travels left to sit beside
+  // it in the collapsed top bar (same size, same bottom edge once collapsed).
+  right: calc(0.8rem + env(safe-area-inset-right, 0px) + 2.6rem * var(--hero-collapse, 0));
+  bottom: calc(4rem - 2.4rem * var(--hero-collapse, 0));
+  transition:
+    right 0.34s cubic-bezier(0.22, 1, 0.36, 1),
+    bottom 0.34s cubic-bezier(0.22, 1, 0.36, 1),
+    width 0.34s cubic-bezier(0.22, 1, 0.36, 1),
+    height 0.34s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.cluster-monitor.active {
+  color: var(--focus-ring);
+  border-color: color-mix(in srgb, var(--focus-ring) 60%, var(--border-strong));
+}
+
+.cluster-monitor[disabled] {
+  opacity: 0.75;
+  cursor: wait;
+}
+
 .cluster-favorite.active {
   color: var(--media-gold);
 }
 
-.cluster-favorite:focus-visible {
+.cluster-favorite:focus-visible,
+.cluster-monitor:focus-visible {
   outline: 2px solid var(--focus-ring);
   outline-offset: 2px;
 }
@@ -236,27 +273,6 @@ main > button {
   background: var(--button-bg);
   color: var(--button-text);
   cursor: pointer;
-}
-
-.monitor-controls {
-  align-items: center;
-  flex-wrap: wrap;
-}
-
-.monitor-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-}
-
-.monitor-toggle.active {
-  border-color: color-mix(in srgb, var(--focus-ring) 55%, var(--border-strong));
-  background: color-mix(in srgb, var(--button-bg) 78%, var(--focus-ring) 22%);
-}
-
-.monitor-toggle[disabled] {
-  opacity: 0.75;
-  cursor: wait;
 }
 
 .set-main-image[disabled] {
@@ -465,6 +481,13 @@ main > button {
 
   .hero-info {
     padding-top: 2.7rem;
+  }
+
+  .cluster-monitor {
+    right: calc(0.8rem + env(safe-area-inset-right, 0px) + 2.35rem * var(--hero-collapse, 0));
+    bottom: calc(3.75rem - 2.35rem * var(--hero-collapse, 0));
+    width: calc(2.3rem - 0.4rem * var(--hero-collapse, 0));
+    height: calc(2.3rem - 0.4rem * var(--hero-collapse, 0));
   }
 
   .cluster-favorite {

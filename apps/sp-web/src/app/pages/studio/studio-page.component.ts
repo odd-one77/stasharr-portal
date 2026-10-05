@@ -45,7 +45,7 @@ import {
   StudioDetails,
   isSceneStatusRequestable,
 } from '../../core/api/discover.types';
-import { computeHeroCollapseProgress } from '../../shared/scroll/hero-collapse.util';
+import { computeHeroCollapse, measureHeroStartOffset } from '../../shared/scroll/hero-collapse.util';
 import { SceneCardComponent } from '../../shared/scene-card/scene-card.component';
 import { SceneRequestModalComponent } from '../../shared/scene-request-modal/scene-request-modal.component';
 
@@ -115,6 +115,7 @@ export class StudioPageComponent implements OnInit, AfterViewInit, OnDestroy {
 
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
   private readonly discoverService = inject(DiscoverService);
   private readonly sceneQuickRequestService = inject(SceneQuickRequestService);
   private readonly setupStatusStore = inject(SetupStatusStore);
@@ -187,13 +188,17 @@ export class StudioPageComponent implements OnInit, AfterViewInit, OnDestroy {
   protected readonly requestContext = signal<SceneRequestContext | null>(null);
   protected readonly filtersExpanded = signal(false);
   protected readonly heroCollapseProgress = signal(0);
+  protected readonly heroCollapseOffset = signal(0);
 
   @HostListener('window:scroll')
   @HostListener('window:resize')
   protected onWindowScroll(): void {
-    this.heroCollapseProgress.set(
-      computeHeroCollapseProgress(StudioPageComponent.HERO_COLLAPSE_DISTANCE),
+    const collapse = computeHeroCollapse(
+      StudioPageComponent.HERO_COLLAPSE_DISTANCE,
+      measureHeroStartOffset(this.host.nativeElement),
     );
+    this.heroCollapseProgress.set(collapse.progress);
+    this.heroCollapseOffset.set(collapse.offsetPx);
   }
 
   protected readonly backLinkPath = signal('/studios');

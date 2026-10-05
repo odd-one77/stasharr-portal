@@ -47,7 +47,7 @@ import {
   SceneTagOption,
   isSceneStatusRequestable,
 } from '../../core/api/discover.types';
-import { computeHeroCollapseProgress } from '../../shared/scroll/hero-collapse.util';
+import { computeHeroCollapse, measureHeroStartOffset } from '../../shared/scroll/hero-collapse.util';
 import { SceneCardComponent } from '../../shared/scene-card/scene-card.component';
 import { SceneRequestModalComponent } from '../../shared/scene-request-modal/scene-request-modal.component';
 
@@ -111,6 +111,7 @@ export class PerformerPageComponent implements OnInit, AfterViewInit, OnDestroy 
   private readonly notifications = inject(AppNotificationsService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
 
   private readonly studioSearchTerms = new Subject<string>();
   private readonly tagSearchTerms = new Subject<string>();
@@ -194,13 +195,17 @@ export class PerformerPageComponent implements OnInit, AfterViewInit, OnDestroy 
   protected readonly backLinkQueryParams = signal<Params>({});
   protected readonly backLinkLabel = signal('Back to Performers');
   protected readonly heroCollapseProgress = signal(0);
+  protected readonly heroCollapseOffset = signal(0);
 
   @HostListener('window:scroll')
   @HostListener('window:resize')
   protected onWindowScroll(): void {
-    this.heroCollapseProgress.set(
-      computeHeroCollapseProgress(PerformerPageComponent.HERO_COLLAPSE_DISTANCE),
+    const collapse = computeHeroCollapse(
+      PerformerPageComponent.HERO_COLLAPSE_DISTANCE,
+      measureHeroStartOffset(this.host.nativeElement),
     );
+    this.heroCollapseProgress.set(collapse.progress);
+    this.heroCollapseOffset.set(collapse.offsetPx);
   }
 
   ngOnInit(): void {
@@ -316,6 +321,17 @@ export class PerformerPageComponent implements OnInit, AfterViewInit, OnDestroy 
       month: 'short',
       day: 'numeric',
     });
+  }
+
+  protected monitoringTitle(): string {
+    if (!this.monitoring().monitored) {
+      return 'Monitor new scenes';
+    }
+
+    const since = this.monitoringSinceLabel();
+    return since
+      ? `Monitoring new scenes since ${since} (past scenes are never requested)`
+      : 'Monitoring new scenes';
   }
 
   protected toggleMonitoring(performer: PerformerDetails): void {
