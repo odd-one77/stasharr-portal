@@ -23,6 +23,12 @@
 main {
   --app-page-max-width: min(1220px, 96vw);
   --app-page-padding-end: 2.2rem;
+  // --hero-rest is the image's rendered height in px (set by the component
+  // once it loads); capped per breakpoint, and --hero-final is the collapsed
+  // bar height. --hero-shrink is how far the header shrinks in total.
+  // Declared here (not on the banner wrap) so the pin rows can use them too.
+  --hero-rest-eff: min(var(--hero-rest, 14rem), var(--hero-rest-cap));
+  --hero-shrink: calc(var(--hero-rest-eff) - var(--hero-final));
 }
 
 h1,
@@ -48,11 +54,6 @@ p {
 // as the page's actual <h1>, and .header-title is invisible at rest,
 // fading in only once the logo's travel is mostly finished.
 .hero-banner-wrap {
-  // --hero-rest is the image's rendered height in px (set by the component
-  // once it loads); capped per breakpoint, and --hero-final is the collapsed
-  // bar height. --hero-shrink is how far the header shrinks in total.
-  --hero-rest-eff: min(var(--hero-rest, 14rem), var(--hero-rest-cap));
-  --hero-shrink: calc(var(--hero-rest-eff) - var(--hero-final));
   position: sticky;
   top: 0;
   z-index: 20;
@@ -148,8 +149,17 @@ p {
   margin-inline: -1rem;
 }
 
+// Each row's pin offset interpolates with --hero-collapse: at 0 the element
+// docks inside the banner's bottom corner (reached by riding up natively
+// with the page from its rest spot below the banner); as the banner
+// collapses it travels up to its spot in the finished bar, exactly like the
+// header's own shrink (same variable, same rate).
 .pin-row--action {
-  top: calc(env(safe-area-inset-top, 0px) + (var(--hero-final) - var(--btn-h)) / 2);
+  top: calc(
+    env(safe-area-inset-top, 0px) +
+      (1 - var(--hero-collapse, 0)) * (var(--hero-rest-eff) - var(--btn-h) - 0.6rem) +
+      var(--hero-collapse, 0) * ((var(--hero-final) - var(--btn-h)) / 2)
+  );
   margin-top: var(--btn-rest);
   margin-bottom: calc(-1 * var(--btn-rest));
 }
@@ -157,10 +167,8 @@ p {
 .pin-row--logo {
   top: calc(
     env(safe-area-inset-top, 0px) +
-      max(
-        0.5rem,
-        (var(--hero-final) - var(--logo-h) + var(--logo-shrink) * var(--hero-collapse, 0)) / 2
-      )
+      (1 - var(--hero-collapse, 0)) * (var(--hero-rest-eff) - var(--logo-h) - 0.6rem) +
+      var(--hero-collapse, 0) * max(0.5rem, (var(--hero-final) - var(--logo-h) + var(--logo-shrink)) / 2)
   );
   margin-top: var(--logo-rest);
   margin-bottom: calc(-1 * var(--logo-rest));
@@ -196,7 +204,7 @@ p {
 // there by then.
 .banner-duration {
   position: absolute;
-  bottom: 0.8rem;
+  top: 0.8rem;
   right: calc(0.8rem + env(safe-area-inset-right, 0px));
   z-index: 2;
   padding: 0.2rem 0.56rem;

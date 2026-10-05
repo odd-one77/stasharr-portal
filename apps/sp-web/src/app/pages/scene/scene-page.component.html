@@ -1,4 +1,8 @@
-<main class="app-page-shell" [style.--hero-collapse]="heroCollapseProgress()">
+<main
+  class="app-page-shell"
+  [style.--hero-collapse]="heroCollapseProgress()"
+  [style.--hero-rest]="heroRest()"
+>
   <a
     class="back-link app-back-link app-back-link--media"
     [routerLink]="backLinkPath()"
@@ -22,7 +26,7 @@
   } @else if (scene(); as scene) {
     <div class="hero-sentinel" aria-hidden="true"></div>
 
-    <div class="hero-banner-wrap" [style.--hero-rest]="heroRest()">
+    <div class="hero-banner-wrap">
       <div class="hero-shrink-probe" aria-hidden="true"></div>
       <div class="hero-banner">
         @if (scene.imageUrl) {
