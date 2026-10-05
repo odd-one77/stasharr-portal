@@ -103,6 +103,14 @@ p {
   display: block;
   width: 100%;
   height: auto;
+  // Softens as the banner collapses. Blur feathers the image's own edges, so
+  // it's scaled up slightly (from the top, which stays put) to keep them
+  // outside the clipped banner. will-change keeps the filter on the GPU so
+  // changing the radius every scroll frame doesn't repaint the image.
+  filter: blur(calc(var(--hero-collapse, 0) * 4px));
+  transform: scale(calc(1 + var(--hero-collapse, 0) * 0.03));
+  transform-origin: top center;
+  will-change: filter, transform;
 }
 
 // Fades the bottom of the banner into the page background instead of a
