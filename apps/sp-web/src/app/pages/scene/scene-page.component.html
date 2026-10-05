@@ -125,7 +125,7 @@
     </div>
 
     <div class="hero-content">
-      <section class="hero-layout">
+      <section class="hero-layout" appHeightVar="--title-h">
         <div class="hero-info">
             <h1>{{ scene.title }}</h1>
 
@@ -216,152 +216,155 @@
           </div>
       </section>
 
-      <div class="content-shell app-section-stack">
-        @if (scene.status.state !== 'AVAILABLE') {
-          <section class="section lifecycle-section app-section-panel">
-            <h2>Lifecycle</h2>
-            <p class="overview-text">{{ lifecycleSummary(scene) }}</p>
+      <div class="content-hold">
+        <div class="content-shell app-section-stack">
+          @if (scene.status.state !== 'AVAILABLE') {
+            <section class="section lifecycle-section app-section-panel">
+              <h2>Lifecycle</h2>
+              <p class="overview-text">{{ lifecycleSummary(scene) }}</p>
 
-            <div class="lifecycle-grid">
-              @for (step of lifecycleSteps(scene); track step.system) {
-                <article class="lifecycle-card">
-                  <p class="overview-text">
-                    <strong>{{ step.system }}</strong>
-                  </p>
-                  <p>
-                    <strong>{{ step.title }}</strong>
-                  </p>
-                  <p class="overview-text">{{ step.detail }}</p>
-                </article>
-              }
-            </div>
-          </section>
-        }
-
-        @if (displayedDescription(scene.description); as description) {
-          <section class="section overview-section app-section-panel">
-            <h2>Overview</h2>
-            <p class="overview-text">{{ description }}</p>
-
-            @if (hasLongDescription(scene.description)) {
-              <button type="button" (click)="toggleDescription()">
-                {{ descriptionExpanded() ? 'Show less' : 'Show more' }}
-              </button>
-            }
-          </section>
-        }
-
-        @if (scene.performers.length > 0) {
-          <section class="section app-section-panel">
-            <h2>Performers</h2>
-            <div class="performer-grid">
-              @for (performer of scene.performers; track performer.id) {
-                <article class="performer-card">
-                  <a
-                    class="performer-link-stretch"
-                    [routerLink]="['/performer', performer.id]"
-                    [queryParams]="{ returnTo: currentRouteUrl() }"
-                    [attr.aria-label]="'View performer ' + performer.name"
-                  ></a>
-
-                  <button
-                    type="button"
-                    class="performer-favorite"
-                    [class.is-favorite]="performer.isFavorite"
-                    [disabled]="performerFavoriteToggleBusy(performer.id)"
-                    [attr.aria-busy]="performerFavoriteToggleBusy(performer.id)"
-                    [attr.aria-label]="performerFavoriteToggleLabel(performer.isFavorite)"
-                    [title]="performerFavoriteToggleLabel(performer.isFavorite)"
-                    (click)="toggleScenePerformerFavorite($event, performer)"
-                  >
-                    <i
-                      [class]="performer.isFavorite ? 'pi pi-star-fill' : 'pi pi-star'"
-                      aria-hidden="true"
-                    ></i>
-                  </button>
-
-                  @if (performer.cardImageUrl || performer.imageUrl) {
-                    <img
-                      class="performer-image"
-                      [src]="performer.cardImageUrl ?? performer.imageUrl"
-                      [alt]="performer.name"
-                    />
-                  } @else {
-                    <div class="performer-image placeholder">
-                      {{ performerInitial(performer.name) }}
-                    </div>
-                  }
-
-                  <div class="performer-meta">
-                    <p class="performer-name">{{ performer.name }}</p>
-                    @if (formattedGender(performer.gender); as gender) {
-                      <p class="performer-gender">{{ gender }}</p>
-                    }
-                  </div>
-                </article>
-              }
-            </div>
-          </section>
-        }
-
-        @if (similarScenes().length > 0) {
-          <section class="section similar-section">
-            <div class="similar-head">
-              <h2>Similar</h2>
-              <div class="similar-actions app-action-row">
-                <button
-                  type="button"
-                  class="scroll-button"
-                  (click)="scrollSimilarRail('prev')"
-                  aria-label="Scroll similar scenes left"
-                >
-                  <i class="pi pi-angle-left" aria-hidden="true"></i>
-                </button>
-                <button
-                  type="button"
-                  class="scroll-button"
-                  (click)="scrollSimilarRail('next')"
-                  aria-label="Scroll similar scenes right"
-                >
-                  <i class="pi pi-angle-right" aria-hidden="true"></i>
-                </button>
-              </div>
-            </div>
-
-            <div class="similar-viewport" #similarRailViewport>
-              <div class="similar-track">
-                @for (item of similarScenes(); track item.id) {
-                  <app-scene-card
-                    class="similar-card"
-                    [item]="item"
-                    variant="rail"
-                    [requestable]="isSimilarSceneRequestable(item)"
-                    [sceneQueryParams]="{ returnTo: currentRouteUrl() }"
-                    (request)="openSimilarSceneRequestModal($event)"
-                  />
+              <div class="lifecycle-grid">
+                @for (step of lifecycleSteps(scene); track step.system) {
+                  <article class="lifecycle-card">
+                    <p class="overview-text">
+                      <strong>{{ step.system }}</strong>
+                    </p>
+                    <p>
+                      <strong>{{ step.title }}</strong>
+                    </p>
+                    <p class="overview-text">{{ step.detail }}</p>
+                  </article>
                 }
               </div>
-            </div>
-          </section>
-        }
+            </section>
+          }
 
-        @if (scene.tags.length > 0) {
-          <section class="section app-section-panel">
-            <h2>Tags</h2>
-            <div class="chips app-chip-list">
-              @for (tag of scene.tags; track tag.id) {
-                <a
-                  class="chip app-chip tag-link"
-                  [routerLink]="['/scenes']"
-                  [queryParams]="{ tags: tag.id, tagNames: tag.name }"
-                  [attr.aria-label]="'Open scenes tagged ' + tag.name"
-                >
-                  {{ tag.name }}
-                </a>
+          @if (displayedDescription(scene.description); as description) {
+            <section class="section overview-section app-section-panel">
+              <h2>Overview</h2>
+              <p class="overview-text">{{ description }}</p>
+
+              @if (hasLongDescription(scene.description)) {
+                <button type="button" (click)="toggleDescription()">
+                  {{ descriptionExpanded() ? 'Show less' : 'Show more' }}
+                </button>
               }
-            </div>
-          </section>
-        }
+            </section>
+          }
+
+          @if (scene.performers.length > 0) {
+            <section class="section app-section-panel">
+              <h2>Performers</h2>
+              <div class="performer-grid">
+                @for (performer of scene.performers; track performer.id) {
+                  <article class="performer-card">
+                    <a
+                      class="performer-link-stretch"
+                      [routerLink]="['/performer', performer.id]"
+                      [queryParams]="{ returnTo: currentRouteUrl() }"
+                      [attr.aria-label]="'View performer ' + performer.name"
+                    ></a>
+
+                    <button
+                      type="button"
+                      class="performer-favorite"
+                      [class.is-favorite]="performer.isFavorite"
+                      [disabled]="performerFavoriteToggleBusy(performer.id)"
+                      [attr.aria-busy]="performerFavoriteToggleBusy(performer.id)"
+                      [attr.aria-label]="performerFavoriteToggleLabel(performer.isFavorite)"
+                      [title]="performerFavoriteToggleLabel(performer.isFavorite)"
+                      (click)="toggleScenePerformerFavorite($event, performer)"
+                    >
+                      <i
+                        [class]="performer.isFavorite ? 'pi pi-star-fill' : 'pi pi-star'"
+                        aria-hidden="true"
+                      ></i>
+                    </button>
+
+                    @if (performer.cardImageUrl || performer.imageUrl) {
+                      <img
+                        class="performer-image"
+                        [src]="performer.cardImageUrl ?? performer.imageUrl"
+                        [alt]="performer.name"
+                      />
+                    } @else {
+                      <div class="performer-image placeholder">
+                        {{ performerInitial(performer.name) }}
+                      </div>
+                    }
+
+                    <div class="performer-meta">
+                      <p class="performer-name">{{ performer.name }}</p>
+                      @if (formattedGender(performer.gender); as gender) {
+                        <p class="performer-gender">{{ gender }}</p>
+                      }
+                    </div>
+                  </article>
+                }
+              </div>
+            </section>
+          }
+
+          @if (similarScenes().length > 0) {
+            <section class="section similar-section">
+              <div class="similar-head">
+                <h2>Similar</h2>
+                <div class="similar-actions app-action-row">
+                  <button
+                    type="button"
+                    class="scroll-button"
+                    (click)="scrollSimilarRail('prev')"
+                    aria-label="Scroll similar scenes left"
+                  >
+                    <i class="pi pi-angle-left" aria-hidden="true"></i>
+                  </button>
+                  <button
+                    type="button"
+                    class="scroll-button"
+                    (click)="scrollSimilarRail('next')"
+                    aria-label="Scroll similar scenes right"
+                  >
+                    <i class="pi pi-angle-right" aria-hidden="true"></i>
+                  </button>
+                </div>
+              </div>
+
+              <div class="similar-viewport" #similarRailViewport>
+                <div class="similar-track">
+                  @for (item of similarScenes(); track item.id) {
+                    <app-scene-card
+                      class="similar-card"
+                      [item]="item"
+                      variant="rail"
+                      [requestable]="isSimilarSceneRequestable(item)"
+                      [sceneQueryParams]="{ returnTo: currentRouteUrl() }"
+                      (request)="openSimilarSceneRequestModal($event)"
+                    />
+                  }
+                </div>
+              </div>
+            </section>
+          }
+
+          @if (scene.tags.length > 0) {
+            <section class="section app-section-panel">
+              <h2>Tags</h2>
+              <div class="chips app-chip-list">
+                @for (tag of scene.tags; track tag.id) {
+                  <a
+                    class="chip app-chip tag-link"
+                    [routerLink]="['/scenes']"
+                    [queryParams]="{ tags: tag.id, tagNames: tag.name }"
+                    [attr.aria-label]="'Open scenes tagged ' + tag.name"
+                  >
+                    {{ tag.name }}
+                  </a>
+                }
+              </div>
+            </section>
+          }
+        </div>
+        <div class="content-hold-spacer" aria-hidden="true"></div>
       </div>
     </div>
 

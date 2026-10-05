@@ -27,6 +27,7 @@ import {
   SceneRequestContext,
   isSceneStatusRequestable,
 } from '../../core/api/discover.types';
+import { HeightVarDirective } from '../../shared/measure/height-var.directive';
 import { observeHeroCollapse } from '../../shared/scroll/hero-collapse.util';
 import { SceneCardComponent } from '../../shared/scene-card/scene-card.component';
 import { SceneRequestModalComponent } from '../../shared/scene-request-modal/scene-request-modal.component';
@@ -52,6 +53,7 @@ interface SceneLifecycleStep {
     SceneStatusBadgeComponent,
     SceneCardComponent,
     SceneRequestModalComponent,
+    HeightVarDirective,
   ],
   templateUrl: './scene-page.component.html',
   styleUrl: './scene-page.component.scss',

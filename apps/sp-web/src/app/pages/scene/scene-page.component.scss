@@ -1,4 +1,6 @@
 :host {
+  --hero-rest-cap: 200rem;
+  --hero-final: 4.5rem;
   display: block;
   min-height: 100dvh;
   color: var(--text-primary);
@@ -42,8 +44,6 @@ p {
   // --hero-rest is the image's rendered height in px (set by the component
   // once it loads); capped per breakpoint, and --hero-final is the collapsed
   // bar height. --hero-shrink is how far the header shrinks in total.
-  --hero-rest-cap: 200rem;
-  --hero-final: 4.5rem;
   --hero-rest-eff: min(var(--hero-rest, 14rem), var(--hero-rest-cap));
   --hero-shrink: calc(var(--hero-rest-eff) - var(--hero-final));
   position: sticky;
@@ -441,8 +441,25 @@ button {
   cursor: pointer;
 }
 
+// The sections after the title section hold still while the title section
+// finishes sliding away under the finished bar, then scroll normally. The
+// shell is sticky at the spot it occupies when the bar finishes (bar height
+// + the title section's height), and the hold container extends the shell's
+// sticky range by exactly the title section's height (--title-h, published
+// by HeightVarDirective) via a spacer; the negative margin stops that
+// spacer from adding blank space at the end of the page.
+.content-hold {
+  margin-bottom: calc(-1 * var(--title-h, 0px));
+}
+
+.content-hold-spacer {
+  height: var(--title-h, 0px);
+}
+
 .content-shell {
   margin-top: 0.9rem;
+  position: sticky;
+  top: calc(var(--hero-final) + env(safe-area-inset-top, 0px) + var(--title-h, 0px) + 0.9rem);
 }
 
 .lifecycle-grid {
@@ -583,7 +600,7 @@ button {
 }
 
 @media (max-width: 880px) {
-  .hero-banner-wrap {
+  :host {
     --hero-rest-cap: 13.5rem;
   }
 
@@ -632,7 +649,7 @@ button {
 // above but still has very little vertical room -- shrink the banner and
 // logo there too, keyed off height rather than width.
 @media (orientation: landscape) and (max-height: 500px) {
-  .hero-banner-wrap {
+  :host {
     --hero-rest-cap: 8rem;
     --hero-final: 3.5rem;
   }
