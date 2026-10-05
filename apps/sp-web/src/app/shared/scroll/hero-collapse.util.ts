@@ -24,11 +24,7 @@ export function measureHeroCollapse(host: HTMLElement): number {
     return 0;
   }
 
-  // Optional: pages whose title section should scroll away under the
-  // pinned header before it starts collapsing mark that section with
-  // .hero-collapse-delay; the collapse starts once it has scrolled past.
-  const delayPx = host.querySelector<HTMLElement>('.hero-collapse-delay')?.offsetHeight ?? 0;
-  const startOffset = sentinel.getBoundingClientRect().top + window.scrollY + delayPx;
+  const startOffset = sentinel.getBoundingClientRect().top + window.scrollY;
   return Math.min(1, Math.max(0, (window.scrollY - startOffset) / shrinkPx));
 }
 
