@@ -8,6 +8,8 @@
   --logo-rest: -1.2rem;
   --btn-h: 2.5rem;
   --btn-rest: 9rem;
+  // Height reserved for the title line under the logo in the docked strip.
+  --strip-title: 1.25rem;
   display: block;
   min-height: 100dvh;
   color: var(--text-primary);
@@ -188,7 +190,7 @@ p {
   top: calc(
     env(safe-area-inset-top, 0px) + var(--hero-rest-eff) - var(--hero-shrink) *
       var(--hero-collapse, 0) - (var(--logo-h) - var(--logo-shrink) * var(--hero-collapse, 0)) -
-      0.6rem
+      0.6rem - var(--strip-title)
   );
   margin-top: var(--logo-rest);
   margin-bottom: calc(-1 * var(--logo-rest));
@@ -265,18 +267,17 @@ p {
   font-size: 0.85em;
 }
 
-// A duplicate of the title, positioned to sit under the logo's final
-// (collapsed) spot. It doesn't travel itself -- it's invisible until the
-// logo/button travel is mostly done, then fades in over the remaining
-// distance (the max(0, (t - 0.6) * 2.5) gate holds it at 0 until
-// --hero-collapse passes 0.6, then ramps 0->1 over the rest). Single line
-// only -- a long title truncates with an ellipsis well before the play
-// button rather than wrapping (wrapping pushed a second line up into the
-// logo above it).
+// A duplicate of the title for the docked strip: it sits on the strip's
+// bottom line, directly under the logo, anchored to the banner's bottom edge
+// so it rides up with the banner as it collapses. It fades in over the first
+// part of the dock (--hero-dock), as the strip comes into place -- before the
+// collapse starts -- because the real title is about to slide under the
+// banner. Single line only: a long title truncates with an ellipsis rather
+// than wrapping up into the logo above it.
 .header-title {
   position: absolute;
-  left: calc(0.8rem + env(safe-area-inset-left, 0px));
-  top: calc(env(safe-area-inset-top, 0px) + 0.55rem);
+  left: calc(1rem + env(safe-area-inset-left, 0px));
+  bottom: 0.6rem;
   z-index: 3;
   max-width: min(56vw, 17rem);
   margin: 0;
@@ -288,7 +289,7 @@ p {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  opacity: max(0, (var(--hero-collapse, 0) - 0.6) * 2.5);
+  opacity: min(1, var(--hero-dock, 0) * 2.5);
 }
 
 .performer-favorite {
@@ -651,6 +652,7 @@ button {
     --logo-rest: -0.85rem;
     --btn-h: 2.35rem;
     --btn-rest: 7.8rem;
+    --strip-title: 1.1rem;
   }
 
   .hero-layout {
