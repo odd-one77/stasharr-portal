@@ -9,6 +9,7 @@ import {
   PerformerSort,
   PerformerStudioOption,
   FavoriteMutationResponse,
+  PerformerMonitoringState,
   StudioFeedResponse,
   StudioFeedSort,
   SceneFavoritesFilter,
@@ -213,6 +214,22 @@ export class DiscoverService {
     return this.http.post<FavoriteMutationResponse>(
       `/api/performers/${encodeURIComponent(performerId)}/favorite`,
       { favorite },
+    );
+  }
+
+  getPerformerMonitoring(performerId: string): Observable<PerformerMonitoringState> {
+    return this.http.get<PerformerMonitoringState>(
+      `/api/performers/${encodeURIComponent(performerId)}/monitoring`,
+    );
+  }
+
+  setPerformerMonitoring(
+    performerId: string,
+    monitored: boolean,
+  ): Observable<PerformerMonitoringState> {
+    return this.http.put<PerformerMonitoringState>(
+      `/api/performers/${encodeURIComponent(performerId)}/monitoring`,
+      { monitored },
     );
   }
 

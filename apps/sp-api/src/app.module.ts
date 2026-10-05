@@ -11,6 +11,7 @@ import { IntegrationsModule } from './integrations/integrations.module';
 import { LibraryModule } from './library/library.module';
 import { MediaModule } from './media/media.module';
 import { PrismaModule } from './prisma/prisma.module';
+import { PerformerMonitoringModule } from './performers/performer-monitoring.module';
 import { PerformersModule } from './performers/performers.module';
 import { RequestsModule } from './requests/requests.module';
 import { RuntimeHealthModule } from './runtime-health/runtime-health.module';
@@ -43,6 +44,7 @@ import { WhisparrMetadataModule } from './whisparr-metadata/whisparr-metadata.mo
     ScenesModule,
     RequestsModule,
     PerformersModule,
+    PerformerMonitoringModule,
     StudiosModule,
     WhisparrMetadataModule,
   ],

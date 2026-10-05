@@ -9,5 +9,6 @@ import { RequestsService } from './requests.service';
   imports: [IndexingModule, IntegrationsModule, WhisparrModule],
   controllers: [RequestsController],
   providers: [RequestsService],
+  exports: [RequestsService],
 })
 export class RequestsModule {}

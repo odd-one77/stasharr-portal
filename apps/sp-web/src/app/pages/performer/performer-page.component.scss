@@ -238,6 +238,27 @@ main > button {
   cursor: pointer;
 }
 
+.monitor-controls {
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.monitor-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.monitor-toggle.active {
+  border-color: color-mix(in srgb, var(--focus-ring) 55%, var(--border-strong));
+  background: color-mix(in srgb, var(--button-bg) 78%, var(--focus-ring) 22%);
+}
+
+.monitor-toggle[disabled] {
+  opacity: 0.75;
+  cursor: wait;
+}
+
 .set-main-image[disabled] {
   opacity: 0.75;
   cursor: default;

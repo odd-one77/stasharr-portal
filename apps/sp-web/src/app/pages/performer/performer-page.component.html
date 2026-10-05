@@ -65,6 +65,27 @@
     </div>
 
     <div class="hero-info">
+      <div class="carousel-controls monitor-controls">
+        <button
+          type="button"
+          class="monitor-toggle"
+          [class.active]="monitoring().monitored"
+          [disabled]="monitoringBusy()"
+          [attr.aria-pressed]="monitoring().monitored"
+          [attr.aria-busy]="monitoringBusy()"
+          (click)="toggleMonitoring(performer)"
+        >
+          <i
+            [class]="monitoring().monitored ? 'pi pi-bell' : 'pi pi-bell-slash'"
+            aria-hidden="true"
+          ></i>
+          {{ monitoring().monitored ? 'Monitoring new scenes' : 'Monitor new scenes' }}
+        </button>
+        @if (monitoring().monitored && monitoringSinceLabel(); as since) {
+          <span class="hint">Since {{ since }}. Past scenes are never requested.</span>
+        }
+      </div>
+
       @if (hasCarouselImages()) {
         <div class="carousel-controls">
           <button type="button" class="set-main-image" (click)="openMainImagePicker()">

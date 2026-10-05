@@ -301,6 +301,20 @@ model FavoritePerformer {
   createdAt   DateTime @default(now())
 }
 
+model MonitoredPerformer {
+  id              String    @id @default(cuid())
+  /// External performer id from the instance's currently active catalog provider.
+  performerId     String    @unique
+  /// Only scenes released on/after this date are ever auto-requested -- past
+  /// scenes are deliberately never touched by monitoring.
+  monitoredSince  DateTime  @default(now())
+  lastCheckedAt   DateTime?
+  /// Scenes this monitor has already acted on, so a scene the user later
+  /// removes from Whisparr isn't silently re-requested on the next check.
+  handledSceneIds String[]  @default([])
+  createdAt       DateTime  @default(now())
+}
+
 model PerformerImagePreference {
   id           String   @id @default(cuid())
   /// External performer id from the instance's currently active catalog provider (StashDB/FansDB/TPDB).

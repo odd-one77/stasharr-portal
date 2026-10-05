@@ -8,6 +8,11 @@ export type SceneStatusState =
   | 'AVAILABLE'
   | 'FAILED';
 
+export interface PerformerMonitoringState {
+  monitored: boolean;
+  monitoredSince: string | null;
+}
+
 export interface SceneStatus {
   state: SceneStatusState;
 }

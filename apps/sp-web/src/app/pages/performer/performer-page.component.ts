@@ -39,6 +39,7 @@ import {
   DiscoverItem,
   PerformerDetails,
   PerformerGender,
+  PerformerMonitoringState,
   PerformerStudioOption,
   SceneFeedSort,
   SceneRequestContext,
@@ -146,6 +147,11 @@ export class PerformerPageComponent implements OnInit, AfterViewInit, OnDestroy 
   protected readonly loadingPerformer = signal(false);
   protected readonly performerError = signal<string | null>(null);
   protected readonly favoritingPerformer = signal(false);
+  protected readonly monitoring = signal<PerformerMonitoringState>({
+    monitored: false,
+    monitoredSince: null,
+  });
+  protected readonly monitoringBusy = signal(false);
   protected readonly settingMainImage = signal(false);
   protected readonly filtersExpanded = signal(false);
   protected readonly mainImagePickerOpen = signal(false);
@@ -294,6 +300,47 @@ export class PerformerPageComponent implements OnInit, AfterViewInit, OnDestroy 
         error: () => {
           this.notifications.error(
             nextFavorite ? 'Failed to favorite performer' : 'Failed to unfavorite performer',
+          );
+        },
+      });
+  }
+
+  protected monitoringSinceLabel(): string | null {
+    const since = this.monitoring().monitoredSince;
+    if (!since) {
+      return null;
+    }
+
+    return new Date(since).toLocaleDateString(undefined, {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    });
+  }
+
+  protected toggleMonitoring(performer: PerformerDetails): void {
+    if (this.monitoringBusy()) {
+      return;
+    }
+
+    const nextMonitored = !this.monitoring().monitored;
+    this.monitoringBusy.set(true);
+    this.discoverService
+      .setPerformerMonitoring(performer.id, nextMonitored)
+      .pipe(finalize(() => this.monitoringBusy.set(false)))
+      .subscribe({
+        next: (state) => {
+          this.monitoring.set(state);
+          this.notifications.success(
+            nextMonitored ? 'Monitoring new scenes' : 'Stopped monitoring',
+            nextMonitored
+              ? 'Scenes released from today on are requested automatically. Past scenes are never requested.'
+              : undefined,
+          );
+        },
+        error: () => {
+          this.notifications.error(
+            nextMonitored ? 'Failed to start monitoring' : 'Failed to stop monitoring',
           );
         },
       });
@@ -659,11 +706,20 @@ export class PerformerPageComponent implements OnInit, AfterViewInit, OnDestroy 
       .subscribe({
         next: (details) => {
           this.performer.set(details);
+          this.loadMonitoring(details.id);
         },
         error: () => {
           this.performerError.set('Failed to load performer details.');
         },
       });
+  }
+
+  private loadMonitoring(performerId: string): void {
+    this.monitoring.set({ monitored: false, monitoredSince: null });
+    this.discoverService
+      .getPerformerMonitoring(performerId)
+      .pipe(catchError(() => of<PerformerMonitoringState>({ monitored: false, monitoredSince: null })))
+      .subscribe((state) => this.monitoring.set(state));
   }
 
   private loadNextScenesPage(): void {

@@ -7,7 +7,9 @@ export type ThemeMode = 'light' | 'dark';
   providedIn: 'root',
 })
 export class ThemeService {
-  private static readonly STORAGE_KEY = 'sp-theme';
+  // Versioned so a stale "light" saved under the old key (from before dark
+  // was the default) doesn't keep overriding the dark default on open.
+  private static readonly STORAGE_KEY = 'sp-theme-v2';
 
   private readonly document = inject(DOCUMENT);
   private readonly themeState = signal<ThemeMode>('dark');

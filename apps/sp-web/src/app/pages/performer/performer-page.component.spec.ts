@@ -82,6 +82,12 @@ describe('PerformerPageComponent', () => {
     const paramMap$ = new BehaviorSubject(convertToParamMap({ performerId: 'performer-1' }));
     const queryParamMap$ = new BehaviorSubject(convertToParamMap({}));
     const discoverService = {
+      getPerformerMonitoring: vi
+        .fn()
+        .mockReturnValue(of({ monitored: false, monitoredSince: null })),
+      setPerformerMonitoring: vi
+        .fn()
+        .mockReturnValue(of({ monitored: true, monitoredSince: '2026-10-05T00:00:00.000Z' })),
       getPerformerDetails: options?.performer
         ? vi.fn().mockReturnValue(of(options.performer))
         : vi.fn().mockReturnValue(of(buildPerformer())),
