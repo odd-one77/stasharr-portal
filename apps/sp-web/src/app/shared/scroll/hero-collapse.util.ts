@@ -12,20 +12,40 @@ import { NgZone } from '@angular/core';
 // constant, so the content below scrolls natively -- attached to the bar's
 // bottom edge during the collapse, and under the finished bar afterwards --
 // with no script-driven content movement to jitter against the scroll.
-export function measureHeroCollapse(host: HTMLElement): number {
+export interface HeroCollapseState {
+  // 0..1 across the header's shrink (after any .hero-collapse-delay section).
+  progress: number;
+  // 0..1 across the distance given by .hero-dock-probe, measured from the
+  // moment the header pins. Lets pages animate things into place *before*
+  // the collapse starts; 0 when the page has no dock probe.
+  dock: number;
+}
+
+const clamp01 = (value: number): number => Math.min(1, Math.max(0, value));
+
+export function measureHeroCollapse(host: HTMLElement): HeroCollapseState {
   const sentinel = host.querySelector('.hero-sentinel');
   const probe = host.querySelector<HTMLElement>('.hero-shrink-probe');
   if (!sentinel || !probe) {
-    return 0;
+    return { progress: 0, dock: 0 };
   }
 
   const shrinkPx = probe.offsetHeight;
   if (shrinkPx <= 0) {
-    return 0;
+    return { progress: 0, dock: 0 };
   }
 
-  const startOffset = sentinel.getBoundingClientRect().top + window.scrollY;
-  return Math.min(1, Math.max(0, (window.scrollY - startOffset) / shrinkPx));
+  const pinOffset = sentinel.getBoundingClientRect().top + window.scrollY;
+  const dockPx = host.querySelector<HTMLElement>('.hero-dock-probe')?.offsetHeight ?? 0;
+  // Optional: pages whose title section should scroll away under the
+  // pinned header before it starts collapsing mark that section with
+  // .hero-collapse-delay; the collapse starts once it has scrolled past.
+  const delayPx = host.querySelector<HTMLElement>('.hero-collapse-delay')?.offsetHeight ?? 0;
+
+  return {
+    progress: clamp01((window.scrollY - pinOffset - delayPx) / shrinkPx),
+    dock: dockPx > 0 ? clamp01((window.scrollY - pinOffset) / dockPx) : 0,
+  };
 }
 
 // Listens for scroll/resize/host-size changes outside Angular, coalesces them
@@ -34,20 +54,22 @@ export function measureHeroCollapse(host: HTMLElement): number {
 export function observeHeroCollapse(
   host: HTMLElement,
   zone: NgZone,
-  onChange: (progress: number) => void,
+  onChange: (progress: number, dock: number) => void,
 ): () => void {
   let frame = 0;
-  let last = Number.NaN;
+  let lastProgress = Number.NaN;
+  let lastDock = Number.NaN;
 
   const update = (): void => {
     frame = 0;
     const next = measureHeroCollapse(host);
-    if (next === last) {
+    if (next.progress === lastProgress && next.dock === lastDock) {
       return;
     }
 
-    last = next;
-    zone.run(() => onChange(next));
+    lastProgress = next.progress;
+    lastDock = next.dock;
+    zone.run(() => onChange(next.progress, next.dock));
   };
 
   const schedule = (): void => {

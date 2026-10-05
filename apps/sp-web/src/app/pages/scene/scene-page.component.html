@@ -1,4 +1,9 @@
-<main class="app-page-shell">
+<main
+  class="app-page-shell"
+  [style.--hero-collapse]="heroCollapseProgress()"
+  [style.--hero-dock]="heroDock()"
+  [style.--hero-rest]="heroRest()"
+>
   <a
     class="back-link app-back-link app-back-link--media"
     [routerLink]="backLinkPath()"
@@ -22,12 +27,9 @@
   } @else if (scene(); as scene) {
     <div class="hero-sentinel" aria-hidden="true"></div>
 
-    <div
-      class="hero-banner-wrap"
-      [style.--hero-collapse]="heroCollapseProgress()"
-      [style.--hero-rest]="heroRest()"
-    >
+    <div class="hero-banner-wrap">
       <div class="hero-shrink-probe" aria-hidden="true"></div>
+      <div class="hero-dock-probe" aria-hidden="true"></div>
       <div class="hero-banner">
         @if (scene.imageUrl) {
           <img
@@ -45,87 +47,87 @@
         }
       </div>
 
-      <!-- A single real logo element travels from a mostly-below-the-image
-           rest position up into the top-left corner as the banner
-           collapses (no separate rest-state copy). The play/request
-           button travels the same way into the top-right corner. The
-           title is a duplicate, invisible at rest, that only starts
-           fading in once the travel is mostly done. -->
-      @if (scene.studioImageUrl) {
-        <div class="hero-cluster">
-          @if (scene.studioId) {
-            <a
-              class="cluster-logo"
-              [routerLink]="['/studio', scene.studioId]"
-              [queryParams]="{ returnTo: currentRouteUrl() }"
-              [attr.aria-label]="studioLogoAriaLabel(scene)"
-            >
-              <img [src]="scene.studioImageUrl" alt="" />
-            </a>
-          } @else if (scene.studioUrl) {
-            <a
-              class="cluster-logo"
-              [href]="scene.studioUrl"
-              target="_blank"
-              rel="noopener noreferrer"
-              [attr.aria-label]="studioLogoAriaLabel(scene)"
-            >
-              <img [src]="scene.studioImageUrl" alt="" />
-            </a>
-          } @else {
-            <div class="cluster-logo" aria-hidden="true">
-              <img [src]="scene.studioImageUrl" alt="" />
-            </div>
-          }
-        </div>
-      }
-
-      <!-- A single real button, same travel technique as .hero-cluster: it
-           starts flush against the right edge, hanging below the banner,
-           and rises/shrinks into the top-right corner as the banner
-           collapses. -->
-      @if (hasStashCopy(scene)) {
-        <button
-          type="button"
-          class="cluster-action"
-          aria-label="Play"
-          title="Play"
-          (click)="playSelectedStashCopy(scene)"
-        >
-          <i class="pi pi-play" aria-hidden="true"></i>
-          <span>Play</span>
-        </button>
-      } @else if (canRequestScene(scene)) {
-        <button
-          type="button"
-          class="cluster-action is-request"
-          aria-label="Request in Whisparr"
-          title="Request in Whisparr"
-          (click)="openRequestPanel(scene)"
-        >
-          <i class="pi pi-download" aria-hidden="true"></i>
-          <span>Request</span>
-        </button>
-      } @else if (canRemoveRequest(scene)) {
-        <button
-          type="button"
-          class="cluster-action is-remove"
-          aria-label="Remove request"
-          title="Remove request"
-          [disabled]="removingRequest()"
-          [attr.aria-busy]="removingRequest()"
-          (click)="removeSceneRequestFromHero(scene)"
-        >
-          <i class="pi pi-trash" aria-hidden="true"></i>
-          <span>Remove</span>
-        </button>
-      }
-
       <p class="header-title" aria-hidden="true">{{ scene.title }}</p>
     </div>
 
     <div class="hero-content">
-      <section class="hero-layout">
+      <!-- The studio logo and the play/request button are real elements that
+           ride up with the page content (native scroll) from their rest
+           spots below the banner and dock as a strip along the banner's
+           bottom edge (position: sticky). From there they stay at the
+           banner's bottom as it collapses -- they never travel to the top
+           on their own. Each row is zero-height with margins that cancel
+           out, so it takes no space in the flow. -->
+      <div class="pin-row pin-row--action">
+        @if (hasStashCopy(scene)) {
+          <button
+            type="button"
+            class="cluster-action"
+            aria-label="Play"
+            title="Play"
+            (click)="playSelectedStashCopy(scene)"
+          >
+            <i class="pi pi-play" aria-hidden="true"></i>
+            <span>Play</span>
+          </button>
+        } @else if (canRequestScene(scene)) {
+          <button
+            type="button"
+            class="cluster-action is-request"
+            aria-label="Request in Whisparr"
+            title="Request in Whisparr"
+            (click)="openRequestPanel(scene)"
+          >
+            <i class="pi pi-download" aria-hidden="true"></i>
+            <span>Request</span>
+          </button>
+        } @else if (canRemoveRequest(scene)) {
+          <button
+            type="button"
+            class="cluster-action is-remove"
+            aria-label="Remove request"
+            title="Remove request"
+            [disabled]="removingRequest()"
+            [attr.aria-busy]="removingRequest()"
+            (click)="removeSceneRequestFromHero(scene)"
+          >
+            <i class="pi pi-trash" aria-hidden="true"></i>
+            <span>Remove</span>
+          </button>
+        }
+      </div>
+      @if (scene.studioImageUrl) {
+        <div class="pin-row pin-row--logo">
+          <div class="hero-cluster">
+            @if (scene.studioId) {
+              <a
+                class="cluster-logo"
+                [routerLink]="['/studio', scene.studioId]"
+                [queryParams]="{ returnTo: currentRouteUrl() }"
+                [attr.aria-label]="studioLogoAriaLabel(scene)"
+              >
+                <img [src]="scene.studioImageUrl" alt="" />
+              </a>
+            } @else if (scene.studioUrl) {
+              <a
+                class="cluster-logo"
+                [href]="scene.studioUrl"
+                target="_blank"
+                rel="noopener noreferrer"
+                [attr.aria-label]="studioLogoAriaLabel(scene)"
+              >
+                <img [src]="scene.studioImageUrl" alt="" />
+              </a>
+            } @else {
+              <div class="cluster-logo" aria-hidden="true">
+                <img [src]="scene.studioImageUrl" alt="" />
+              </div>
+            }
+          </div>
+        </div>
+      }
+
+      <section class="hero-layout hero-collapse-delay">
         <div class="hero-info">
             <h1>{{ scene.title }}</h1>
 
@@ -216,153 +218,153 @@
           </div>
       </section>
 
-      <div class="content-shell app-section-stack">
-        @if (scene.status.state !== 'AVAILABLE') {
-          <section class="section lifecycle-section app-section-panel">
-            <h2>Lifecycle</h2>
-            <p class="overview-text">{{ lifecycleSummary(scene) }}</p>
+        <div class="content-shell app-section-stack">
+          @if (scene.status.state !== 'AVAILABLE') {
+            <section class="section lifecycle-section app-section-panel">
+              <h2>Lifecycle</h2>
+              <p class="overview-text">{{ lifecycleSummary(scene) }}</p>
 
-            <div class="lifecycle-grid">
-              @for (step of lifecycleSteps(scene); track step.system) {
-                <article class="lifecycle-card">
-                  <p class="overview-text">
-                    <strong>{{ step.system }}</strong>
-                  </p>
-                  <p>
-                    <strong>{{ step.title }}</strong>
-                  </p>
-                  <p class="overview-text">{{ step.detail }}</p>
-                </article>
-              }
-            </div>
-          </section>
-        }
-
-        @if (displayedDescription(scene.description); as description) {
-          <section class="section overview-section app-section-panel">
-            <h2>Overview</h2>
-            <p class="overview-text">{{ description }}</p>
-
-            @if (hasLongDescription(scene.description)) {
-              <button type="button" (click)="toggleDescription()">
-                {{ descriptionExpanded() ? 'Show less' : 'Show more' }}
-              </button>
-            }
-          </section>
-        }
-
-        @if (scene.performers.length > 0) {
-          <section class="section app-section-panel">
-            <h2>Performers</h2>
-            <div class="performer-grid">
-              @for (performer of scene.performers; track performer.id) {
-                <article class="performer-card">
-                  <a
-                    class="performer-link-stretch"
-                    [routerLink]="['/performer', performer.id]"
-                    [queryParams]="{ returnTo: currentRouteUrl() }"
-                    [attr.aria-label]="'View performer ' + performer.name"
-                  ></a>
-
-                  <button
-                    type="button"
-                    class="performer-favorite"
-                    [class.is-favorite]="performer.isFavorite"
-                    [disabled]="performerFavoriteToggleBusy(performer.id)"
-                    [attr.aria-busy]="performerFavoriteToggleBusy(performer.id)"
-                    [attr.aria-label]="performerFavoriteToggleLabel(performer.isFavorite)"
-                    [title]="performerFavoriteToggleLabel(performer.isFavorite)"
-                    (click)="toggleScenePerformerFavorite($event, performer)"
-                  >
-                    <i
-                      [class]="performer.isFavorite ? 'pi pi-star-fill' : 'pi pi-star'"
-                      aria-hidden="true"
-                    ></i>
-                  </button>
-
-                  @if (performer.cardImageUrl || performer.imageUrl) {
-                    <img
-                      class="performer-image"
-                      [src]="performer.cardImageUrl ?? performer.imageUrl"
-                      [alt]="performer.name"
-                    />
-                  } @else {
-                    <div class="performer-image placeholder">
-                      {{ performerInitial(performer.name) }}
-                    </div>
-                  }
-
-                  <div class="performer-meta">
-                    <p class="performer-name">{{ performer.name }}</p>
-                    @if (formattedGender(performer.gender); as gender) {
-                      <p class="performer-gender">{{ gender }}</p>
-                    }
-                  </div>
-                </article>
-              }
-            </div>
-          </section>
-        }
-
-        @if (similarScenes().length > 0) {
-          <section class="section similar-section">
-            <div class="similar-head">
-              <h2>Similar</h2>
-              <div class="similar-actions app-action-row">
-                <button
-                  type="button"
-                  class="scroll-button"
-                  (click)="scrollSimilarRail('prev')"
-                  aria-label="Scroll similar scenes left"
-                >
-                  <i class="pi pi-angle-left" aria-hidden="true"></i>
-                </button>
-                <button
-                  type="button"
-                  class="scroll-button"
-                  (click)="scrollSimilarRail('next')"
-                  aria-label="Scroll similar scenes right"
-                >
-                  <i class="pi pi-angle-right" aria-hidden="true"></i>
-                </button>
-              </div>
-            </div>
-
-            <div class="similar-viewport" #similarRailViewport>
-              <div class="similar-track">
-                @for (item of similarScenes(); track item.id) {
-                  <app-scene-card
-                    class="similar-card"
-                    [item]="item"
-                    variant="rail"
-                    [requestable]="isSimilarSceneRequestable(item)"
-                    [sceneQueryParams]="{ returnTo: currentRouteUrl() }"
-                    (request)="openSimilarSceneRequestModal($event)"
-                  />
+              <div class="lifecycle-grid">
+                @for (step of lifecycleSteps(scene); track step.system) {
+                  <article class="lifecycle-card">
+                    <p class="overview-text">
+                      <strong>{{ step.system }}</strong>
+                    </p>
+                    <p>
+                      <strong>{{ step.title }}</strong>
+                    </p>
+                    <p class="overview-text">{{ step.detail }}</p>
+                  </article>
                 }
               </div>
-            </div>
-          </section>
-        }
+            </section>
+          }
 
-        @if (scene.tags.length > 0) {
-          <section class="section app-section-panel">
-            <h2>Tags</h2>
-            <div class="chips app-chip-list">
-              @for (tag of scene.tags; track tag.id) {
-                <a
-                  class="chip app-chip tag-link"
-                  [routerLink]="['/scenes']"
-                  [queryParams]="{ tags: tag.id, tagNames: tag.name }"
-                  [attr.aria-label]="'Open scenes tagged ' + tag.name"
-                >
-                  {{ tag.name }}
-                </a>
+          @if (displayedDescription(scene.description); as description) {
+            <section class="section overview-section app-section-panel">
+              <h2>Overview</h2>
+              <p class="overview-text">{{ description }}</p>
+
+              @if (hasLongDescription(scene.description)) {
+                <button type="button" (click)="toggleDescription()">
+                  {{ descriptionExpanded() ? 'Show less' : 'Show more' }}
+                </button>
               }
-            </div>
-          </section>
-        }
-      </div>
+            </section>
+          }
+
+          @if (scene.performers.length > 0) {
+            <section class="section app-section-panel">
+              <h2>Performers</h2>
+              <div class="performer-grid">
+                @for (performer of scene.performers; track performer.id) {
+                  <article class="performer-card">
+                    <a
+                      class="performer-link-stretch"
+                      [routerLink]="['/performer', performer.id]"
+                      [queryParams]="{ returnTo: currentRouteUrl() }"
+                      [attr.aria-label]="'View performer ' + performer.name"
+                    ></a>
+
+                    <button
+                      type="button"
+                      class="performer-favorite"
+                      [class.is-favorite]="performer.isFavorite"
+                      [disabled]="performerFavoriteToggleBusy(performer.id)"
+                      [attr.aria-busy]="performerFavoriteToggleBusy(performer.id)"
+                      [attr.aria-label]="performerFavoriteToggleLabel(performer.isFavorite)"
+                      [title]="performerFavoriteToggleLabel(performer.isFavorite)"
+                      (click)="toggleScenePerformerFavorite($event, performer)"
+                    >
+                      <i
+                        [class]="performer.isFavorite ? 'pi pi-star-fill' : 'pi pi-star'"
+                        aria-hidden="true"
+                      ></i>
+                    </button>
+
+                    @if (performer.cardImageUrl || performer.imageUrl) {
+                      <img
+                        class="performer-image"
+                        [src]="performer.cardImageUrl ?? performer.imageUrl"
+                        [alt]="performer.name"
+                      />
+                    } @else {
+                      <div class="performer-image placeholder">
+                        {{ performerInitial(performer.name) }}
+                      </div>
+                    }
+
+                    <div class="performer-meta">
+                      <p class="performer-name">{{ performer.name }}</p>
+                      @if (formattedGender(performer.gender); as gender) {
+                        <p class="performer-gender">{{ gender }}</p>
+                      }
+                    </div>
+                  </article>
+                }
+              </div>
+            </section>
+          }
+
+          @if (similarScenes().length > 0) {
+            <section class="section similar-section">
+              <div class="similar-head">
+                <h2>Similar</h2>
+                <div class="similar-actions app-action-row">
+                  <button
+                    type="button"
+                    class="scroll-button"
+                    (click)="scrollSimilarRail('prev')"
+                    aria-label="Scroll similar scenes left"
+                  >
+                    <i class="pi pi-angle-left" aria-hidden="true"></i>
+                  </button>
+                  <button
+                    type="button"
+                    class="scroll-button"
+                    (click)="scrollSimilarRail('next')"
+                    aria-label="Scroll similar scenes right"
+                  >
+                    <i class="pi pi-angle-right" aria-hidden="true"></i>
+                  </button>
+                </div>
+              </div>
+
+              <div class="similar-viewport" #similarRailViewport>
+                <div class="similar-track">
+                  @for (item of similarScenes(); track item.id) {
+                    <app-scene-card
+                      class="similar-card"
+                      [item]="item"
+                      variant="rail"
+                      [requestable]="isSimilarSceneRequestable(item)"
+                      [sceneQueryParams]="{ returnTo: currentRouteUrl() }"
+                      (request)="openSimilarSceneRequestModal($event)"
+                    />
+                  }
+                </div>
+              </div>
+            </section>
+          }
+
+          @if (scene.tags.length > 0) {
+            <section class="section app-section-panel">
+              <h2>Tags</h2>
+              <div class="chips app-chip-list">
+                @for (tag of scene.tags; track tag.id) {
+                  <a
+                    class="chip app-chip tag-link"
+                    [routerLink]="['/scenes']"
+                    [queryParams]="{ tags: tag.id, tagNames: tag.name }"
+                    [attr.aria-label]="'Open scenes tagged ' + tag.name"
+                  >
+                    {{ tag.name }}
+                  </a>
+                }
+              </div>
+            </section>
+          }
+        </div>
     </div>
 
     <app-scene-request-modal

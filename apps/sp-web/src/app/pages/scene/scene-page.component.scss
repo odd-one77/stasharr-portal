@@ -1,4 +1,13 @@
 :host {
+  --hero-rest-cap: 200rem;
+  --hero-final: 4.5rem;
+  // Logo / action-button geometry: rest offsets are measured from the
+  // banner's bottom edge (negative = overlapping up onto the image).
+  --logo-h: 4.8rem;
+  --logo-shrink: 3.2rem;
+  --logo-rest: -1.2rem;
+  --btn-h: 2.5rem;
+  --btn-rest: 9rem;
   display: block;
   min-height: 100dvh;
   color: var(--text-primary);
@@ -14,6 +23,12 @@
 main {
   --app-page-max-width: min(1220px, 96vw);
   --app-page-padding-end: 2.2rem;
+  // --hero-rest is the image's rendered height in px (set by the component
+  // once it loads); capped per breakpoint, and --hero-final is the collapsed
+  // bar height. --hero-shrink is how far the header shrinks in total.
+  // Declared here (not on the banner wrap) so the pin rows can use them too.
+  --hero-rest-eff: min(var(--hero-rest, 14rem), var(--hero-rest-cap));
+  --hero-shrink: calc(var(--hero-rest-eff) - var(--hero-final));
 }
 
 h1,
@@ -39,13 +54,6 @@ p {
 // as the page's actual <h1>, and .header-title is invisible at rest,
 // fading in only once the logo's travel is mostly finished.
 .hero-banner-wrap {
-  // --hero-rest is the image's rendered height in px (set by the component
-  // once it loads); capped per breakpoint, and --hero-final is the collapsed
-  // bar height. --hero-shrink is how far the header shrinks in total.
-  --hero-rest-cap: 200rem;
-  --hero-final: 4.5rem;
-  --hero-rest-eff: min(var(--hero-rest, 14rem), var(--hero-rest-cap));
-  --hero-shrink: calc(var(--hero-rest-eff) - var(--hero-final));
   position: sticky;
   top: 0;
   z-index: 20;
@@ -69,7 +77,15 @@ p {
 // Page content below the sticky header. Tall enough that scrolling to the
 // bottom always finishes the header's collapse, even on short pages.
 .hero-content {
-  min-height: calc(100dvh - 3rem);
+  // A flex column (not block flow) so the zero-height .pin-row items below
+  // keep their own margins from collapsing into each other, and so they
+  // have this whole wrapper as their sticky range.
+  display: flex;
+  flex-direction: column;
+}
+
+.hero-content > * {
+  min-width: 0;
 }
 
 // Resolves --hero-shrink to pixels for the component's scroll math (rem
@@ -80,6 +96,18 @@ p {
   left: 0;
   width: 0;
   height: var(--hero-shrink);
+  visibility: hidden;
+  pointer-events: none;
+}
+
+// How far the action button rises from its rest spot into the banner's bottom
+// strip; drives --hero-dock (see hero-collapse.util.ts).
+.hero-dock-probe {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: calc(var(--btn-rest) + var(--btn-h) + 0.6rem);
   visibility: hidden;
   pointer-events: none;
 }
@@ -128,28 +156,58 @@ p {
   );
 }
 
-// Travels from centered (left: 50% + translateX(-50%)) to flush against
-// the left edge: `left` interpolates from 50% down to a fixed inset while
-// the translateX that centers it interpolates down to 0 in lockstep, so
-// the two together trace one smooth path instead of mixing units badly.
-// Vertically it sits mostly below the banner at rest (only ~1/4 of its
-// own height overlaps the photo) and rises to sit just under the top
-// edge once collapsed. No background/blur plaque at rest -- it's just
-// the raw logo over the photo; the collapsed header's only backdrop is
-// the blurred banner image itself.
+// Zero-height sticky rows: each sits at its rest spot below the banner and
+// rides up with the page's native scroll, then pins in the header's top
+// corner. They're above the sticky header (z-index 25 vs 20) so they stay
+// visible over the banner, and their margins cancel so they add no height.
+.pin-row {
+  position: sticky;
+  z-index: 25;
+  flex: none;
+  height: 0;
+  // Full-bleed, like the banner wrap.
+  margin-inline: -1rem;
+}
+
+// Both rows dock as a strip along the banner's bottom edge: they ride up
+// with the page (native scroll) from their rest spots below the banner until
+// they reach `top` (inside the banner, --pad above its bottom edge), then
+// stay there. `top` tracks the banner's current bottom edge, so while the
+// banner collapses the strip rides up *with* it -- the elements never travel
+// to the top of the screen independently.
+.pin-row--action {
+  top: calc(
+    env(safe-area-inset-top, 0px) + var(--hero-rest-eff) - var(--hero-shrink) *
+      var(--hero-collapse, 0) - var(--btn-h) - 0.6rem
+  );
+  margin-top: var(--btn-rest);
+  margin-bottom: calc(-1 * var(--btn-rest));
+}
+
+.pin-row--logo {
+  top: calc(
+    env(safe-area-inset-top, 0px) + var(--hero-rest-eff) - var(--hero-shrink) *
+      var(--hero-collapse, 0) - (var(--logo-h) - var(--logo-shrink) * var(--hero-collapse, 0)) -
+      0.6rem
+  );
+  margin-top: var(--logo-rest);
+  margin-bottom: calc(-1 * var(--logo-rest));
+}
+
+// Centered at rest, then slides to the left edge while it docks (--hero-dock
+// runs 0..1 over the distance the elements take to rise into the strip):
+// `left` interpolates from 50% to a fixed inset while the translateX that
+// centers it interpolates to 0 in lockstep.
 .hero-cluster {
   position: absolute;
-  left: calc(50% - (50% - 1rem) * var(--hero-collapse, 0));
-  // Roughly a quarter of the logo's own height overlaps the bottom of
-  // the image at rest, the rest hanging below it.
-  bottom: calc(-3.6rem + 5.6rem * var(--hero-collapse, 0));
-  transform: translateX(calc(-50% * (1 - var(--hero-collapse, 0))));
-  z-index: 3;
+  top: 0;
+  left: calc(50% - (50% - 1rem) * var(--hero-dock, 0));
+  transform: translateX(calc(-50% * (1 - var(--hero-dock, 0))));
 }
 
 .cluster-logo {
   display: inline-flex;
-  height: calc(4.8rem - 3.2rem * var(--hero-collapse, 0));
+  height: calc(var(--logo-h) - var(--logo-shrink) * var(--hero-collapse, 0));
   text-decoration: none;
 }
 
@@ -167,8 +225,6 @@ p {
 // there by then.
 .banner-duration {
   position: absolute;
-  // The banner already starts below the safe-area padding on the wrap, so
-  // adding the inset here again would double-count it.
   top: 0.8rem;
   right: calc(0.8rem + env(safe-area-inset-right, 0px));
   z-index: 2;
@@ -186,16 +242,8 @@ p {
 // interpolate as it rises into the top-right corner on collapse.
 .cluster-action {
   position: absolute;
+  top: 0;
   right: calc(0.8rem + env(safe-area-inset-right, 0px));
-  // Rest position hangs down to sit alongside the status badge/date row
-  // in .hero-info below (not next to the logo), so it reads as part of
-  // that row rather than crowding the banner -- it still lands in the
-  // same top-right corner as the logo's top-left once collapsed. -9rem
-  // landed level with the title instead of the status/date row below it
-  // (.hero-layout's own 6.8rem top padding only clears the title) --
-  // hangs further down now to actually reach that row.
-  bottom: calc(-11.5rem + 13.5rem * var(--hero-collapse, 0));
-  z-index: 4;
   display: inline-flex;
   align-items: center;
   gap: 0.42rem;
@@ -209,7 +257,7 @@ p {
   white-space: nowrap;
   cursor: pointer;
   box-shadow: inset 0 1px 0 rgb(255 255 255 / 14%);
-  transform-origin: right center;
+  transform-origin: right bottom;
   transform: scale(calc(1 - 0.36 * var(--hero-collapse, 0)));
 }
 
@@ -228,7 +276,7 @@ p {
 .header-title {
   position: absolute;
   left: calc(0.8rem + env(safe-area-inset-left, 0px));
-  bottom: calc(0.7rem + env(safe-area-inset-bottom, 0px));
+  top: calc(env(safe-area-inset-top, 0px) + 0.55rem);
   z-index: 3;
   max-width: min(56vw, 17rem);
   margin: 0;
@@ -451,8 +499,11 @@ button {
   cursor: pointer;
 }
 
+// Tall enough that scrolling to the bottom always finishes the header's
+// collapse, even on short pages.
 .content-shell {
   margin-top: 0.9rem;
+  min-height: calc(100dvh - 3rem);
 }
 
 .lifecycle-grid {
@@ -593,20 +644,17 @@ button {
 }
 
 @media (max-width: 880px) {
-  .hero-banner-wrap {
+  :host {
     --hero-rest-cap: 13.5rem;
+    --logo-h: 3.4rem;
+    --logo-shrink: 1.8rem;
+    --logo-rest: -0.85rem;
+    --btn-h: 2.35rem;
+    --btn-rest: 7.8rem;
   }
 
   .hero-layout {
     padding-top: 4.8rem;
-  }
-
-  .hero-cluster {
-    bottom: calc(-2.6rem + 4.2rem * var(--hero-collapse, 0));
-  }
-
-  .cluster-logo {
-    height: calc(3.4rem - 1.8rem * var(--hero-collapse, 0));
   }
 
   .hero-info h1 {
@@ -614,7 +662,6 @@ button {
   }
 
   .cluster-action {
-    bottom: calc(-10.2rem + 11.7rem * var(--hero-collapse, 0));
     padding: 0.48rem 0.95rem;
     font-size: 0.88rem;
   }
@@ -642,12 +689,10 @@ button {
 // above but still has very little vertical room -- shrink the banner and
 // logo there too, keyed off height rather than width.
 @media (orientation: landscape) and (max-height: 500px) {
-  .hero-banner-wrap {
+  :host {
     --hero-rest-cap: 8rem;
     --hero-final: 3.5rem;
-  }
-
-  .cluster-logo {
-    height: calc(3.2rem - 1.6rem * var(--hero-collapse, 0));
+    --logo-h: 3.2rem;
+    --logo-shrink: 1.6rem;
   }
 }

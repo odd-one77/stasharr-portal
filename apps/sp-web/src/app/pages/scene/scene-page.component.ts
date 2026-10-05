@@ -86,6 +86,7 @@ export class ScenePageComponent implements OnInit, OnDestroy {
   protected readonly backLinkQueryParams = signal<Params>({});
   protected readonly backLinkLabel = signal('Back to Scenes');
   protected readonly heroCollapseProgress = signal(0);
+  protected readonly heroDock = signal(0);
   protected readonly heroRest = signal<string | null>(null);
   private backdropObserver: ResizeObserver | null = null;
   protected readonly similarScenes = signal<SceneExplorerItem[]>([]);
@@ -94,9 +95,10 @@ export class ScenePageComponent implements OnInit, OnDestroy {
   private stopHeroCollapse: (() => void) | null = null;
 
   ngOnInit(): void {
-    this.stopHeroCollapse = observeHeroCollapse(this.host.nativeElement, this.zone, (progress) =>
-      this.heroCollapseProgress.set(progress),
-    );
+    this.stopHeroCollapse = observeHeroCollapse(this.host.nativeElement, this.zone, (progress, dock) => {
+      this.heroCollapseProgress.set(progress);
+      this.heroDock.set(dock);
+    });
     this.routeSubscription = combineLatest([
       this.route.paramMap,
       this.route.queryParamMap,
